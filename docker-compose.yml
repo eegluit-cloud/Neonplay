@@ -62,11 +62,11 @@ services:
       - neonplay-network
     command: >
       sh -c "
-        echo 'Running Prisma migrations...' &&
-        npx prisma migrate deploy &&
+        echo 'Running Prisma db push...' &&
+        npx prisma db push --skip-generate &&
         echo 'Running database seed...' &&
         npx prisma db seed || echo 'Seeding skipped or failed' &&
-        echo 'Migrations complete!'
+        echo 'Setup complete!'
       "
     restart: "no"
 
