@@ -1,8 +1,6 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { ChevronLeft, ChevronRight, Copy, Check, Share2, Coins, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Copy, Check, Share2, DollarSign } from 'lucide-react';
 import { useState } from 'react';
-import { useAppMode } from '@/contexts/AppModeContext';
-import { cn } from '@/lib/utils';
 
 interface BetSlipModalProps {
   isOpen: boolean;
@@ -18,21 +16,16 @@ interface BetSlipModalProps {
 
 export function BetSlipModal({ isOpen, onClose, bet }: BetSlipModalProps) {
   const [copied, setCopied] = useState(false);
-  const { mode } = useAppMode();
 
   if (!bet) return null;
 
-  // Generate random bet details for demo (in coins now)
-  const stakeAmount = (Math.random() * 50000 + 1000).toFixed(0);
+  // Generate random bet details for demo (in USD)
+  const stakeAmount = (Math.random() * 500 + 10).toFixed(2);
   const multiplier = (Math.random() * 5 + 1).toFixed(2);
-  const prize = (parseFloat(stakeAmount) * parseFloat(multiplier)).toFixed(0);
+  const prize = (parseFloat(stakeAmount) * parseFloat(multiplier)).toFixed(2);
   const betId = Math.floor(Math.random() * 9999999999999999999).toString();
   const date = new Date();
   const formattedDate = `${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}, ${date.toLocaleTimeString()}`;
-  
-  // Randomly assign GC or SC for demo
-  const coinType = mode === 'sweepstakes' && Math.random() > 0.5 ? 'SC' : 'GC';
-  const isGC = coinType === 'GC';
 
   const handleCopy = () => {
     navigator.clipboard.writeText(betId);
@@ -68,16 +61,9 @@ export function BetSlipModal({ isOpen, onClose, bet }: BetSlipModalProps) {
             <div className="text-center mb-3 sm:mb-4">
               <p className="text-xs sm:text-sm text-muted-foreground mb-1 sm:mb-2">Prize Won</p>
               <div className="flex items-center justify-center gap-2">
-                {isGC ? (
-                  <Coins className="w-6 h-6 text-amber-400" />
-                ) : (
-                  <Trophy className="w-6 h-6 text-cyan-400" />
-                )}
-                <span className={cn(
-                  "text-xl sm:text-3xl font-bold",
-                  isGC ? "text-amber-400" : "text-cyan-400"
-                )}>
-                  {coinType} {parseInt(prize).toLocaleString()}
+                <DollarSign className="w-6 h-6 text-green-400" />
+                <span className="text-xl sm:text-3xl font-bold text-green-400">
+                  ${parseFloat(prize).toLocaleString()}
                 </span>
               </div>
             </div>
@@ -86,11 +72,8 @@ export function BetSlipModal({ isOpen, onClose, bet }: BetSlipModalProps) {
             <div className="bg-[#1a1a1a] rounded-lg sm:rounded-xl p-3 sm:p-4 flex justify-between">
               <div>
                 <p className="text-[10px] sm:text-xs text-muted-foreground mb-0.5 sm:mb-1">Stake</p>
-                <span className={cn(
-                  "text-xs sm:text-sm font-semibold",
-                  isGC ? "text-amber-400" : "text-cyan-400"
-                )}>
-                  {coinType} {parseInt(stakeAmount).toLocaleString()}
+                <span className="text-xs sm:text-sm font-semibold text-green-400">
+                  ${parseFloat(stakeAmount).toLocaleString()}
                 </span>
               </div>
               <div className="text-right">

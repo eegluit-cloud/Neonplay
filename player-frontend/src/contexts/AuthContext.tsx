@@ -14,11 +14,33 @@ export interface User {
   createdAt: string;
 }
 
+// Multi-currency wallet balances
+export interface WalletBalances {
+  USD: number;
+  EUR: number;
+  GBP: number;
+  CAD: number;
+  AUD: number;
+  USDC: number;
+  USDT: number;
+  BTC: number;
+  ETH: number;
+  SOL: number;
+  DOGE: number;
+}
+
+export type Currency = keyof WalletBalances;
+
 export interface Wallet {
-  gcBalance: number;
-  scBalance: number;
-  gcLifetimeEarned: number;
-  scLifetimeEarned: number;
+  balances: WalletBalances;
+  primaryCurrency: Currency;
+  lifetimeStats: {
+    deposited: number;
+    withdrawn: number;
+    wagered: number;
+    won: number;
+    bonuses: number;
+  };
 }
 
 interface AuthContextType {

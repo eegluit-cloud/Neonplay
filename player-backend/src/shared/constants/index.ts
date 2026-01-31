@@ -1,40 +1,59 @@
 // Application-wide constants
 
-// Currency constants
-export const COIN_TYPES = {
-  GC: 'GC', // Gold Coins (purchased)
-  SC: 'SC', // Sweepstake Coins (earned/redeemable)
+// Supported currencies
+export const FIAT_CURRENCIES = {
+  USD: { code: 'USD', name: 'US Dollar', symbol: '$', decimals: 2 },
+  EUR: { code: 'EUR', name: 'Euro', symbol: '€', decimals: 2 },
+  GBP: { code: 'GBP', name: 'British Pound', symbol: '£', decimals: 2 },
+  CAD: { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', decimals: 2 },
+  AUD: { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', decimals: 2 },
 } as const;
+
+export const CRYPTO_CURRENCIES = {
+  USDC: { code: 'USDC', name: 'USD Coin', symbol: 'USDC', decimals: 6, isStablecoin: true },
+  USDT: { code: 'USDT', name: 'Tether', symbol: 'USDT', decimals: 6, isStablecoin: true },
+  BTC: { code: 'BTC', name: 'Bitcoin', symbol: '₿', decimals: 8, isStablecoin: false },
+  ETH: { code: 'ETH', name: 'Ethereum', symbol: 'Ξ', decimals: 8, isStablecoin: false },
+  SOL: { code: 'SOL', name: 'Solana', symbol: 'SOL', decimals: 8, isStablecoin: false },
+  DOGE: { code: 'DOGE', name: 'Dogecoin', symbol: 'Ð', decimals: 8, isStablecoin: false },
+} as const;
+
+export const ALL_CURRENCIES = {
+  ...FIAT_CURRENCIES,
+  ...CRYPTO_CURRENCIES,
+} as const;
+
+export type FiatCurrency = keyof typeof FIAT_CURRENCIES;
+export type CryptoCurrency = keyof typeof CRYPTO_CURRENCIES;
+export type Currency = keyof typeof ALL_CURRENCIES;
 
 // Transaction types
 export const TRANSACTION_TYPES = {
-  PURCHASE: 'purchase',
+  DEPOSIT: 'deposit',
+  WITHDRAWAL: 'withdrawal',
   BONUS: 'bonus',
   GAME_WIN: 'game_win',
   GAME_LOSS: 'game_loss',
   STAKE: 'stake',
-  REDEEM: 'redeem',
   REFUND: 'refund',
   ADJUSTMENT: 'adjustment',
+  TRANSFER: 'transfer',
+  CONVERSION: 'conversion',
 } as const;
 
-// Default bonuses
+// Default bonuses (in USDC equivalent)
 export const DEFAULT_BONUSES = {
   DAILY: {
-    GC: 1000,
-    SC: 0.5,
+    USDC: 1,
   },
   WEEKLY: {
-    GC: 5000,
-    SC: 2.5,
+    USDC: 5,
   },
   MONTHLY: {
-    GC: 20000,
-    SC: 10,
+    USDC: 25,
   },
   WELCOME: {
-    GC: 10000,
-    SC: 5,
+    USDC: 10,
   },
 } as const;
 
@@ -47,11 +66,10 @@ export const VIP_TIERS = {
   DIAMOND: { level: 5, name: 'Diamond', minXp: 500000 },
 } as const;
 
-// XP multipliers
+// XP multipliers (based on USDC equivalent)
 export const XP_MULTIPLIERS = {
-  PER_GC_WAGERED: 1, // 1 XP per 1 GC wagered
-  PER_SC_WAGERED: 10, // 10 XP per 1 SC wagered
-  PER_USD_PURCHASED: 100, // 100 XP per $1 purchased
+  PER_USDC_WAGERED: 10, // 10 XP per 1 USDC wagered
+  PER_USDC_DEPOSITED: 100, // 100 XP per 1 USDC deposited
 } as const;
 
 // Cashback percentages by VIP tier
@@ -180,15 +198,7 @@ export const PAYMENT_METHODS = {
   CRYPTO: 'crypto',
 } as const;
 
-// Crypto currencies
-export const CRYPTO_CURRENCIES = {
-  BTC: { name: 'Bitcoin', symbol: 'BTC' },
-  ETH: { name: 'Ethereum', symbol: 'ETH' },
-  USDT: { name: 'Tether', symbol: 'USDT' },
-  USDC: { name: 'USD Coin', symbol: 'USDC' },
-  SOL: { name: 'Solana', symbol: 'SOL' },
-  DOGE: { name: 'Dogecoin', symbol: 'DOGE' },
-} as const;
+// Note: CRYPTO_CURRENCIES is defined at the top of this file with detailed currency info
 
 // Ticket priorities
 export const TICKET_PRIORITIES = {
@@ -222,27 +232,26 @@ export const SESSION_LIMITS = {
   LOCKOUT_DURATION: 30 * 60 * 1000, // 30 minutes
 } as const;
 
-// AMOE limits
+// AMOE limits (amounts in USDC)
 export const AMOE_LIMITS = {
   DAILY: 1,
   WEEKLY: 5,
-  SC_PER_ENTRY: 1,
+  USDC_PER_ENTRY: 1,
 } as const;
 
-// Referral rewards
+// Referral rewards (in USDC)
 export const REFERRAL_REWARDS = {
-  REFERRER: { GC: 5000, SC: 2.5 },
-  REFERRED: { GC: 5000, SC: 2.5 },
-  QUALIFICATION_PURCHASE: 10, // $10 minimum purchase to qualify
+  REFERRER_USDC: 5,
+  REFERRED_USDC: 5,
+  QUALIFICATION_DEPOSIT_USDC: 10, // 10 USDC minimum deposit to qualify
 } as const;
 
-// Redemption limits
-export const REDEMPTION_LIMITS = {
-  MIN_SC: 50, // Minimum 50 SC to redeem
-  SC_TO_USD_RATE: 1, // 1 SC = $1 USD
-  DAILY_LIMIT: 500, // $500 per day
-  WEEKLY_LIMIT: 2500, // $2500 per week
-  MONTHLY_LIMIT: 10000, // $10000 per month
+// Withdrawal limits (in USDC equivalent)
+export const WITHDRAWAL_LIMITS = {
+  MIN_USDC: 50, // Minimum 50 USDC to withdraw
+  DAILY_LIMIT_USDC: 500, // 500 USDC per day
+  WEEKLY_LIMIT_USDC: 2500, // 2500 USDC per week
+  MONTHLY_LIMIT_USDC: 10000, // 10000 USDC per month
 } as const;
 
 // Game categories

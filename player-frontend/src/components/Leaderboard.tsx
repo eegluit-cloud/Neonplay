@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Calendar, CalendarDays, CalendarRange, Coins, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar, CalendarDays, CalendarRange, DollarSign } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/table";
 import { useLeaderboardData, formatAmount, LeaderboardPeriod } from "@/hooks/useLeaderboardData";
 import { useUserAvatar } from "@/hooks/useUserAvatar";
-import { useAppMode } from "@/contexts/AppModeContext";
 
 const getPositionStyle = (position: number) => {
   if (position === 1) return "text-yellow-400 border-yellow-400/50";
@@ -23,18 +22,17 @@ const getPositionStyle = (position: number) => {
 };
 
 const myBetsData = [
-  { id: 1, game: "Sweet Bonanza", gameIcon: "🍬", stakeAmount: 500, multiplier: "2.5x", prize: 1250, time: "2 min ago", status: "win", coinType: "GC" as const },
-  { id: 2, game: "Gates of Olympus", gameIcon: "⚡", stakeAmount: 100, multiplier: "0x", prize: 0, time: "5 min ago", status: "loss", coinType: "SC" as const },
-  { id: 3, game: "Big Bass Splash", gameIcon: "🐟", stakeAmount: 250, multiplier: "4.2x", prize: 1050, time: "12 min ago", status: "win", coinType: "GC" as const },
-  { id: 4, game: "Crazy Time", gameIcon: "🎡", stakeAmount: 200, multiplier: "1.8x", prize: 360, time: "18 min ago", status: "win", coinType: "SC" as const },
-  { id: 5, game: "Live Roulette", gameIcon: "🎰", stakeAmount: 750, multiplier: "0x", prize: 0, time: "25 min ago", status: "loss", coinType: "GC" as const },
+  { id: 1, game: "Sweet Bonanza", gameIcon: "🍬", stakeAmount: 50, multiplier: "2.5x", prize: 125, time: "2 min ago", status: "win" },
+  { id: 2, game: "Gates of Olympus", gameIcon: "⚡", stakeAmount: 10, multiplier: "0x", prize: 0, time: "5 min ago", status: "loss" },
+  { id: 3, game: "Big Bass Splash", gameIcon: "🐟", stakeAmount: 25, multiplier: "4.2x", prize: 105, time: "12 min ago", status: "win" },
+  { id: 4, game: "Crazy Time", gameIcon: "🎡", stakeAmount: 20, multiplier: "1.8x", prize: 36, time: "18 min ago", status: "win" },
+  { id: 5, game: "Live Roulette", gameIcon: "🎰", stakeAmount: 75, multiplier: "0x", prize: 0, time: "25 min ago", status: "loss" },
 ];
 
 const Leaderboard = () => {
   const [period, setPeriod] = useState<LeaderboardPeriod>("daily");
   const { winners, playerPosition, playerWager, changePeriod } = useLeaderboardData(period);
   const { avatar: userAvatar } = useUserAvatar();
-  const { mode } = useAppMode();
   const [activeTab, setActiveTab] = useState("leaderboard");
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -53,9 +51,9 @@ const Leaderboard = () => {
     { id: "monthly", label: "Monthly", icon: CalendarRange },
   ];
 
-  // Format coin display
-  const formatCoinAmount = (amount: number) => {
-    return `GC ${formatAmount(amount * 100)}`; // Convert to GC scale
+  // Format USD display
+  const formatUsdAmount = (amount: number) => {
+    return `$${formatAmount(amount)}`;
   };
 
   return (
@@ -117,9 +115,9 @@ const Leaderboard = () => {
           
           <div className="flex flex-col">
             <span className="text-muted-foreground text-[10px]">To Reach Top 10</span>
-            <span className="text-amber-400 font-bold text-sm transition-all duration-300 flex items-center gap-0.5">
-              <Coins className="w-3 h-3" />
-              {formatAmount(Math.max(0, (winners[9]?.amount ?? 0) - playerWager) * 100)}
+            <span className="text-green-400 font-bold text-sm transition-all duration-300 flex items-center gap-0.5">
+              <DollarSign className="w-3 h-3" />
+              {formatAmount(Math.max(0, (winners[9]?.amount ?? 0) - playerWager))}
             </span>
           </div>
         </div>
@@ -135,7 +133,7 @@ const Leaderboard = () => {
                 <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Player</TableHead>
                 <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">Country</TableHead>
                 <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">Games</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Coins Played</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Wagered</TableHead>
                 <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">VIP Level</TableHead>
               </TableRow>
             </TableHeader>
@@ -182,9 +180,9 @@ const Leaderboard = () => {
                       <span className="text-muted-foreground text-xs">{displayPlayer.game}</span>
                     </TableCell>
                     <TableCell className="py-1.5 px-2 md:px-4">
-                      <span className="text-amber-400 font-medium text-[10px] md:text-xs flex items-center gap-0.5">
-                        <Coins className="w-3 h-3" />
-                        {formatAmount(displayPlayer.amount * 100)}
+                      <span className="text-green-400 font-medium text-[10px] md:text-xs flex items-center gap-0.5">
+                        <DollarSign className="w-3 h-3" />
+                        {formatAmount(displayPlayer.amount)}
                       </span>
                     </TableCell>
                     <TableCell className="py-1.5 hidden md:table-cell">
@@ -210,44 +208,38 @@ const Leaderboard = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {myBetsData.map((bet) => {
-                const displayCoinType = mode === 'social' ? 'GC' : bet.coinType;
-                const CoinIcon = displayCoinType === 'SC' ? Trophy : Coins;
-                const coinColor = displayCoinType === 'SC' ? 'text-emerald-400' : 'text-amber-400';
-                
-                return (
-                  <TableRow key={bet.id} className="border-b border-border/50 hover:bg-secondary/50 h-8">
-                    <TableCell className="py-2 px-2 md:px-4">
-                      <span className="text-foreground text-xs md:text-sm truncate max-w-[80px] md:max-w-none">{bet.game}</span>
-                    </TableCell>
-                    <TableCell className="py-2 hidden sm:table-cell">
-                      <span className={`font-medium text-xs md:text-sm flex items-center gap-0.5 ${coinColor}`}>
-                        <CoinIcon className="w-3 h-3" />
-                        {bet.stakeAmount.toLocaleString()}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-2 hidden md:table-cell">
-                      <span className={bet.status === "win" ? "text-primary" : "text-muted-foreground"}>{bet.multiplier}</span>
-                    </TableCell>
-                    <TableCell className="py-2 px-2 md:px-4">
-                      <span className={`text-xs md:text-sm flex items-center gap-0.5 ${bet.status === "win" ? `${coinColor} font-medium` : "text-destructive"}`}>
-                        {bet.status === "win" && <CoinIcon className="w-3 h-3" />}
-                        {bet.prize.toLocaleString()}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-2 hidden md:table-cell">
-                      <span className="text-muted-foreground text-xs">{bet.time}</span>
-                    </TableCell>
-                    <TableCell className="py-2 px-2 md:px-4">
-                      <span className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${
-                        bet.status === "win" ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
-                      }`}>
-                        {bet.status === "win" ? "Win" : "Loss"}
-                      </span>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {myBetsData.map((bet) => (
+                <TableRow key={bet.id} className="border-b border-border/50 hover:bg-secondary/50 h-8">
+                  <TableCell className="py-2 px-2 md:px-4">
+                    <span className="text-foreground text-xs md:text-sm truncate max-w-[80px] md:max-w-none">{bet.game}</span>
+                  </TableCell>
+                  <TableCell className="py-2 hidden sm:table-cell">
+                    <span className="font-medium text-xs md:text-sm flex items-center gap-0.5 text-green-400">
+                      <DollarSign className="w-3 h-3" />
+                      {bet.stakeAmount.toLocaleString()}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-2 hidden md:table-cell">
+                    <span className={bet.status === "win" ? "text-primary" : "text-muted-foreground"}>{bet.multiplier}</span>
+                  </TableCell>
+                  <TableCell className="py-2 px-2 md:px-4">
+                    <span className={`text-xs md:text-sm flex items-center gap-0.5 ${bet.status === "win" ? "text-green-400 font-medium" : "text-destructive"}`}>
+                      {bet.status === "win" && <DollarSign className="w-3 h-3" />}
+                      {bet.prize.toLocaleString()}
+                    </span>
+                  </TableCell>
+                  <TableCell className="py-2 hidden md:table-cell">
+                    <span className="text-muted-foreground text-xs">{bet.time}</span>
+                  </TableCell>
+                  <TableCell className="py-2 px-2 md:px-4">
+                    <span className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${
+                      bet.status === "win" ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
+                    }`}>
+                      {bet.status === "win" ? "Win" : "Loss"}
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         )}

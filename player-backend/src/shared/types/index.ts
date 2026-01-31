@@ -16,20 +16,30 @@ export interface PaginatedResponse<T> {
 }
 
 // Currency types
-export type CoinType = 'GC' | 'SC';
+export type FiatCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD';
+export type CryptoCurrency = 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'SOL' | 'DOGE';
+export type Currency = FiatCurrency | CryptoCurrency;
 
 // Transaction types
 export type TransactionType =
-  | 'purchase'
+  | 'deposit'
+  | 'withdrawal'
   | 'bonus'
   | 'game_win'
   | 'game_loss'
   | 'stake'
-  | 'redeem'
   | 'refund'
-  | 'adjustment';
+  | 'adjustment'
+  | 'transfer'
+  | 'conversion';
 
-export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'reversed';
+export type TransactionStatus = 'pending' | 'confirming' | 'completed' | 'failed' | 'reversed';
+
+// Deposit status
+export type DepositStatus = 'pending' | 'confirming' | 'completed' | 'failed' | 'refunded';
+
+// Withdrawal status
+export type WithdrawalStatus = 'pending' | 'processing' | 'completed' | 'rejected' | 'cancelled';
 
 // User status types
 export type UserVerificationStatus = 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -179,15 +189,13 @@ export type PaymentMethod =
   | 'bank_transfer'
   | 'crypto';
 
-export type CryptoCurrency = 'ETH' | 'BTC' | 'USDT' | 'USDC' | 'SOL' | 'DOGE';
+// Note: CryptoCurrency is defined at the top of this file
 
-export type RedemptionMethod = 'bank_transfer' | 'paypal' | 'crypto';
+export type WithdrawalMethod = 'bank_transfer' | 'paypal' | 'crypto';
 
-export type RedemptionStatus =
-  | 'pending'
-  | 'processing'
-  | 'completed'
-  | 'rejected';
+// Legacy alias for backwards compatibility
+export type RedemptionMethod = WithdrawalMethod;
+export type RedemptionStatus = WithdrawalStatus;
 
 // Activity feed types
 export type SocialProofEventType =

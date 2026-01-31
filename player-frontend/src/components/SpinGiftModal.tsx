@@ -45,9 +45,7 @@ export function SpinGiftModal({ isOpen, onClose }: SpinGiftModalProps) {
   const wheelSegments = useMemo(() => {
     if (config?.segments && config.segments.length > 0) {
       return config.segments.sort((a, b) => a.sortOrder - b.sortOrder).map(s => ({
-        value: s.gcAmount + s.scAmount,
-        gcAmount: s.gcAmount,
-        scAmount: s.scAmount,
+        value: s.usdAmount || (s.gcAmount + s.scAmount) / 100, // Convert to USD or use usdAmount
         label: s.label,
       }));
     }
@@ -80,7 +78,7 @@ export function SpinGiftModal({ isOpen, onClose }: SpinGiftModalProps) {
 
         setTimeout(() => {
           setIsSpinning(false);
-          setWinAmount(result.gcWon + result.scWon);
+          setWinAmount(result.usdWon || (result.gcWon + result.scWon) / 100); // Convert to USD
           playWinSound();
           // Refetch config to update spins remaining
           refetchConfig();

@@ -2,9 +2,8 @@ import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Trash2, ChevronLeft, ChevronDown, Check, Coins, Trophy } from 'lucide-react';
+import { Trash2, ChevronLeft, ChevronDown, Check, DollarSign } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { useAppMode } from '@/contexts/AppModeContext';
 import promoHeroBanner from '@/assets/promo-hero-banner.png';
 import promoDailyBonus from '@/assets/promo-daily-bonus.png';
 import promoWeeklyBonus from '@/assets/promo-weekly-bonus.png';
@@ -25,53 +24,53 @@ interface NotificationsPanelProps {
 }
 
 const initialNotifications: Notification[] = [
-  { 
-    id: 1, 
-    title: "Its Weekly Sports Bonus Time!", 
-    message: "STAKE SC 500 AND GET UP TO SC 1,000!", 
+  {
+    id: 1,
+    title: "Its Weekly Sports Bonus Time!",
+    message: "WAGER $500 AND GET UP TO $100 BONUS!",
     date: "1/10/2026, 6:34:41 AM",
     image: promoHeroBanner,
     type: 'promotions',
     isRead: false
   },
-  { 
-    id: 2, 
-    title: "Its Weekly Sports Bonus Time!", 
-    message: "STAKE SC 500 AND GET UP TO SC 1,000!", 
+  {
+    id: 2,
+    title: "Its Weekly Sports Bonus Time!",
+    message: "WAGER $500 AND GET UP TO $100 BONUS!",
     date: "1/3/2026, 7:25:58 AM",
     image: promoDailyBonus,
     type: 'promotions',
     isRead: false
   },
-  { 
-    id: 3, 
-    title: "Daily Bonus Available!", 
-    message: "Claim your 10% bonus coins now!", 
+  {
+    id: 3,
+    title: "Daily Bonus Available!",
+    message: "Claim your 10% deposit bonus now!",
     date: "1/2/2026, 4:00:00 PM",
     image: promoWeeklyBonus,
     type: 'promotions',
     isRead: true
   },
-  { 
-    id: 4, 
-    title: "Coins Added", 
-    message: "Your purchase of GC 50,000 has been credited.", 
+  {
+    id: 4,
+    title: "Deposit Successful",
+    message: "Your deposit of $500 has been credited.",
     date: "1/1/2026, 10:30:00 AM",
     type: 'transactions',
     isRead: true
   },
-  { 
-    id: 5, 
-    title: "Prize Redeemed", 
-    message: "Your redemption of SC 2,000 is complete.", 
+  {
+    id: 5,
+    title: "Withdrawal Complete",
+    message: "Your withdrawal of $200 USDC is complete.",
     date: "12/30/2025, 3:15:00 PM",
     type: 'transactions',
     isRead: true
   },
-  { 
-    id: 6, 
-    title: "Password Changed", 
-    message: "Your password was successfully updated.", 
+  {
+    id: 6,
+    title: "Password Changed",
+    message: "Your password was successfully updated.",
     date: "12/28/2025, 9:00:00 AM",
     type: 'system',
     isRead: true
@@ -86,7 +85,6 @@ const tabs = [
 
 export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps) {
   const navigate = useNavigate();
-  const { mode } = useAppMode();
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
   const [activeTab, setActiveTab] = useState<'promotions' | 'transactions' | 'system'>('promotions');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
@@ -149,15 +147,15 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
               <li className="flex justify-between">
                 <span>Minimum Stake:</span>
                 <span className="text-foreground font-medium flex items-center gap-1">
-                  {mode === 'sweepstakes' ? <Trophy className="w-3 h-3 text-cyan-400" /> : <Coins className="w-3 h-3 text-amber-400" />}
-                  {mode === 'sweepstakes' ? 'SC 500' : 'GC 5,000'}
+                  <DollarSign className="w-3 h-3 text-green-400" />
+                  $50
                 </span>
               </li>
               <li className="flex justify-between">
                 <span>Maximum Bonus:</span>
                 <span className="text-foreground font-medium flex items-center gap-1">
-                  {mode === 'sweepstakes' ? <Trophy className="w-3 h-3 text-cyan-400" /> : <Coins className="w-3 h-3 text-amber-400" />}
-                  {mode === 'sweepstakes' ? 'SC 1,000' : 'GC 10,000'}
+                  <DollarSign className="w-3 h-3 text-green-400" />
+                  $100
                 </span>
               </li>
               <li className="flex justify-between">

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, Wallet, AlertCircle, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAppMode, useWallet } from '@/contexts/AppModeContext';
+import { useWallet } from '@/contexts/AppModeContext';
 import confetti from 'canvas-confetti';
 
 interface RedeemModalProps {
@@ -14,13 +14,15 @@ interface RedeemModalProps {
 type Step = 'form' | 'processing' | 'success';
 
 export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
-  const { mode } = useAppMode();
-  const { scBalance, updateSCBalance, addActivity } = useWallet();
-  
+  const { balances, updateBalance, addActivity, formatCurrency } = useWallet();
+
   const [step, setStep] = useState<Step>('form');
   const [amount, setAmount] = useState('');
   const [utrNumber, setUtrNumber] = useState('');
   const [error, setError] = useState('');
+
+  // Use USDC balance for withdrawals
+  const usdcBalance = balances.USDC;
 
   useEffect(() => {
     if (isOpen) {
@@ -33,30 +35,6 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
 
   if (!isOpen) return null;
 
-  // Only available in sweepstakes mode
-  if (mode !== 'sweepstakes') {
-    return createPortal(
-      <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
-        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative w-full sm:max-w-md sm:mx-4 bg-card border-t sm:border border-border rounded-t-2xl sm:rounded-2xl p-6 text-center">
-          <button 
-            onClick={onClose}
-            className="absolute top-4 left-4 w-7 h-7 rounded-lg bg-secondary border border-border flex items-center justify-center"
-          >
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <Wallet className="w-12 h-12 text-muted-foreground mx-auto mb-4 mt-6" />
-          <h2 className="text-xl font-bold text-foreground mb-2">Sweepstakes Mode Required</h2>
-          <p className="text-muted-foreground mb-4">
-            Redemption is only available in Sweepstakes mode.
-          </p>
-          <Button onClick={onClose}>Got it</Button>
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
   const handleAmountChange = (value: string) => {
     const numericValue = value.replace(/[^0-9]/g, '');
     setAmount(numericValue);
@@ -64,36 +42,37 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
   };
 
   const handleSubmit = () => {
-    const amountNum = parseInt(amount);
-    
+    const amountNum = parseFloat(amount);
+
     if (!amount || amountNum <= 0) {
       setError('Please enter a valid amount');
       return;
     }
-    
-    if (amountNum > scBalance) {
-      setError('Insufficient SC balance');
+
+    if (amountNum > usdcBalance) {
+      setError('Insufficient USDC balance');
       return;
     }
-    
-    if (amountNum < 100) {
-      setError('Minimum redemption is 100 SC');
+
+    if (amountNum < 50) {
+      setError('Minimum withdrawal is 50 USDC');
       return;
     }
-    
+
     setStep('processing');
-    
+
     setTimeout(() => {
-      updateSCBalance(-amountNum);
+      updateBalance('USDC', -amountNum);
       addActivity({
-        type: 'redeem',
-        coinType: 'SC',
+        type: 'withdrawal',
+        currency: 'USDC',
         amount: amountNum,
-        status: 'completed',
-        description: `Redeemed ${amountNum.toLocaleString()} SC`,
+        usdcAmount: amountNum,
+        status: 'pending',
+        description: `Withdrawal request: ${formatCurrency(amountNum, 'USDC')}`,
         referenceId: utrNumber.trim() || undefined
       });
-      
+
       setStep('success');
       triggerConfetti();
     }, 2000);
@@ -136,7 +115,7 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
             >
               <ChevronLeft className="w-4 h-4 text-muted-foreground" />
             </button>
-            <h1 className="text-lg font-bold text-foreground">Redeem</h1>
+            <h1 className="text-lg font-bold text-foreground">Withdraw</h1>
           </div>
         </div>
 
@@ -146,9 +125,9 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
             <div className="space-y-5">
               {/* Balance Card */}
               <div className="bg-gradient-to-r from-cyan-500/20 to-teal-500/20 rounded-xl p-4 border border-cyan-500/30">
-                <p className="text-sm text-muted-foreground mb-1">Available for Redemption</p>
+                <p className="text-sm text-muted-foreground mb-1">Available for Withdrawal</p>
                 <p className="text-2xl font-bold text-cyan-400">
-                  {scBalance.toLocaleString()} <span className="text-base">SC</span>
+                  {formatCurrency(usdcBalance, 'USDC')}
                 </p>
               </div>
 
@@ -167,10 +146,10 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
                       className="h-12 text-base pr-14 bg-secondary/50 border-border"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400 font-semibold text-sm">
-                      SC
+                      USDC
                     </span>
                   </div>
-                  <p className="text-xs text-muted-foreground">Minimum: 100 SC</p>
+                  <p className="text-xs text-muted-foreground">Minimum: 50 USDC</p>
                 </div>
 
                 {/* UTR Number Field */}
@@ -201,13 +180,13 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
                   onClick={handleSubmit}
                   className="w-full h-12 text-base font-bold bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-600 hover:to-teal-500 text-white shadow-lg shadow-cyan-500/25"
                 >
-                  Redeem
+                  Withdraw
                 </Button>
               </div>
 
               {/* Info */}
               <p className="text-xs text-muted-foreground text-center">
-                Redemptions are typically processed within 24-48 hours.
+                Withdrawals are typically processed within 24-48 hours.
               </p>
             </div>
           )}
@@ -229,23 +208,23 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
               <div className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-500 to-teal-400 flex items-center justify-center mb-5">
                 <Check className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-xl font-bold text-foreground mb-2">Redemption Successful!</h2>
+              <h2 className="text-xl font-bold text-foreground mb-2">Withdrawal Submitted!</h2>
               <p className="text-sm text-muted-foreground mb-5 max-w-xs">
-                Your request for <span className="text-cyan-400 font-semibold">{parseInt(amount).toLocaleString()} SC</span> has been submitted.
+                Your request for <span className="text-cyan-400 font-semibold">{formatCurrency(parseFloat(amount), 'USDC')}</span> has been submitted.
               </p>
-              
+
               <div className="bg-secondary/50 rounded-xl border border-border p-4 w-full max-w-xs mb-5 space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Amount</span>
-                  <span className="font-semibold text-foreground">{parseInt(amount).toLocaleString()} SC</span>
+                  <span className="font-semibold text-foreground">{formatCurrency(parseFloat(amount), 'USDC')}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">UTR Number</span>
-                  <span className="font-semibold text-foreground">{utrNumber}</span>
+                  <span className="text-muted-foreground">Reference</span>
+                  <span className="font-semibold text-foreground">{utrNumber || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between text-sm border-t border-border pt-2">
                   <span className="text-muted-foreground">New Balance</span>
-                  <span className="font-bold text-cyan-400">{scBalance.toLocaleString()} SC</span>
+                  <span className="font-bold text-cyan-400">{formatCurrency(usdcBalance, 'USDC')}</span>
                 </div>
               </div>
 

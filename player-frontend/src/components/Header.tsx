@@ -22,7 +22,7 @@ export function Header({
 }: HeaderProps) {
   const { avatar: userAvatar } = useUserAvatar();
   const { playerPosition } = useLeaderboardData();
-  const { gcBalance, scBalance } = useWallet();
+  const { balances, primaryCurrency, formatCurrency } = useWallet();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [balanceDropdownOpen, setBalanceDropdownOpen] = useState(false);
@@ -228,7 +228,7 @@ export function Header({
                 <DollarSign className="w-4 h-4 text-green-400" />
                 <span className="text-xs sm:text-sm text-muted-foreground">USD Balance</span>
               </div>
-              <span className="font-bold text-sm sm:text-base text-green-400">${gcBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <span className="font-bold text-sm sm:text-base text-green-400">{formatCurrency(balances.USD, 'USD')}</span>
             </div>
             <div className="h-px bg-border" />
             <div className="flex items-center justify-between">
@@ -236,7 +236,7 @@ export function Header({
                 <Bitcoin className="w-4 h-4 text-orange-400" />
                 <span className="text-xs sm:text-sm text-muted-foreground">BTC Balance</span>
               </div>
-              <span className="font-bold text-sm sm:text-base text-orange-400">{scBalance.toFixed(6)} BTC</span>
+              <span className="font-bold text-sm sm:text-base text-orange-400">{formatCurrency(balances.BTC, 'BTC')}</span>
             </div>
           </div>
         </div>

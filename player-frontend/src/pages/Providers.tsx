@@ -101,9 +101,9 @@ const Providers = () => {
                 <div
                   key={provider.id}
                   onClick={() => navigate(`/providers/${provider.slug}`)}
-                  className="bg-card border border-border rounded-lg md:rounded-xl p-3 md:p-4 flex items-center justify-center h-14 md:h-20 hover:border-primary/50 transition-colors cursor-pointer"
+                  className="bg-card border border-border rounded-lg md:rounded-xl p-3 md:p-4 flex items-center justify-center h-14 md:h-20 hover:border-primary/50 transition-colors cursor-pointer group"
                 >
-                  {provider.logoUrl ? (
+                  {provider.logoUrl && provider.logoUrl.startsWith('http') ? (
                     <img
                       src={provider.logoUrl}
                       alt={provider.name}
@@ -114,7 +114,7 @@ const Providers = () => {
                       }}
                     />
                   ) : null}
-                  <span className={`text-xs font-medium text-center ${provider.logoUrl ? 'hidden' : ''}`}>
+                  <span className={`text-xs font-medium text-center text-muted-foreground group-hover:text-foreground transition-colors ${provider.logoUrl && provider.logoUrl.startsWith('http') ? 'hidden' : ''}`}>
                     {provider.name}
                   </span>
                 </div>

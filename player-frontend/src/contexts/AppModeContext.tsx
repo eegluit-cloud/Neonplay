@@ -1,47 +1,122 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AuthContext from './AuthContext';
 
-export type CurrencyType = 'USD' | 'BTC' | 'ETH' | 'USDT';
+// Supported currencies
+export type FiatCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD';
+export type CryptoCurrency = 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'SOL' | 'DOGE';
+export type Currency = FiatCurrency | CryptoCurrency;
 
 export interface WalletActivity {
   id: string;
-  type: 'deposit' | 'withdrawal' | 'stake' | 'win' | 'bonus';
-  currency: CurrencyType;
+  type: 'deposit' | 'withdrawal' | 'stake' | 'win' | 'bonus' | 'transfer' | 'conversion';
+  currency: Currency;
   amount: number;
+  usdcAmount: number; // USDC equivalent for unified tracking
   timestamp: Date;
   referenceId?: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: 'pending' | 'confirming' | 'completed' | 'failed';
   description?: string;
+  txHash?: string;
+}
+
+export interface WalletBalances {
+  USD: number;
+  EUR: number;
+  GBP: number;
+  CAD: number;
+  AUD: number;
+  USDC: number;
+  USDT: number;
+  BTC: number;
+  ETH: number;
+  SOL: number;
+  DOGE: number;
 }
 
 interface Wallet {
-  usdBalance: number;
-  btcBalance: number;
+  balances: WalletBalances;
+  primaryCurrency: Currency;
   activity: WalletActivity[];
+  lifetimeStats: {
+    deposited: number;
+    withdrawn: number;
+    wagered: number;
+    won: number;
+    bonuses: number;
+  };
 }
 
 interface WalletContextType {
   wallet: Wallet;
+  balances: WalletBalances;
+  primaryCurrency: Currency;
   isDemo: boolean;
-  updateUSDBalance: (amount: number) => void;
-  updateBTCBalance: (amount: number) => void;
+  updateBalance: (currency: Currency, amount: number) => void;
+  setPrimaryCurrency: (currency: Currency) => void;
   addActivity: (activity: Omit<WalletActivity, 'id' | 'timestamp'>) => void;
   refreshWallet: () => void;
-  formatCurrency: (amount: number, currency: CurrencyType) => string;
-  // Legacy exports for backward compatibility during migration
-  gcBalance: number;
-  scBalance: number;
+  formatCurrency: (amount: number, currency: Currency) => string;
+  getUsdcEquivalent: (amount: number, currency: Currency) => number;
 }
 
 const AppModeContext = createContext<WalletContextType | undefined>(undefined);
 
-const WALLET_STORAGE_KEY = 'wallet_data';
+const WALLET_STORAGE_KEY = 'wallet_data_v2';
 
-// Demo wallet for unauthenticated users (for UI preview only)
+// Currency display configuration
+const CURRENCY_CONFIG: Record<Currency, { symbol: string; decimals: number }> = {
+  USD: { symbol: '$', decimals: 2 },
+  EUR: { symbol: '€', decimals: 2 },
+  GBP: { symbol: '£', decimals: 2 },
+  CAD: { symbol: 'C$', decimals: 2 },
+  AUD: { symbol: 'A$', decimals: 2 },
+  USDC: { symbol: '', decimals: 2 },
+  USDT: { symbol: '', decimals: 2 },
+  BTC: { symbol: '₿', decimals: 8 },
+  ETH: { symbol: 'Ξ', decimals: 6 },
+  SOL: { symbol: '', decimals: 4 },
+  DOGE: { symbol: 'Ð', decimals: 4 },
+};
+
+// Approximate exchange rates to USDC (in production, fetch from API)
+const EXCHANGE_RATES: Record<Currency, number> = {
+  USD: 1,
+  EUR: 1.08,
+  GBP: 1.27,
+  CAD: 0.74,
+  AUD: 0.65,
+  USDC: 1,
+  USDT: 1,
+  BTC: 43000,
+  ETH: 2200,
+  SOL: 100,
+  DOGE: 0.08,
+};
+
+// Demo wallet for unauthenticated users
 const DEMO_WALLET: Wallet = {
-  usdBalance: 1250.00,
-  btcBalance: 0.0125,
-  activity: []
+  balances: {
+    USD: 1000,
+    EUR: 0,
+    GBP: 0,
+    CAD: 0,
+    AUD: 0,
+    USDC: 500,
+    USDT: 0,
+    BTC: 0.01,
+    ETH: 0.5,
+    SOL: 10,
+    DOGE: 1000,
+  },
+  primaryCurrency: 'USD',
+  activity: [],
+  lifetimeStats: {
+    deposited: 0,
+    withdrawn: 0,
+    wagered: 0,
+    won: 0,
+    bonuses: 0,
+  },
 };
 
 export function AppModeProvider({ children }: { children: ReactNode }) {
@@ -54,12 +129,13 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
         try {
           const parsed = JSON.parse(stored);
           return {
-            usdBalance: parsed.usdBalance ?? parsed.gcBalance ?? DEMO_WALLET.usdBalance,
-            btcBalance: parsed.btcBalance ?? (parsed.scBalance ? parsed.scBalance / 10000 : DEMO_WALLET.btcBalance),
+            balances: parsed.balances || DEMO_WALLET.balances,
+            primaryCurrency: parsed.primaryCurrency || 'USD',
             activity: parsed.activity?.map((a: WalletActivity & { timestamp: string }) => ({
               ...a,
               timestamp: new Date(a.timestamp)
-            })) || []
+            })) || [],
+            lifetimeStats: parsed.lifetimeStats || DEMO_WALLET.lifetimeStats,
           };
         } catch {
           // Fall through to default
@@ -72,9 +148,10 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   // Use real wallet data if authenticated, otherwise use local/mock wallet
   const wallet: Wallet = authContext?.wallet
     ? {
-        usdBalance: authContext.wallet.gcBalance, // Map gcBalance to USD for now
-        btcBalance: authContext.wallet.scBalance / 10000, // Map scBalance to BTC
-        activity: localWallet.activity
+        balances: authContext.wallet.balances || DEMO_WALLET.balances,
+        primaryCurrency: authContext.wallet.primaryCurrency || 'USD',
+        activity: localWallet.activity,
+        lifetimeStats: authContext.wallet.lifetimeStats || DEMO_WALLET.lifetimeStats,
       }
     : localWallet;
 
@@ -85,24 +162,28 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     }
   }, [localWallet, authContext?.isAuthenticated]);
 
-  const updateUSDBalance = (amount: number) => {
+  const updateBalance = (currency: Currency, amount: number) => {
     if (authContext?.isAuthenticated) {
       authContext.refreshWallet();
     } else {
       setLocalWallet(prev => ({
         ...prev,
-        usdBalance: Math.max(0, prev.usdBalance + amount)
+        balances: {
+          ...prev.balances,
+          [currency]: Math.max(0, prev.balances[currency] + amount)
+        }
       }));
     }
   };
 
-  const updateBTCBalance = (amount: number) => {
+  const setPrimaryCurrency = (currency: Currency) => {
     if (authContext?.isAuthenticated) {
+      // API call would go here
       authContext.refreshWallet();
     } else {
       setLocalWallet(prev => ({
         ...prev,
-        btcBalance: Math.max(0, prev.btcBalance + amount)
+        primaryCurrency: currency
       }));
     }
   };
@@ -129,12 +210,13 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
           try {
             const parsed = JSON.parse(stored);
             setLocalWallet({
-              usdBalance: parsed.usdBalance ?? DEMO_WALLET.usdBalance,
-              btcBalance: parsed.btcBalance ?? DEMO_WALLET.btcBalance,
+              balances: parsed.balances || DEMO_WALLET.balances,
+              primaryCurrency: parsed.primaryCurrency || 'USD',
               activity: parsed.activity?.map((a: WalletActivity & { timestamp: string }) => ({
                 ...a,
                 timestamp: new Date(a.timestamp)
-              })) || []
+              })) || [],
+              lifetimeStats: parsed.lifetimeStats || DEMO_WALLET.lifetimeStats,
             });
           } catch {
             // Ignore
@@ -144,18 +226,22 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const formatCurrency = (amount: number, currency: CurrencyType): string => {
-    switch (currency) {
-      case 'USD':
-      case 'USDT':
-        return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-      case 'BTC':
-        return `${amount.toFixed(6)} BTC`;
-      case 'ETH':
-        return `${amount.toFixed(4)} ETH`;
-      default:
-        return amount.toString();
+  const formatCurrency = (amount: number, currency: Currency): string => {
+    const config = CURRENCY_CONFIG[currency];
+    const formatted = amount.toLocaleString('en-US', {
+      minimumFractionDigits: Math.min(config.decimals, 2),
+      maximumFractionDigits: config.decimals
+    });
+
+    // For crypto with no symbol, append currency code
+    if (!config.symbol) {
+      return `${formatted} ${currency}`;
     }
+    return `${config.symbol}${formatted}`;
+  };
+
+  const getUsdcEquivalent = (amount: number, currency: Currency): number => {
+    return amount * EXCHANGE_RATES[currency];
   };
 
   const isDemo = !authContext?.isAuthenticated;
@@ -164,15 +250,15 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
     <AppModeContext.Provider
       value={{
         wallet,
+        balances: wallet.balances,
+        primaryCurrency: wallet.primaryCurrency,
         isDemo,
-        updateUSDBalance,
-        updateBTCBalance,
+        updateBalance,
+        setPrimaryCurrency,
         addActivity,
         refreshWallet,
         formatCurrency,
-        // Legacy compatibility
-        gcBalance: wallet.usdBalance,
-        scBalance: wallet.btcBalance * 10000
+        getUsdcEquivalent,
       }}
     >
       {children}
@@ -185,12 +271,7 @@ export function useAppMode() {
   if (context === undefined) {
     throw new Error('useAppMode must be used within an AppModeProvider');
   }
-  // Return a compatibility object for components still using mode
-  return {
-    ...context,
-    mode: 'casino' as const,
-    setMode: () => {}
-  };
+  return context;
 }
 
 export function useWallet() {
@@ -199,21 +280,24 @@ export function useWallet() {
     throw new Error('useWallet must be used within an AppModeProvider');
   }
   return {
-    usdBalance: context.wallet.usdBalance,
-    btcBalance: context.wallet.btcBalance,
+    balances: context.balances,
+    primaryCurrency: context.primaryCurrency,
     activity: context.wallet.activity,
+    lifetimeStats: context.wallet.lifetimeStats,
     isDemo: context.isDemo,
-    updateUSDBalance: context.updateUSDBalance,
-    updateBTCBalance: context.updateBTCBalance,
+    updateBalance: context.updateBalance,
+    setPrimaryCurrency: context.setPrimaryCurrency,
     addActivity: context.addActivity,
     refresh: context.refreshWallet,
     formatCurrency: context.formatCurrency,
-    // Legacy compatibility for GC/SC references
-    gcBalance: context.gcBalance,
-    scBalance: context.scBalance,
-    updateGCBalance: context.updateUSDBalance,
-    updateSCBalance: context.updateBTCBalance,
-    formatCoins: (amount: number, type: 'GC' | 'SC') =>
-      type === 'GC' ? context.formatCurrency(amount, 'USD') : context.formatCurrency(amount / 10000, 'BTC')
+    getUsdcEquivalent: context.getUsdcEquivalent,
+    // Helper to get balance for specific currency
+    getBalance: (currency: Currency) => context.balances[currency],
+    // Get total balance in USDC equivalent
+    getTotalUsdcValue: () => {
+      return Object.entries(context.balances).reduce((total, [currency, amount]) => {
+        return total + context.getUsdcEquivalent(amount, currency as Currency);
+      }, 0);
+    },
   };
 }

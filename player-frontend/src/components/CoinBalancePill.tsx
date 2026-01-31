@@ -14,21 +14,21 @@ export function CoinBalancePill({
   className,
   size = 'md'
 }: CoinBalancePillProps) {
-  const { usdBalance, btcBalance } = useWallet();
+  const { balances } = useWallet();
   const [activeWallet, setActiveWallet] = useState<0 | 1>(0);
   const [isAnimating, setIsAnimating] = useState(false);
 
   // Wallet data - USD with DollarSign (green), BTC with Bitcoin (orange)
   const wallets = [
     {
-      balance: usdBalance,
+      balance: balances.USD || 0,
       currency: "USD" as const,
       icon: DollarSign,
       gradient: "from-green-400 to-green-600",
       formatBalance: (bal: number) => `$${bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     },
     {
-      balance: btcBalance,
+      balance: balances.BTC || 0,
       currency: "BTC" as const,
       icon: Bitcoin,
       gradient: "from-orange-400 to-orange-600",

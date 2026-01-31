@@ -1,8 +1,8 @@
 import { useEffect, useCallback, useState } from 'react';
-import { X, Trash2, Settings, ChevronDown, Menu, Zap, Coins, Trophy } from 'lucide-react';
+import { X, Trash2, Settings, ChevronDown, Menu, Zap, DollarSign, Bitcoin } from 'lucide-react';
 import { useBetslip } from '@/contexts/BetslipContext';
 import { BetslipSelectionItem } from './BetslipSelectionItem';
-import { useAppMode, useWallet } from '@/contexts/AppModeContext';
+import { useWallet, type Currency } from '@/contexts/AppModeContext';
 import { cn } from '@/lib/utils';
 
 const QUICK_STAKES = [10, 50, 100, 500];
@@ -22,19 +22,18 @@ export function BetslipPanel() {
     potentialWin,
   } = useBetslip();
 
-  const { mode } = useAppMode();
-  const { gcBalance, scBalance } = useWallet();
-  const [stakeCoinType, setStakeCoinType] = useState<'GC' | 'SC'>('SC');
+  const { balances, primaryCurrency, formatCurrency } = useWallet();
+  const [stakeCurrency, setStakeCurrency] = useState<Currency>(primaryCurrency || 'USD');
 
   const count = selections.length;
   const totalStake = activeTab === 'single' ? stake * count : stake;
 
-  // Default to SC in sweepstakes mode, GC in social mode
+  // Update stake currency when primary currency changes
   useEffect(() => {
-    if (mode === 'social') {
-      setStakeCoinType('GC');
+    if (primaryCurrency) {
+      setStakeCurrency(primaryCurrency);
     }
-  }, [mode]);
+  }, [primaryCurrency]);
 
   // Handle ESC key
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -56,7 +55,7 @@ export function BetslipPanel() {
 
   if (!isOpen) return null;
 
-  const currentBalance = stakeCoinType === 'SC' ? scBalance : gcBalance;
+  const currentBalance = balances[stakeCurrency] || 0;
   const hasInsufficientBalance = totalStake > currentBalance;
 
   return (
@@ -161,38 +160,48 @@ export function BetslipPanel() {
 
         {/* Stake section */}
         <div className="p-3 sm:p-4 border-t border-white/10 flex-shrink-0">
-          {/* Coin Type Toggle (Sweepstakes mode only) */}
-          {mode === 'sweepstakes' && (
-            <div className="flex items-center gap-2 mb-3">
-              <span className="text-gray-400 text-xs">Stake with:</span>
-              <div className="flex bg-[#1e1e32] rounded-lg p-0.5">
-                <button
-                  onClick={() => setStakeCoinType('SC')}
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
-                    stakeCoinType === 'SC'
-                      ? "bg-cyan-500/20 text-cyan-400"
-                      : "text-gray-500 hover:text-gray-300"
-                  )}
-                >
-                  <Trophy className="w-3 h-3" />
-                  SC
-                </button>
-                <button
-                  onClick={() => setStakeCoinType('GC')}
-                  className={cn(
-                    "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
-                    stakeCoinType === 'GC'
-                      ? "bg-amber-500/20 text-amber-400"
-                      : "text-gray-500 hover:text-gray-300"
-                  )}
-                >
-                  <Coins className="w-3 h-3" />
-                  GC
-                </button>
-              </div>
+          {/* Currency Selection */}
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-gray-400 text-xs">Stake with:</span>
+            <div className="flex bg-[#1e1e32] rounded-lg p-0.5">
+              <button
+                onClick={() => setStakeCurrency('USD')}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  stakeCurrency === 'USD'
+                    ? "bg-green-500/20 text-green-400"
+                    : "text-gray-500 hover:text-gray-300"
+                )}
+              >
+                <DollarSign className="w-3 h-3" />
+                USD
+              </button>
+              <button
+                onClick={() => setStakeCurrency('USDC')}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  stakeCurrency === 'USDC'
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "text-gray-500 hover:text-gray-300"
+                )}
+              >
+                <DollarSign className="w-3 h-3" />
+                USDC
+              </button>
+              <button
+                onClick={() => setStakeCurrency('BTC')}
+                className={cn(
+                  "flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                  stakeCurrency === 'BTC'
+                    ? "bg-orange-500/20 text-orange-400"
+                    : "text-gray-500 hover:text-gray-300"
+                )}
+              >
+                <Bitcoin className="w-3 h-3" />
+                BTC
+              </button>
             </div>
-          )}
+          </div>
 
           {/* Stake input */}
           <div className="flex items-center justify-between mb-2.5 sm:mb-3">
@@ -206,9 +215,9 @@ export function BetslipPanel() {
               />
               <span className={cn(
                 "ml-1 text-sm font-bold",
-                stakeCoinType === 'SC' ? "text-cyan-400" : "text-amber-400"
+                stakeCurrency === 'USD' ? "text-green-400" : stakeCurrency === 'BTC' ? "text-orange-400" : "text-blue-400"
               )}>
-                {stakeCoinType}
+                {stakeCurrency}
               </span>
             </div>
           </div>
@@ -221,10 +230,12 @@ export function BetslipPanel() {
                 onClick={() => setStake(amount)}
                 className={cn(
                   "flex-1 py-1.5 sm:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-colors",
-                    stake === amount
-                      ? stakeCoinType === 'SC' 
-                        ? "bg-cyan-600 text-white"
-                        : "bg-amber-500 text-white"
+                  stake === amount
+                    ? stakeCurrency === 'USD'
+                      ? "bg-green-600 text-white"
+                      : stakeCurrency === 'BTC'
+                        ? "bg-orange-500 text-white"
+                        : "bg-blue-600 text-white"
                     : "bg-[#1e1e32] text-gray-400 hover:bg-[#2a2a42] hover:text-white"
                 )}
               >
@@ -239,23 +250,23 @@ export function BetslipPanel() {
               <span className="text-gray-400">Total Stake</span>
               <span className={cn(
                 "font-mono font-bold",
-                stakeCoinType === 'SC' ? "text-cyan-400" : "text-amber-400"
+                stakeCurrency === 'USD' ? "text-green-400" : stakeCurrency === 'BTC' ? "text-orange-400" : "text-blue-400"
               )}>
-                {stakeCoinType} {totalStake.toLocaleString()}
+                {formatCurrency(totalStake, stakeCurrency)}
               </span>
             </div>
             <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-gray-400">Potential Prize</span>
               <span className={cn(
                 "font-mono font-bold",
-                stakeCoinType === 'SC' ? "text-cyan-400" : "text-amber-400"
+                stakeCurrency === 'USD' ? "text-green-400" : stakeCurrency === 'BTC' ? "text-orange-400" : "text-blue-400"
               )}>
-                {stakeCoinType} {potentialWin.toLocaleString()}
+                {formatCurrency(potentialWin, stakeCurrency)}
               </span>
             </div>
             {hasInsufficientBalance && (
               <p className="text-xs text-red-400">
-                Insufficient {stakeCoinType} balance
+                Insufficient {stakeCurrency} balance
               </p>
             )}
           </div>
@@ -265,12 +276,14 @@ export function BetslipPanel() {
             <button className="flex-1 py-2.5 sm:py-3 bg-[#1e1e32] hover:bg-[#2a2a42] text-white rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-colors">
               BOOK
             </button>
-            <button 
+            <button
               className={cn(
                 "flex-1 py-2.5 sm:py-3 text-white rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base transition-colors disabled:opacity-50 disabled:cursor-not-allowed",
-                stakeCoinType === 'SC'
-                  ? "bg-cyan-600 hover:bg-cyan-700"
-                  : "bg-amber-500 hover:bg-amber-600"
+                stakeCurrency === 'USD'
+                  ? "bg-green-600 hover:bg-green-700"
+                  : stakeCurrency === 'BTC'
+                    ? "bg-orange-500 hover:bg-orange-600"
+                    : "bg-blue-600 hover:bg-blue-700"
               )}
               disabled={selections.length === 0 || hasInsufficientBalance}
             >

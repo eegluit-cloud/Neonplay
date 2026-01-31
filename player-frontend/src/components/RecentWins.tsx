@@ -1,8 +1,6 @@
 import { memo, useRef, useState, useCallback, useMemo } from 'react';
-import { Coins } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import { BetSlipModal } from './BetSlipModal';
-import { useAppMode } from '@/contexts/AppModeContext';
-import { DiamondIcon } from './icons/DiamondIcon';
 import { Skeleton } from './ui/skeleton';
 
 // Game images
@@ -28,56 +26,51 @@ import rhinoRobbery from '@/assets/games/rhino-robbery.png';
 import grabTheGold from '@/assets/games/grab-the-gold.png';
 
 const recentWins = [
-  { id: 1, user: 'Marcus C.', game: 'Big Bass Splash', amount: 71280, coinType: 'SC' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', isRealPhoto: true, image: bigBassSplash },
-  { id: 2, user: 'Elena R.', game: 'Video Poker', amount: 205000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', isRealPhoto: true, image: videoPoker },
-  { id: 3, user: 'CryptoKing', game: 'Power Pops', amount: 62830, coinType: 'SC' as const, avatar: 'crypto', isRealPhoto: false, image: powerPops },
-  { id: 4, user: 'Jake T.', game: 'Fire in the Hole', amount: 583600, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/men/67.jpg', isRealPhoto: true, image: thorHammerTime },
-  { id: 5, user: 'LuckyDragon', game: 'Bonanza Trillion', amount: 53790, coinType: 'SC' as const, avatar: 'dragon', isRealPhoto: false, image: bonanzaTrillion },
-  { id: 6, user: 'Sofia M.', game: 'Crazy Time', amount: 482000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/women/28.jpg', isRealPhoto: true, image: crazyTime },
-  { id: 7, user: 'DiamondQ', game: 'Candy Bonanza', amount: 45600, coinType: 'SC' as const, avatar: 'diamond', isRealPhoto: false, image: candyBonanza },
-  { id: 8, user: 'Alex T.', game: 'Striking Hot 5', amount: 421000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/men/22.jpg', isRealPhoto: true, image: strikingHot },
-  { id: 9, user: 'MegaWin', game: 'Poison Eve', amount: 39800, coinType: 'SC' as const, avatar: 'mega', isRealPhoto: false, image: poisonEve },
-  { id: 10, user: 'Isabella C.', game: 'Dragon Pearls', amount: 375000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/women/33.jpg', isRealPhoto: true, image: dragonPearls },
-  { id: 11, user: 'HighRoller', game: 'Aztec Twist', amount: 35200, coinType: 'SC' as const, avatar: 'roller', isRealPhoto: false, image: aztecTwist },
-  { id: 12, user: 'Ryan M.', game: 'Fortune Rabbit', amount: 329000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/men/41.jpg', isRealPhoto: true, image: fortuneRabbit },
-  { id: 13, user: 'GoldenAce', game: 'Gonzos Quest', amount: 30600, coinType: 'SC' as const, avatar: 'golden', isRealPhoto: false, image: gonzosQuest },
-  { id: 14, user: 'Emma D.', game: 'Mammoth Peak', amount: 283000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/women/52.jpg', isRealPhoto: true, image: mammothPeak },
-  { id: 15, user: 'ProGambler', game: 'Pirate Bonanza', amount: 26000, coinType: 'SC' as const, avatar: 'pro', isRealPhoto: false, image: pirateBonanza },
-  { id: 16, user: 'Olivia B.', game: 'Thor Hammer', amount: 237000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/women/61.jpg', isRealPhoto: true, image: thorHammerTime },
-  { id: 17, user: 'BetMaster', game: 'Book of Fallen', amount: 21400, coinType: 'SC' as const, avatar: 'bet', isRealPhoto: false, image: bookOfFallen },
-  { id: 18, user: 'Noah W.', game: 'Sun of Egypt', amount: 191000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/men/55.jpg', isRealPhoto: true, image: sunOfEgypt },
-  { id: 19, user: 'RichPlayer', game: 'Rhino Robbery', amount: 16800, coinType: 'SC' as const, avatar: 'rich', isRealPhoto: false, image: rhinoRobbery },
-  { id: 20, user: 'Mia J.', game: 'Grab the Gold', amount: 145000, coinType: 'GC' as const, avatar: 'https://randomuser.me/api/portraits/women/17.jpg', isRealPhoto: true, image: grabTheGold },
-  { id: 21, user: 'WinStreak', game: 'Immortal Fruits', amount: 12200, coinType: 'SC' as const, avatar: 'streak', isRealPhoto: false, image: immortalFruits },
+  { id: 1, user: 'Marcus C.', game: 'Big Bass Splash', amount: 712.80, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/men/32.jpg', isRealPhoto: true, image: bigBassSplash },
+  { id: 2, user: 'Elena R.', game: 'Video Poker', amount: 2050.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/women/44.jpg', isRealPhoto: true, image: videoPoker },
+  { id: 3, user: 'CryptoKing', game: 'Power Pops', amount: 628.30, currency: 'USD' as const, avatar: 'crypto', isRealPhoto: false, image: powerPops },
+  { id: 4, user: 'Jake T.', game: 'Fire in the Hole', amount: 5836.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/men/67.jpg', isRealPhoto: true, image: thorHammerTime },
+  { id: 5, user: 'LuckyDragon', game: 'Bonanza Trillion', amount: 537.90, currency: 'USD' as const, avatar: 'dragon', isRealPhoto: false, image: bonanzaTrillion },
+  { id: 6, user: 'Sofia M.', game: 'Crazy Time', amount: 4820.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/women/28.jpg', isRealPhoto: true, image: crazyTime },
+  { id: 7, user: 'DiamondQ', game: 'Candy Bonanza', amount: 456.00, currency: 'USD' as const, avatar: 'diamond', isRealPhoto: false, image: candyBonanza },
+  { id: 8, user: 'Alex T.', game: 'Striking Hot 5', amount: 4210.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/men/22.jpg', isRealPhoto: true, image: strikingHot },
+  { id: 9, user: 'MegaWin', game: 'Poison Eve', amount: 398.00, currency: 'USD' as const, avatar: 'mega', isRealPhoto: false, image: poisonEve },
+  { id: 10, user: 'Isabella C.', game: 'Dragon Pearls', amount: 3750.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/women/33.jpg', isRealPhoto: true, image: dragonPearls },
+  { id: 11, user: 'HighRoller', game: 'Aztec Twist', amount: 352.00, currency: 'USD' as const, avatar: 'roller', isRealPhoto: false, image: aztecTwist },
+  { id: 12, user: 'Ryan M.', game: 'Fortune Rabbit', amount: 3290.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/men/41.jpg', isRealPhoto: true, image: fortuneRabbit },
+  { id: 13, user: 'GoldenAce', game: 'Gonzos Quest', amount: 306.00, currency: 'USD' as const, avatar: 'golden', isRealPhoto: false, image: gonzosQuest },
+  { id: 14, user: 'Emma D.', game: 'Mammoth Peak', amount: 2830.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/women/52.jpg', isRealPhoto: true, image: mammothPeak },
+  { id: 15, user: 'ProGambler', game: 'Pirate Bonanza', amount: 260.00, currency: 'USD' as const, avatar: 'pro', isRealPhoto: false, image: pirateBonanza },
+  { id: 16, user: 'Olivia B.', game: 'Thor Hammer', amount: 2370.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/women/61.jpg', isRealPhoto: true, image: thorHammerTime },
+  { id: 17, user: 'BetMaster', game: 'Book of Fallen', amount: 214.00, currency: 'USD' as const, avatar: 'bet', isRealPhoto: false, image: bookOfFallen },
+  { id: 18, user: 'Noah W.', game: 'Sun of Egypt', amount: 1910.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/men/55.jpg', isRealPhoto: true, image: sunOfEgypt },
+  { id: 19, user: 'RichPlayer', game: 'Rhino Robbery', amount: 168.00, currency: 'USD' as const, avatar: 'rich', isRealPhoto: false, image: rhinoRobbery },
+  { id: 20, user: 'Mia J.', game: 'Grab the Gold', amount: 1450.00, currency: 'USD' as const, avatar: 'https://randomuser.me/api/portraits/women/17.jpg', isRealPhoto: true, image: grabTheGold },
+  { id: 21, user: 'WinStreak', game: 'Immortal Fruits', amount: 122.00, currency: 'USD' as const, avatar: 'streak', isRealPhoto: false, image: immortalFruits },
 ];
 
 type WinItem = typeof recentWins[0];
 
-const formatCoinAmount = (amount: number, coinType: 'GC' | 'SC') => {
+const formatAmount = (amount: number) => {
   if (amount >= 1000000) {
-    return `${(amount / 1000000).toFixed(1)}M`;
+    return `$${(amount / 1000000).toFixed(1)}M`;
   } else if (amount >= 1000) {
-    return `${(amount / 1000).toFixed(1)}K`;
+    return `$${(amount / 1000).toFixed(1)}K`;
   }
-  return amount.toLocaleString();
+  return `$${amount.toLocaleString()}`;
 };
 
 // Memoized win card component
 const WinCard = memo(function WinCard({
   win,
   index,
-  mode,
   onClick,
 }: {
   win: WinItem;
   index: number;
-  mode: 'social' | 'sweepstakes';
   onClick: (win: WinItem) => void;
 }) {
   const [isLoaded, setIsLoaded] = useState(false);
-  
-  const displayCoinType = mode === 'social' ? 'GC' : win.coinType;
-  const displayAmount = mode === 'social' && win.coinType === 'SC' ? win.amount * 10 : win.amount;
 
   const handleClick = useCallback(() => {
     onClick(win);
@@ -105,12 +98,6 @@ const WinCard = memo(function WinCard({
               isLoaded ? 'opacity-100' : 'opacity-0'
             }`}
           />
-          {/* SC Badge for sweepstakes-eligible wins */}
-          {mode === 'sweepstakes' && win.coinType === 'SC' && (
-            <div className="absolute top-0.5 right-0.5 w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-              <DiamondIcon className="w-2.5 h-2.5 text-white" />
-            </div>
-          )}
         </div>
       </div>
 
@@ -119,16 +106,9 @@ const WinCard = memo(function WinCard({
         <span className="text-[9px] md:text-[10px] text-muted-foreground block truncate">
           {win.user}
         </span>
-        <span
-          className="text-[10px] font-extrabold tracking-wide flex items-center justify-center gap-0.5"
-          style={{ color: displayCoinType === 'SC' ? '#3b82f6' : '#fbbf24' }}
-        >
-          {displayCoinType === 'SC' ? (
-            <DiamondIcon className="w-2.5 h-2.5" />
-          ) : (
-            <Coins className="w-2.5 h-2.5" />
-          )}
-          {formatCoinAmount(displayAmount, displayCoinType)}
+        <span className="text-[10px] font-extrabold tracking-wide flex items-center justify-center gap-0.5 text-green-400">
+          <DollarSign className="w-2.5 h-2.5" />
+          {formatAmount(win.amount).replace('$', '')}
         </span>
       </div>
     </div>
@@ -140,7 +120,6 @@ export const RecentWins = memo(function RecentWins() {
   const [isPaused, setIsPaused] = useState(false);
   const [selectedBet, setSelectedBet] = useState<WinItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const { mode } = useAppMode();
   const animationRef = useRef<number>();
 
   const handleBetClick = useCallback((win: WinItem) => {
@@ -152,14 +131,8 @@ export const RecentWins = memo(function RecentWins() {
     setIsModalOpen(false);
   }, []);
 
-  // Filter wins based on current mode, then triple for seamless infinite loop
-  const filteredWins = useMemo(() => {
-    return recentWins.filter(win => 
-      mode === 'sweepstakes' ? win.coinType === 'SC' : win.coinType === 'GC'
-    );
-  }, [mode]);
-  
-  const duplicatedWins = useMemo(() => [...filteredWins, ...filteredWins, ...filteredWins], [filteredWins]);
+  // Triple the wins for seamless infinite loop
+  const duplicatedWins = useMemo(() => [...recentWins, ...recentWins, ...recentWins], []);
 
   return (
     <>
@@ -192,7 +165,6 @@ export const RecentWins = memo(function RecentWins() {
                 key={`${win.id}-${index}`}
                 win={win}
                 index={index}
-                mode={mode}
                 onClick={handleBetClick}
               />
             ))}
@@ -218,7 +190,7 @@ export const RecentWins = memo(function RecentWins() {
           selectedBet
             ? {
                 ...selectedBet,
-                amount: formatCoinAmount(selectedBet.amount, selectedBet.coinType),
+                amount: formatAmount(selectedBet.amount),
               }
             : null
         }

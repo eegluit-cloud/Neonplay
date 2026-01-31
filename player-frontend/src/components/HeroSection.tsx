@@ -445,12 +445,12 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
             {/* Jackpot Amount */}
             <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2">
               <div className="relative px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 shadow-lg leading-tight">
-                <span 
+                <span
                   className="relative text-[13px] font-bold tabular-nums tracking-tight whitespace-nowrap drop-shadow-[0_1px_1px_rgba(0,0,0,0.5)]"
                   style={{ fontVariantNumeric: 'tabular-nums' }}
                 >
-                  <span className="text-[#22d3ee]">SC</span>
-                  <span className="text-white"> {formattedAmount}</span>
+                  <span className="text-[#22d3ee]">$</span>
+                  <span className="text-white">{formattedAmount}</span>
                 </span>
               </div>
             </div>

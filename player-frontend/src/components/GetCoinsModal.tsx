@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, ChevronRight, Loader2, Copy, Coins, Check, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, Copy, DollarSign, Check, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppleIcon, GooglePayColorIcon, VisaIcon, MastercardIcon, BitcoinIcon, EthereumIcon, TetherIcon } from '@/components/icons/PaymentIcons';
-import { useAppMode, useWallet } from '@/contexts/AppModeContext';
-import { DiamondIcon } from '@/components/icons/DiamondIcon';
+import { useWallet } from '@/contexts/AppModeContext';
 import confetti from 'canvas-confetti';
 import { cn } from '@/lib/utils';
 import goldCoinsStack from '@/assets/gold-coins-stack.png';
@@ -14,30 +13,28 @@ import { useCoinPackages, useCryptoOptions, usePurchase } from '@/hooks/useWalle
 interface GetCoinsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (amount: number, coinType: 'GC' | 'SC') => void;
-  defaultCoinType?: 'GC' | 'SC';
+  onSuccess?: (amount: number, currency: string) => void;
 }
 
 type Step = 'select-pack' | 'payment' | 'card-details' | 'crypto-deposit' | 'processing' | 'success';
 type PaymentMethodType = 'credit-card' | 'apple-pay' | 'google-pay' | 'bank-transfer' | 'crypto' | null;
 
-// Fallback coin packs if API not available
+// Fallback deposit packs if API not available
 const defaultCoinPacks = [
-  { id: 'pack1', gcAmount: 2000, scBonusAmount: 2, priceUsd: 2, name: 'Starter', isPopular: false, isBestValue: false, sortOrder: 1 },
-  { id: 'pack2', gcAmount: 5000, scBonusAmount: 5, priceUsd: 5, name: 'Bronze', isPopular: false, isBestValue: false, sortOrder: 2 },
-  { id: 'pack3', gcAmount: 10000, scBonusAmount: 10, priceUsd: 10, name: 'Silver', isPopular: true, isBestValue: false, sortOrder: 3 },
-  { id: 'pack4', gcAmount: 20000, scBonusAmount: 20, priceUsd: 20, name: 'Gold', isPopular: false, isBestValue: false, sortOrder: 4 },
-  { id: 'pack5', gcAmount: 35000, scBonusAmount: 35, priceUsd: 35, name: 'Platinum', isPopular: false, isBestValue: true, sortOrder: 5 },
-  { id: 'pack6', gcAmount: 50000, scBonusAmount: 50, priceUsd: 50, name: 'Diamond', isPopular: false, isBestValue: false, sortOrder: 6 },
-  { id: 'pack7', gcAmount: 100000, scBonusAmount: 100, priceUsd: 100, name: 'Elite', isPopular: false, isBestValue: false, sortOrder: 7 },
-  { id: 'pack8', gcAmount: 200000, scBonusAmount: 200, priceUsd: 200, name: 'Legend', isPopular: false, isBestValue: false, sortOrder: 8 },
-  { id: 'pack9', gcAmount: 350000, scBonusAmount: 350, priceUsd: 350, name: 'Champion', isPopular: false, isBestValue: false, sortOrder: 9 },
-  { id: 'pack10', gcAmount: 500000, scBonusAmount: 500, priceUsd: 500, name: 'Ultimate', isPopular: false, isBestValue: false, sortOrder: 10 },
+  { id: 'pack1', priceUsd: 10, name: 'Starter', isPopular: false, isBestValue: false, sortOrder: 1 },
+  { id: 'pack2', priceUsd: 25, name: 'Bronze', isPopular: false, isBestValue: false, sortOrder: 2 },
+  { id: 'pack3', priceUsd: 50, name: 'Silver', isPopular: true, isBestValue: false, sortOrder: 3 },
+  { id: 'pack4', priceUsd: 100, name: 'Gold', isPopular: false, isBestValue: false, sortOrder: 4 },
+  { id: 'pack5', priceUsd: 200, name: 'Platinum', isPopular: false, isBestValue: true, sortOrder: 5 },
+  { id: 'pack6', priceUsd: 500, name: 'Diamond', isPopular: false, isBestValue: false, sortOrder: 6 },
+  { id: 'pack7', priceUsd: 1000, name: 'Elite', isPopular: false, isBestValue: false, sortOrder: 7 },
+  { id: 'pack8', priceUsd: 2500, name: 'Legend', isPopular: false, isBestValue: false, sortOrder: 8 },
+  { id: 'pack9', priceUsd: 5000, name: 'Champion', isPopular: false, isBestValue: false, sortOrder: 9 },
+  { id: 'pack10', priceUsd: 10000, name: 'Ultimate', isPopular: false, isBestValue: false, sortOrder: 10 },
 ];
 
 export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps) {
-  const { mode } = useAppMode();
-  const { updateGCBalance, updateSCBalance, addActivity } = useWallet();
+  const { updateBalance, addActivity, formatCurrency } = useWallet();
 
   // Fetch data from API
   const { packages: apiPackages, isLoading: packagesLoading } = useCoinPackages();
@@ -179,19 +176,19 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
           // Fallback to local update if API fails (demo mode)
         }
 
-        // Add both GC and SC
-        updateGCBalance(selectedPack.gcAmount);
-        updateSCBalance(selectedPack.scBonusAmount);
+        // Add USD to balance (deposit)
+        updateBalance('USD', selectedPack.priceUsd);
 
         addActivity({
-          type: 'purchase',
-          coinType: 'GC',
-          amount: selectedPack.gcAmount,
+          type: 'deposit',
+          currency: 'USD',
+          amount: selectedPack.priceUsd,
+          usdcAmount: selectedPack.priceUsd,
           status: 'completed',
-          description: `Purchased ${selectedPack.name} Coin Pack`
+          description: `Deposited ${formatCurrency(selectedPack.priceUsd, 'USD')}`
         });
 
-        onSuccess?.(selectedPack.gcAmount, 'GC');
+        onSuccess?.(selectedPack.priceUsd, 'USD');
       }
 
       setStep('success');
@@ -270,15 +267,12 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
 
         {/* Bottom - Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-3 border-t border-cyan-500/10">
-          {/* Coin amounts */}
+          {/* Amount */}
           <div className="flex items-center gap-1 mb-0.5">
-            <span className="text-base sm:text-lg font-bold text-amber-400">{formatAmount(pack.gcAmount)}</span>
-            <Coins className="w-3 h-3 sm:w-4 sm:h-4 text-amber-500" />
-            <span className="text-xs text-muted-foreground">+</span>
-            <span className="text-base sm:text-lg font-bold text-cyan-400">{pack.scBonusAmount}</span>
-            <DiamondIcon size={14} className="text-cyan-400" />
+            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
+            <span className="text-lg sm:text-xl font-bold text-green-400">{pack.priceUsd}</span>
           </div>
-          <p className="text-xs text-muted-foreground mb-2">Coins</p>
+          <p className="text-xs text-muted-foreground mb-2">USD Deposit</p>
 
           {/* Price button */}
           <div className="w-full py-2 px-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg text-center">
@@ -303,7 +297,7 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
                 <button onClick={handleClose} className="w-7 h-7 flex items-center justify-center bg-secondary hover:bg-secondary/80 border border-border rounded-lg transition-colors">
                   <ChevronLeft className="w-4 h-4 text-muted-foreground" />
                 </button>
-                <h2 className="text-base sm:text-lg font-bold text-foreground">Get Coins</h2>
+                <h2 className="text-base sm:text-lg font-bold text-foreground">Deposit Funds</h2>
               </div>
 
               {/* Scrollable Coin Packs Grid - 2 columns */}
@@ -315,7 +309,7 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
 
               {/* Info text */}
               <p className="text-center text-xs text-muted-foreground pb-2">
-                Each pack includes Gold Coins for social play and Sweepstakes Coins for prizes.
+                Select a deposit amount to add funds to your wallet.
               </p>
             </div>
           )}
@@ -331,19 +325,12 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
               </div>
 
               <div className="mb-6 p-4 bg-secondary/50 rounded-xl">
-                <p className="text-sm text-muted-foreground mb-2">Coin Pack</p>
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-1">
-                    <span className="text-xl font-bold text-amber-400">{formatAmount(selectedPack.gcAmount)}</span>
-                    <Coins className="w-5 h-5 text-amber-500" />
-                  </div>
-                  <span className="text-muted-foreground">+</span>
-                  <div className="flex items-center gap-1">
-                    <span className="text-xl font-bold text-cyan-400">{selectedPack.scBonusAmount}</span>
-                    <DiamondIcon size={18} className="text-cyan-400" />
-                  </div>
+                <p className="text-sm text-muted-foreground mb-2">Deposit Amount</p>
+                <div className="flex items-center gap-2">
+                  <DollarSign className="w-6 h-6 text-green-400" />
+                  <span className="text-2xl font-bold text-green-400">{selectedPack.priceUsd}</span>
+                  <span className="text-muted-foreground">USD</span>
                 </div>
-                <p className="text-lg font-semibold text-foreground mt-2">${selectedPack.priceUsd}</p>
               </div>
 
               <div className="space-y-3">
@@ -461,8 +448,8 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
 
               <div className="mt-6 space-y-2">
                 <div className="flex justify-between text-muted-foreground">
-                  <span>Coin Pack</span>
-                  <span>{formatAmount(selectedPack.gcAmount)} GC + {selectedPack.scBonusAmount} SC</span>
+                  <span>Deposit Amount</span>
+                  <span>${selectedPack.priceUsd} USD</span>
                 </div>
                 <div className="flex justify-between text-foreground font-semibold text-lg pt-2 border-t border-border">
                   <span>Total</span>
@@ -496,8 +483,8 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
           {step === 'processing' && (
             <div className="flex flex-col items-center justify-center py-16 animate-fade-in">
               <Loader2 className="w-16 h-16 text-primary animate-spin" />
-              <h3 className="text-xl font-semibold text-foreground mt-6">Processing Purchase</h3>
-              <p className="text-muted-foreground mt-2">Please wait while we add your coins...</p>
+              <h3 className="text-xl font-semibold text-foreground mt-6">Processing Deposit</h3>
+              <p className="text-muted-foreground mt-2">Please wait while we process your deposit...</p>
             </div>
           )}
 
@@ -507,17 +494,13 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
               <div className="w-20 h-20 rounded-full bg-green-500 flex items-center justify-center mb-6">
                 <Check className="w-10 h-10 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-foreground mb-4">Coins Added!</h3>
-              <div className="flex items-center gap-3 mb-2">
-                <span className="text-2xl font-bold text-amber-400">+{formatAmount(selectedPack.gcAmount)}</span>
-                <Coins className="w-6 h-6 text-amber-500" />
-              </div>
+              <h3 className="text-2xl font-bold text-foreground mb-4">Deposit Successful!</h3>
               <div className="flex items-center gap-3 mb-6">
-                <span className="text-2xl font-bold text-cyan-400">+{selectedPack.scBonusAmount}</span>
-                <DiamondIcon size={20} className="text-cyan-400" />
+                <DollarSign className="w-8 h-8 text-green-400" />
+                <span className="text-3xl font-bold text-green-400">+${selectedPack.priceUsd}</span>
               </div>
               <p className="text-muted-foreground text-sm mb-8">
-                Your coin balance has been updated.
+                Your USD balance has been updated.
               </p>
               <Button
                 onClick={handleClose}

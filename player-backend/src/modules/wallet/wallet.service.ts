@@ -10,8 +10,23 @@ import { RedisService } from '../../database/redis/redis.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { createPaginatedResult, getPaginationParams, PaginationDto } from '../../common/utils/pagination.util';
 import { CryptoUtil } from '../../common/utils/crypto.util';
+import { Currency, FiatCurrency, CryptoCurrency } from '../../shared/types';
+import { ALL_CURRENCIES, FIAT_CURRENCIES, CRYPTO_CURRENCIES, DEFAULT_BONUSES, WITHDRAWAL_LIMITS } from '../../shared/constants';
 
-type CoinType = 'GC' | 'SC';
+// Currency balance field mapping
+const CURRENCY_BALANCE_FIELDS: Record<Currency, string> = {
+  USD: 'usdBalance',
+  EUR: 'eurBalance',
+  GBP: 'gbpBalance',
+  CAD: 'cadBalance',
+  AUD: 'audBalance',
+  USDC: 'usdcBalance',
+  USDT: 'usdtBalance',
+  BTC: 'btcBalance',
+  ETH: 'ethBalance',
+  SOL: 'solBalance',
+  DOGE: 'dogeBalance',
+};
 
 @Injectable()
 export class WalletService {
@@ -22,16 +37,69 @@ export class WalletService {
     private readonly redis: RedisService,
   ) {}
 
+  /**
+   * Get current exchange rate for a currency to USDC
+   * In production, this would call an external price feed API
+   */
+  async getExchangeRate(currency: Currency): Promise<Decimal> {
+    // Stablecoins are 1:1 with USDC
+    if (currency === 'USDC' || currency === 'USDT') {
+      return new Decimal(1);
+    }
+    // Fiat currencies - approximate rates (in production, use real-time rates)
+    const fiatRates: Record<string, number> = {
+      USD: 1,
+      EUR: 1.08,
+      GBP: 1.27,
+      CAD: 0.74,
+      AUD: 0.65,
+    };
+    if (fiatRates[currency]) {
+      return new Decimal(fiatRates[currency]);
+    }
+    // Crypto rates - in production, fetch from price oracle
+    const cryptoRates: Record<string, number> = {
+      BTC: 43000,
+      ETH: 2200,
+      SOL: 100,
+      DOGE: 0.08,
+    };
+    if (cryptoRates[currency]) {
+      return new Decimal(cryptoRates[currency]);
+    }
+    return new Decimal(1);
+  }
+
+  /**
+   * Convert amount from one currency to USDC equivalent
+   */
+  async toUsdcAmount(amount: Decimal, currency: Currency): Promise<Decimal> {
+    const rate = await this.getExchangeRate(currency);
+    return amount.times(rate);
+  }
+
   async getWallet(userId: string) {
     const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
       select: {
         id: true,
-        gcBalance: true,
-        scBalance: true,
-        gcLifetimePurchased: true,
-        scLifetimeEarned: true,
-        scLifetimeRedeemed: true,
+        usdBalance: true,
+        eurBalance: true,
+        gbpBalance: true,
+        cadBalance: true,
+        audBalance: true,
+        usdcBalance: true,
+        usdtBalance: true,
+        btcBalance: true,
+        ethBalance: true,
+        solBalance: true,
+        dogeBalance: true,
+        primaryCurrency: true,
+        lifetimeDeposited: true,
+        lifetimeWithdrawn: true,
+        lifetimeWagered: true,
+        lifetimeWon: true,
+        lifetimeBonuses: true,
       },
     });
 
@@ -41,16 +109,67 @@ export class WalletService {
         data: { userId },
         select: {
           id: true,
-          gcBalance: true,
-          scBalance: true,
-          gcLifetimePurchased: true,
-          scLifetimeEarned: true,
-          scLifetimeRedeemed: true,
+          usdBalance: true,
+          eurBalance: true,
+          gbpBalance: true,
+          cadBalance: true,
+          audBalance: true,
+          usdcBalance: true,
+          usdtBalance: true,
+          btcBalance: true,
+          ethBalance: true,
+          solBalance: true,
+          dogeBalance: true,
+          primaryCurrency: true,
+          lifetimeDeposited: true,
+          lifetimeWithdrawn: true,
+          lifetimeWagered: true,
+          lifetimeWon: true,
+          lifetimeBonuses: true,
         },
       });
     }
 
     return wallet;
+  }
+
+  /**
+   * Get balance for a specific currency
+   */
+  async getBalance(userId: string, currency: Currency): Promise<Decimal> {
+    const wallet = await this.getWallet(userId);
+    const field = CURRENCY_BALANCE_FIELDS[currency];
+    return new Decimal((wallet as any)[field] || 0);
+  }
+
+  /**
+   * Get all balances with USDC equivalents
+   */
+  async getAllBalances(userId: string) {
+    const wallet = await this.getWallet(userId);
+    const balances: Record<string, { balance: Decimal; usdcEquivalent: Decimal }> = {};
+
+    for (const currency of Object.keys(CURRENCY_BALANCE_FIELDS) as Currency[]) {
+      const field = CURRENCY_BALANCE_FIELDS[currency];
+      const balance = new Decimal((wallet as any)[field] || 0);
+      const rate = await this.getExchangeRate(currency);
+      balances[currency] = {
+        balance,
+        usdcEquivalent: balance.times(rate),
+      };
+    }
+
+    return {
+      balances,
+      primaryCurrency: wallet.primaryCurrency,
+      lifetimeStats: {
+        deposited: wallet.lifetimeDeposited,
+        withdrawn: wallet.lifetimeWithdrawn,
+        wagered: wallet.lifetimeWagered,
+        won: wallet.lifetimeWon,
+        bonuses: wallet.lifetimeBonuses,
+      },
+    };
   }
 
   async getTransactions(userId: string, query: any) {
@@ -62,8 +181,8 @@ export class WalletService {
       where.type = query.type;
     }
 
-    if (query.coinType) {
-      where.coinType = query.coinType;
+    if (query.currency) {
+      where.currency = query.currency;
     }
 
     if (query.status) {
@@ -105,8 +224,8 @@ export class WalletService {
     return transaction;
   }
 
-  async getCoinPackages() {
-    return this.prisma.coinPackage.findMany({
+  async getDepositPackages() {
+    return this.prisma.depositPackage.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
     });
@@ -125,58 +244,57 @@ export class WalletService {
     });
   }
 
-  async initiatePurchase(userId: string, packageId: string, paymentMethod: string, ipAddress: string) {
-    const coinPackage = await this.prisma.coinPackage.findUnique({
-      where: { id: packageId, isActive: true },
-    });
+  async initiateDeposit(
+    userId: string,
+    currency: Currency,
+    amount: number,
+    paymentMethod: string,
+    packageId?: string,
+  ) {
+    const amountDecimal = new Decimal(amount);
+    const exchangeRate = await this.getExchangeRate(currency);
+    const usdcAmount = amountDecimal.times(exchangeRate);
 
-    if (!coinPackage) {
-      throw new NotFoundException('Coin package not found');
-    }
-
-    const purchase = await this.prisma.purchase.create({
+    const deposit = await this.prisma.deposit.create({
       data: {
         userId,
         packageId,
-        amountUsd: coinPackage.priceUsd,
-        gcAmount: coinPackage.gcAmount,
-        scBonusAmount: coinPackage.scBonusAmount,
+        currency,
+        amount: amountDecimal,
+        usdcAmount,
+        exchangeRate,
         paymentProvider: paymentMethod,
         status: 'pending',
       },
     });
 
-    // In production, integrate with payment provider (Stripe, etc.)
-    // For now, return purchase details
+    // In production, integrate with payment provider
     return {
-      purchaseId: purchase.id,
-      amount: coinPackage.priceUsd,
-      currency: 'USD',
-      gcAmount: coinPackage.gcAmount,
-      scBonusAmount: coinPackage.scBonusAmount,
-      // paymentIntent: would come from Stripe
+      depositId: deposit.id,
+      currency,
+      amount: amountDecimal,
+      usdcAmount,
+      exchangeRate,
     };
   }
 
-  async confirmPurchase(userId: string, purchaseId: string, paymentIntentId: string) {
-    const purchase = await this.prisma.purchase.findFirst({
-      where: { id: purchaseId, userId, status: 'pending' },
+  async confirmDeposit(userId: string, depositId: string, paymentIntentId: string, txHash?: string) {
+    const deposit = await this.prisma.deposit.findFirst({
+      where: { id: depositId, userId, status: 'pending' },
     });
 
-    if (!purchase) {
-      throw new NotFoundException('Purchase not found or already processed');
+    if (!deposit) {
+      throw new NotFoundException('Deposit not found or already processed');
     }
 
-    // In production, verify payment with provider
-    // For now, simulate successful payment
-
     return this.prisma.$transaction(async (tx) => {
-      // Update purchase status
-      await tx.purchase.update({
-        where: { id: purchaseId },
+      // Update deposit status
+      await tx.deposit.update({
+        where: { id: depositId },
         data: {
           status: 'completed',
           paymentIntentId,
+          txHash,
           completedAt: new Date(),
         },
       });
@@ -190,87 +308,112 @@ export class WalletService {
         throw new BadRequestException('Wallet not found');
       }
 
-      const newGcBalance = new Decimal(wallet.gcBalance).plus(purchase.gcAmount);
-      const newScBalance = new Decimal(wallet.scBalance).plus(purchase.scBonusAmount);
+      const currency = deposit.currency as Currency;
+      const balanceField = CURRENCY_BALANCE_FIELDS[currency];
+      const currentBalance = new Decimal((wallet as any)[balanceField] || 0);
+      const newBalance = currentBalance.plus(deposit.amount);
 
-      // Create transactions
+      // Create transaction record
       await tx.transaction.create({
         data: {
           userId,
           walletId: wallet.id,
-          type: 'purchase',
-          coinType: 'GC',
-          amount: purchase.gcAmount,
-          balanceBefore: wallet.gcBalance,
-          balanceAfter: newGcBalance,
-          referenceType: 'purchase',
-          referenceId: purchaseId,
+          type: 'deposit',
+          currency: deposit.currency,
+          amount: deposit.amount,
+          usdcAmount: deposit.usdcAmount,
+          exchangeRate: deposit.exchangeRate,
+          balanceBefore: currentBalance,
+          balanceAfter: newBalance,
+          referenceType: 'deposit',
+          referenceId: depositId,
           status: 'completed',
+          txHash,
         },
       });
 
-      if (new Decimal(purchase.scBonusAmount).gt(0)) {
+      // Process bonus if applicable
+      if (deposit.bonusAmount && new Decimal(deposit.bonusAmount).gt(0)) {
+        const bonusCurrency = deposit.bonusCurrency || 'USDC';
+        const bonusField = CURRENCY_BALANCE_FIELDS[bonusCurrency as Currency];
+        const currentBonusBalance = new Decimal((wallet as any)[bonusField] || 0);
+        const newBonusBalance = currentBonusBalance.plus(deposit.bonusAmount);
+
         await tx.transaction.create({
           data: {
             userId,
             walletId: wallet.id,
             type: 'bonus',
-            coinType: 'SC',
-            amount: purchase.scBonusAmount,
-            balanceBefore: wallet.scBalance,
-            balanceAfter: newScBalance,
-            referenceType: 'purchase',
-            referenceId: purchaseId,
+            currency: bonusCurrency,
+            amount: deposit.bonusAmount,
+            usdcAmount: deposit.bonusAmount, // Bonus is already in USDC equivalent
+            exchangeRate: new Decimal(1),
+            balanceBefore: currentBonusBalance,
+            balanceAfter: newBonusBalance,
+            referenceType: 'deposit',
+            referenceId: depositId,
             status: 'completed',
           },
         });
       }
 
-      // Update wallet balance with optimistic locking - verify version match
+      // Update wallet balance with optimistic locking
+      const updateData: any = {
+        version: { increment: 1 },
+        lifetimeDeposited: new Decimal(wallet.lifetimeDeposited).plus(deposit.usdcAmount),
+        [balanceField]: newBalance,
+      };
+
+      if (deposit.bonusAmount && new Decimal(deposit.bonusAmount).gt(0)) {
+        const bonusCurrency = deposit.bonusCurrency || 'USDC';
+        const bonusField = CURRENCY_BALANCE_FIELDS[bonusCurrency as Currency];
+        const currentBonusBalance = new Decimal((wallet as any)[bonusField] || 0);
+        updateData[bonusField] = currentBonusBalance.plus(deposit.bonusAmount);
+        updateData.lifetimeBonuses = new Decimal(wallet.lifetimeBonuses).plus(deposit.bonusAmount);
+      }
+
       const updateResult = await tx.wallet.updateMany({
         where: { id: wallet.id, version: wallet.version },
-        data: {
-          gcBalance: newGcBalance,
-          scBalance: newScBalance,
-          gcLifetimePurchased: new Decimal(wallet.gcLifetimePurchased).plus(purchase.gcAmount),
-          scLifetimeEarned: new Decimal(wallet.scLifetimeEarned).plus(purchase.scBonusAmount),
-          version: { increment: 1 },
-        },
+        data: updateData,
       });
 
-      // Check if update succeeded (version matched)
       if (updateResult.count === 0) {
-        this.logger.error(`Optimistic locking failed for wallet ${wallet.id} - concurrent modification detected`);
+        this.logger.error(`Optimistic locking failed for wallet ${wallet.id}`);
         throw new ConflictException('Wallet was modified by another transaction. Please retry.');
       }
 
-      // Fetch updated wallet for response
       const updatedWallet = await tx.wallet.findUnique({
         where: { id: wallet.id },
       });
 
-      if (!updatedWallet) {
-        throw new BadRequestException('Failed to retrieve updated wallet');
-      }
-
       // Publish balance update event
       await this.redis.publish('wallet:balance_updated', {
         userId,
-        gcBalance: updatedWallet.gcBalance.toString(),
-        scBalance: updatedWallet.scBalance.toString(),
+        currency: deposit.currency,
+        balance: newBalance.toString(),
       });
 
       return {
         success: true,
-        wallet: {
-          gcBalance: updatedWallet.gcBalance,
-          scBalance: updatedWallet.scBalance,
+        deposit: {
+          id: depositId,
+          currency: deposit.currency,
+          amount: deposit.amount,
+          usdcAmount: deposit.usdcAmount,
         },
+        wallet: updatedWallet,
       };
     });
   }
 
-  async requestRedemption(userId: string, scAmount: number, method: string, payoutDetails: any) {
+  async requestWithdrawal(
+    userId: string,
+    currency: Currency,
+    amount: number,
+    method: string,
+    payoutDetails: any,
+    toAddress?: string,
+  ) {
     const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
     });
@@ -279,96 +422,116 @@ export class WalletService {
       throw new NotFoundException('Wallet not found');
     }
 
-    const amount = new Decimal(scAmount);
+    const amountDecimal = new Decimal(amount);
+    const balanceField = CURRENCY_BALANCE_FIELDS[currency];
+    const currentBalance = new Decimal((wallet as any)[balanceField] || 0);
 
-    if (amount.gt(wallet.scBalance)) {
-      throw new BadRequestException('Insufficient SC balance');
+    if (amountDecimal.gt(currentBalance)) {
+      throw new BadRequestException(`Insufficient ${currency} balance`);
     }
 
-    // Minimum redemption check
-    const minRedemption = new Decimal(100); // 100 SC minimum
-    if (amount.lt(minRedemption)) {
-      throw new BadRequestException('Minimum redemption is 100 SC');
+    // Calculate USDC equivalent
+    const exchangeRate = await this.getExchangeRate(currency);
+    const usdcAmount = amountDecimal.times(exchangeRate);
+
+    // Minimum withdrawal check
+    const minWithdrawal = new Decimal(WITHDRAWAL_LIMITS.MIN_USDC);
+    if (usdcAmount.lt(minWithdrawal)) {
+      throw new BadRequestException(`Minimum withdrawal is ${WITHDRAWAL_LIMITS.MIN_USDC} USDC equivalent`);
     }
 
-    // Calculate USD value (1 SC = $1 typically)
-    const usdValue = amount;
+    // Calculate fee (example: 1% for fiat, 0.5% for crypto)
+    const feePercent = FIAT_CURRENCIES[currency as FiatCurrency] ? 0.01 : 0.005;
+    const feeAmount = amountDecimal.times(feePercent);
+    const netAmount = amountDecimal.minus(feeAmount);
 
     return this.prisma.$transaction(async (tx) => {
-      // Encrypt payout details for security (PII protection)
+      // Encrypt payout details for security
       const encryptedPayoutDetails = CryptoUtil.encrypt(JSON.stringify(payoutDetails));
 
-      // Create redemption request
-      const redemption = await tx.redemption.create({
+      // Create withdrawal request
+      const withdrawal = await tx.withdrawal.create({
         data: {
           userId,
-          scAmount: amount,
-          usdValue,
+          currency,
+          amount: amountDecimal,
+          usdcAmount,
+          exchangeRate,
+          feeAmount,
+          feeCurrency: currency,
+          netAmount,
           method,
           payoutDetails: { encrypted: encryptedPayoutDetails },
+          toAddress,
           status: 'pending',
         },
       });
 
       // Deduct from wallet immediately (hold)
-      const newScBalance = new Decimal(wallet.scBalance).minus(amount);
+      const newBalance = currentBalance.minus(amountDecimal);
 
       await tx.transaction.create({
         data: {
           userId,
           walletId: wallet.id,
-          type: 'redeem',
-          coinType: 'SC',
-          amount: amount.neg(),
-          balanceBefore: wallet.scBalance,
-          balanceAfter: newScBalance,
-          referenceType: 'redemption',
-          referenceId: redemption.id,
+          type: 'withdrawal',
+          currency,
+          amount: amountDecimal.neg(),
+          usdcAmount: usdcAmount.neg(),
+          exchangeRate,
+          balanceBefore: currentBalance,
+          balanceAfter: newBalance,
+          referenceType: 'withdrawal',
+          referenceId: withdrawal.id,
           status: 'pending',
         },
       });
 
-      // Update wallet with optimistic locking check
+      // Update wallet with optimistic locking
+      const updateData: any = {
+        version: { increment: 1 },
+        [balanceField]: newBalance,
+      };
+
       const updateResult = await tx.wallet.updateMany({
         where: { id: wallet.id, version: wallet.version },
-        data: {
-          scBalance: newScBalance,
-          version: { increment: 1 },
-        },
+        data: updateData,
       });
 
       if (updateResult.count === 0) {
-        this.logger.error(`Optimistic locking failed for redemption - wallet ${wallet.id}`);
+        this.logger.error(`Optimistic locking failed for withdrawal - wallet ${wallet.id}`);
         throw new ConflictException('Wallet was modified by another transaction. Please retry.');
       }
 
       return {
-        redemptionId: redemption.id,
-        scAmount: amount,
-        usdValue,
+        withdrawalId: withdrawal.id,
+        currency,
+        amount: amountDecimal,
+        feeAmount,
+        netAmount,
+        usdcAmount,
         status: 'pending',
       };
     });
   }
 
-  async getRedemptions(userId: string, query: PaginationDto) {
+  async getWithdrawals(userId: string, query: PaginationDto) {
     const { skip, take } = getPaginationParams(query);
 
-    const [redemptions, total] = await Promise.all([
-      this.prisma.redemption.findMany({
+    const [withdrawals, total] = await Promise.all([
+      this.prisma.withdrawal.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         skip,
         take,
       }),
-      this.prisma.redemption.count({ where: { userId } }),
+      this.prisma.withdrawal.count({ where: { userId } }),
     ]);
 
-    return createPaginatedResult(redemptions, total, query.page || 1, query.limit || 20);
+    return createPaginatedResult(withdrawals, total, query.page || 1, query.limit || 20);
   }
 
   async getAvailableBonuses(userId: string) {
-    // Get daily, weekly, monthly bonus status
     const now = new Date();
     const startOfDay = new Date(now.setHours(0, 0, 0, 0));
     const startOfWeek = new Date(now);
@@ -403,20 +566,20 @@ export class WalletService {
     return {
       daily: {
         available: !dailyClaim,
-        gcAmount: 1000,
-        scAmount: 0.5,
+        amountUsdc: DEFAULT_BONUSES.DAILY.USDC,
+        currency: 'USDC',
         nextAvailable: dailyClaim ? new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000) : null,
       },
       weekly: {
         available: !weeklyClaim,
-        gcAmount: 10000,
-        scAmount: 5,
+        amountUsdc: DEFAULT_BONUSES.WEEKLY.USDC,
+        currency: 'USDC',
         nextAvailable: weeklyClaim ? new Date(startOfWeek.getTime() + 7 * 24 * 60 * 60 * 1000) : null,
       },
       monthly: {
         available: !monthlyClaim,
-        gcAmount: 50000,
-        scAmount: 25,
+        amountUsdc: DEFAULT_BONUSES.MONTHLY.USDC,
+        currency: 'USDC',
         nextAvailable: monthlyClaim ? new Date(startOfMonth.getFullYear(), startOfMonth.getMonth() + 1, 1) : null,
       },
     };
@@ -439,61 +602,48 @@ export class WalletService {
     }
 
     return this.prisma.$transaction(async (tx) => {
-      const newGcBalance = new Decimal(wallet.gcBalance).plus(bonus.gcAmount);
-      const newScBalance = new Decimal(wallet.scBalance).plus(bonus.scAmount);
+      const amount = new Decimal(bonus.amountUsdc);
+      const currency = bonus.currency as Currency;
+      const balanceField = CURRENCY_BALANCE_FIELDS[currency];
+      const currentBalance = new Decimal((wallet as any)[balanceField] || 0);
+      const newBalance = currentBalance.plus(amount);
 
       // Create bonus claim record
       await tx.bonusClaim.create({
         data: {
           userId,
           bonusType,
-          gcAmount: bonus.gcAmount,
-          scAmount: bonus.scAmount,
+          currency,
+          amount,
+          usdcAmount: amount, // USDC bonus, so 1:1
+          exchangeRate: new Decimal(1),
         },
       });
 
-      // Create transactions
-      if (bonus.gcAmount > 0) {
-        await tx.transaction.create({
-          data: {
-            userId,
-            walletId: wallet.id,
-            type: 'bonus',
-            coinType: 'GC',
-            amount: bonus.gcAmount,
-            balanceBefore: wallet.gcBalance,
-            balanceAfter: newGcBalance,
-            referenceType: 'bonus',
-            status: 'completed',
-            metadata: { bonusType },
-          },
-        });
-      }
+      // Create transaction
+      await tx.transaction.create({
+        data: {
+          userId,
+          walletId: wallet.id,
+          type: 'bonus',
+          currency,
+          amount,
+          usdcAmount: amount,
+          exchangeRate: new Decimal(1),
+          balanceBefore: currentBalance,
+          balanceAfter: newBalance,
+          referenceType: 'bonus',
+          status: 'completed',
+          metadata: { bonusType },
+        },
+      });
 
-      if (bonus.scAmount > 0) {
-        await tx.transaction.create({
-          data: {
-            userId,
-            walletId: wallet.id,
-            type: 'bonus',
-            coinType: 'SC',
-            amount: bonus.scAmount,
-            balanceBefore: wallet.scBalance,
-            balanceAfter: newScBalance,
-            referenceType: 'bonus',
-            status: 'completed',
-            metadata: { bonusType },
-          },
-        });
-      }
-
-      // Update wallet with optimistic locking check
+      // Update wallet with optimistic locking
       const updateResult = await tx.wallet.updateMany({
         where: { id: wallet.id, version: wallet.version },
         data: {
-          gcBalance: newGcBalance,
-          scBalance: newScBalance,
-          scLifetimeEarned: new Decimal(wallet.scLifetimeEarned).plus(bonus.scAmount),
+          [balanceField]: newBalance,
+          lifetimeBonuses: new Decimal(wallet.lifetimeBonuses).plus(amount),
           version: { increment: 1 },
         },
       });
@@ -506,11 +656,10 @@ export class WalletService {
       return {
         success: true,
         bonusType,
-        gcAmount: bonus.gcAmount,
-        scAmount: bonus.scAmount,
+        currency,
+        amount,
         wallet: {
-          gcBalance: newGcBalance,
-          scBalance: newScBalance,
+          [currency]: newBalance,
         },
       };
     });
@@ -519,13 +668,12 @@ export class WalletService {
   // Internal method for game transactions
   async processGameTransaction(
     userId: string,
-    coinType: CoinType,
+    currency: Currency,
     amount: Decimal,
     type: 'stake' | 'game_win' | 'game_loss',
     referenceId: string,
     metadata?: any,
   ) {
-    // Validate amount is positive
     if (amount.lte(0)) {
       throw new BadRequestException('Amount must be greater than 0');
     }
@@ -538,20 +686,24 @@ export class WalletService {
       throw new NotFoundException('Wallet not found');
     }
 
-    const currentBalance = coinType === 'GC' ? wallet.gcBalance : wallet.scBalance;
+    const balanceField = CURRENCY_BALANCE_FIELDS[currency];
+    const currentBalance = new Decimal((wallet as any)[balanceField] || 0);
 
     if (type === 'stake' && amount.gt(currentBalance)) {
-      throw new BadRequestException('Insufficient balance');
+      throw new BadRequestException(`Insufficient ${currency} balance`);
     }
 
     const newBalance = type === 'stake'
-      ? new Decimal(currentBalance).minus(amount)
-      : new Decimal(currentBalance).plus(amount);
+      ? currentBalance.minus(amount)
+      : currentBalance.plus(amount);
 
-    // Ensure balance doesn't go negative
     if (newBalance.lt(0)) {
       throw new BadRequestException('Transaction would result in negative balance');
     }
+
+    // Get exchange rate for USDC tracking
+    const exchangeRate = await this.getExchangeRate(currency);
+    const usdcAmount = amount.times(exchangeRate);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.transaction.create({
@@ -559,8 +711,10 @@ export class WalletService {
           userId,
           walletId: wallet.id,
           type,
-          coinType,
+          currency,
           amount: type === 'stake' ? amount.neg() : amount,
+          usdcAmount: type === 'stake' ? usdcAmount.neg() : usdcAmount,
+          exchangeRate,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           referenceType: 'game_round',
@@ -570,17 +724,17 @@ export class WalletService {
         },
       });
 
-      const updateData: any = { version: { increment: 1 } };
-      if (coinType === 'GC') {
-        updateData.gcBalance = newBalance;
-      } else {
-        updateData.scBalance = newBalance;
-        if (type === 'game_win') {
-          updateData.scLifetimeEarned = new Decimal(wallet.scLifetimeEarned).plus(amount);
-        }
+      const updateData: any = {
+        version: { increment: 1 },
+        [balanceField]: newBalance,
+      };
+
+      if (type === 'stake') {
+        updateData.lifetimeWagered = new Decimal(wallet.lifetimeWagered).plus(usdcAmount);
+      } else if (type === 'game_win') {
+        updateData.lifetimeWon = new Decimal(wallet.lifetimeWon).plus(usdcAmount);
       }
 
-      // Use updateMany for proper optimistic locking check
       const updateResult = await tx.wallet.updateMany({
         where: { id: wallet.id, version: wallet.version },
         data: updateData,
@@ -591,12 +745,27 @@ export class WalletService {
         throw new ConflictException('Wallet was modified by another transaction. Please retry.');
       }
 
-      // Fetch updated wallet
       const updatedWallet = await tx.wallet.findUnique({
         where: { id: wallet.id },
       });
 
       return updatedWallet;
     });
+  }
+
+  /**
+   * Set user's primary currency preference
+   */
+  async setPrimaryCurrency(userId: string, currency: Currency) {
+    if (!ALL_CURRENCIES[currency]) {
+      throw new BadRequestException(`Invalid currency: ${currency}`);
+    }
+
+    await this.prisma.wallet.update({
+      where: { userId },
+      data: { primaryCurrency: currency },
+    });
+
+    return { success: true, primaryCurrency: currency };
   }
 }

@@ -54,12 +54,12 @@ export function LowCoinModal({ isOpen, onClose, onBuyCoins }: LowCoinModalProps)
                   <div className="flex-1 min-w-0 text-left space-y-3">
                     {/* Title */}
                     <h2 className="text-xl font-bold text-white">
-                      Low Coin
+                      Low Balance
                     </h2>
 
                     {/* Description */}
                     <p className="text-muted-foreground text-xs">
-                      Your GC and SC Coins Getting Low
+                      Your balance is running low
                       <br />
                       Top up now to keep playing
                     </p>
@@ -80,12 +80,12 @@ export function LowCoinModal({ isOpen, onClose, onBuyCoins }: LowCoinModalProps)
 
                     {/* Buttons */}
                     <div className="space-y-2">
-                      {/* Buy Coin Button - Cyan gradient */}
-                      <Button 
+                      {/* Deposit Button - Cyan gradient */}
+                      <Button
                         onClick={onBuyCoins}
                         className="w-full h-10 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm"
                       >
-                        Buy Coin
+                        Deposit Now
                       </Button>
 
                       {/* Later Button - Outlined */}

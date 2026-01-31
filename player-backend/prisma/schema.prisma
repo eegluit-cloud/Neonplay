@@ -44,8 +44,8 @@ model User {
   verificationCodes  VerificationCode[]
   wallet             Wallet?
   transactions       Transaction[]
-  purchases          Purchase[]
-  redemptions        Redemption[]
+  deposits           Deposit[]
+  withdrawals        Withdrawal[]
   bonusClaims        BonusClaim[]
   favoriteGames      UserFavoriteGame[]
   recentGames        UserRecentGame[]
@@ -143,16 +143,32 @@ model LoginAttempt {
 // ============================================
 
 model Wallet {
-  id                  String   @id @default(uuid())
-  userId              String   @unique @map("user_id")
-  gcBalance           Decimal  @default(0) @map("gc_balance") @db.Decimal(18, 2)
-  scBalance           Decimal  @default(0) @map("sc_balance") @db.Decimal(18, 4)
-  gcLifetimePurchased Decimal  @default(0) @map("gc_lifetime_purchased") @db.Decimal(18, 2)
-  scLifetimeEarned    Decimal  @default(0) @map("sc_lifetime_earned") @db.Decimal(18, 4)
-  scLifetimeRedeemed  Decimal  @default(0) @map("sc_lifetime_redeemed") @db.Decimal(18, 4)
-  version             Int      @default(0) // optimistic locking
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid())
+  userId                String   @unique @map("user_id")
+  // Fiat currency balances
+  usdBalance            Decimal  @default(0) @map("usd_balance") @db.Decimal(18, 2)
+  eurBalance            Decimal  @default(0) @map("eur_balance") @db.Decimal(18, 2)
+  gbpBalance            Decimal  @default(0) @map("gbp_balance") @db.Decimal(18, 2)
+  cadBalance            Decimal  @default(0) @map("cad_balance") @db.Decimal(18, 2)
+  audBalance            Decimal  @default(0) @map("aud_balance") @db.Decimal(18, 2)
+  // Crypto currency balances
+  usdcBalance           Decimal  @default(0) @map("usdc_balance") @db.Decimal(18, 6)
+  usdtBalance           Decimal  @default(0) @map("usdt_balance") @db.Decimal(18, 6)
+  btcBalance            Decimal  @default(0) @map("btc_balance") @db.Decimal(18, 8)
+  ethBalance            Decimal  @default(0) @map("eth_balance") @db.Decimal(18, 8)
+  solBalance            Decimal  @default(0) @map("sol_balance") @db.Decimal(18, 8)
+  dogeBalance           Decimal  @default(0) @map("doge_balance") @db.Decimal(18, 8)
+  // Primary currency preference for user
+  primaryCurrency       String   @default("USD") @map("primary_currency")
+  // Lifetime stats - stored in USDC equivalent for consistency
+  lifetimeDeposited     Decimal  @default(0) @map("lifetime_deposited") @db.Decimal(18, 6)
+  lifetimeWithdrawn     Decimal  @default(0) @map("lifetime_withdrawn") @db.Decimal(18, 6)
+  lifetimeWagered       Decimal  @default(0) @map("lifetime_wagered") @db.Decimal(18, 6)
+  lifetimeWon           Decimal  @default(0) @map("lifetime_won") @db.Decimal(18, 6)
+  lifetimeBonuses       Decimal  @default(0) @map("lifetime_bonuses") @db.Decimal(18, 6)
+  version               Int      @default(0) // optimistic locking
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
@@ -164,14 +180,26 @@ model Transaction {
   id            String   @id @default(uuid())
   userId        String   @map("user_id")
   walletId      String   @map("wallet_id")
-  type          String // purchase, bonus, game_win, game_loss, stake, redeem, refund, adjustment
-  coinType      String   @map("coin_type") // GC, SC
-  amount        Decimal  @db.Decimal(18, 4)
-  balanceBefore Decimal  @map("balance_before") @db.Decimal(18, 4)
-  balanceAfter  Decimal  @map("balance_after") @db.Decimal(18, 4)
-  referenceType String?  @map("reference_type") // game_round, bonus, purchase, redemption
+  type          String // deposit, withdrawal, bonus, game_win, game_loss, stake, refund, adjustment, transfer, conversion
+  // Original transaction currency and amount
+  currency      String // USD, EUR, GBP, CAD, AUD, USDC, USDT, BTC, ETH, SOL, DOGE
+  amount        Decimal  @db.Decimal(18, 8) // Amount in the transaction currency
+  // USDC equivalent for unified tracking (crypto) and reporting
+  usdcAmount    Decimal  @map("usdc_amount") @db.Decimal(18, 6) // Equivalent USDC value at time of transaction
+  exchangeRate  Decimal  @map("exchange_rate") @db.Decimal(18, 8) // Rate: 1 currency = X USDC at transaction time
+  // Balance tracking in transaction currency
+  balanceBefore Decimal  @map("balance_before") @db.Decimal(18, 8)
+  balanceAfter  Decimal  @map("balance_after") @db.Decimal(18, 8)
+  referenceType String?  @map("reference_type") // game_round, bonus, deposit, withdrawal, conversion
   referenceId   String?  @map("reference_id")
   status        String   @default("completed") // pending, completed, failed, reversed
+  // Crypto-specific fields
+  txHash        String?  @map("tx_hash") // Blockchain transaction hash for crypto
+  networkFee    Decimal? @map("network_fee") @db.Decimal(18, 8) // Network/gas fee for crypto transactions
+  fromAddress   String?  @map("from_address") // Source wallet address
+  toAddress     String?  @map("to_address") // Destination wallet address
+  network       String?  // Blockchain network (e.g., Ethereum, Polygon, Solana)
+  confirmations Int?     // Number of blockchain confirmations
   metadata      Json?
   ipAddress     String?  @map("ip_address")
   createdAt     DateTime @default(now()) @map("created_at")
@@ -181,77 +209,121 @@ model Transaction {
 
   @@index([userId, createdAt])
   @@index([type, createdAt])
+  @@index([currency, createdAt])
+  @@index([txHash])
   @@map("transactions")
 }
 
-model CoinPackage {
+model DepositPackage {
   id              String   @id @default(uuid())
   name            String
-  gcAmount        Decimal  @map("gc_amount") @db.Decimal(18, 2)
-  scBonusAmount   Decimal  @map("sc_bonus_amount") @db.Decimal(18, 4)
-  priceUsd        Decimal  @map("price_usd") @db.Decimal(10, 2)
+  description     String?
+  // Base amount and currency
+  amount          Decimal  @db.Decimal(18, 2)
+  currency        String   @default("USD") // USD, EUR, GBP, etc.
+  // Bonus in USDC equivalent
+  bonusAmount     Decimal  @default(0) @map("bonus_amount") @db.Decimal(18, 6)
+  bonusPercent    Int?     @map("bonus_percent") // Alternative: percentage bonus
   discountPercent Int?     @map("discount_percent")
   isPopular       Boolean  @default(false) @map("is_popular")
   isBestValue     Boolean  @default(false) @map("is_best_value")
   isActive        Boolean  @default(true) @map("is_active")
+  minDeposit      Decimal? @map("min_deposit") @db.Decimal(18, 2)
+  maxDeposit      Decimal? @map("max_deposit") @db.Decimal(18, 2)
   sortOrder       Int      @default(0) @map("sort_order")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
-  purchases Purchase[]
+  deposits Deposit[]
 
-  @@map("coin_packages")
+  @@map("deposit_packages")
 }
 
-model Purchase {
+model Deposit {
   id              String    @id @default(uuid())
   userId          String    @map("user_id")
-  packageId       String    @map("package_id")
-  amountUsd       Decimal   @map("amount_usd") @db.Decimal(10, 2)
-  gcAmount        Decimal   @map("gc_amount") @db.Decimal(18, 2)
-  scBonusAmount   Decimal   @map("sc_bonus_amount") @db.Decimal(18, 4)
-  paymentProvider String    @map("payment_provider") // stripe, paypal, etc
+  packageId       String?   @map("package_id")
+  // Original deposit currency and amount
+  currency        String // USD, EUR, GBP, CAD, AUD, USDC, USDT, BTC, ETH, SOL, DOGE
+  amount          Decimal   @db.Decimal(18, 8)
+  // USDC equivalent at time of deposit
+  usdcAmount      Decimal   @map("usdc_amount") @db.Decimal(18, 6)
+  exchangeRate    Decimal   @map("exchange_rate") @db.Decimal(18, 8)
+  // Bonus awarded
+  bonusAmount     Decimal   @default(0) @map("bonus_amount") @db.Decimal(18, 6)
+  bonusCurrency   String?   @map("bonus_currency")
+  // Payment details
+  paymentProvider String    @map("payment_provider") // stripe, paypal, crypto, bank_transfer
   paymentIntentId String?   @map("payment_intent_id")
-  status          String    @default("pending") // pending, completed, failed, refunded
+  // Crypto-specific
+  txHash          String?   @map("tx_hash")
+  fromAddress     String?   @map("from_address")
+  network         String?
+  confirmations   Int?
+  status          String    @default("pending") // pending, confirming, completed, failed, refunded
   completedAt     DateTime? @map("completed_at")
   createdAt       DateTime  @default(now()) @map("created_at")
 
-  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  package CoinPackage @relation(fields: [packageId], references: [id])
+  user    User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package DepositPackage? @relation(fields: [packageId], references: [id])
 
   @@index([userId, createdAt])
-  @@map("purchases")
+  @@index([txHash])
+  @@index([status])
+  @@map("deposits")
 }
 
-model Redemption {
+model Withdrawal {
   id              String    @id @default(uuid())
   userId          String    @map("user_id")
-  scAmount        Decimal   @map("sc_amount") @db.Decimal(18, 4)
-  usdValue        Decimal   @map("usd_value") @db.Decimal(10, 2)
+  // Withdrawal currency and amount
+  currency        String // USD, EUR, GBP, CAD, AUD, USDC, USDT, BTC, ETH, SOL, DOGE
+  amount          Decimal   @db.Decimal(18, 8)
+  // USDC equivalent at time of withdrawal
+  usdcAmount      Decimal   @map("usdc_amount") @db.Decimal(18, 6)
+  exchangeRate    Decimal   @map("exchange_rate") @db.Decimal(18, 8)
+  // Fee charged
+  feeAmount       Decimal   @default(0) @map("fee_amount") @db.Decimal(18, 8)
+  feeCurrency     String?   @map("fee_currency")
+  // Net amount after fees
+  netAmount       Decimal   @map("net_amount") @db.Decimal(18, 8)
+  // Payout method and details
   method          String // bank_transfer, paypal, crypto
   payoutDetails   Json?     @map("payout_details") // encrypted
-  status          String    @default("pending") // pending, processing, completed, rejected
+  // Crypto-specific
+  toAddress       String?   @map("to_address")
+  txHash          String?   @map("tx_hash")
+  network         String?
+  networkFee      Decimal?  @map("network_fee") @db.Decimal(18, 8)
+  // Status and processing
+  status          String    @default("pending") // pending, processing, completed, rejected, cancelled
   rejectionReason String?   @map("rejection_reason")
   processedBy     String?   @map("processed_by") // admin user id
   processedAt     DateTime? @map("processed_at")
+  completedAt     DateTime? @map("completed_at")
   createdAt       DateTime  @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([status])
-  @@map("redemptions")
+  @@index([txHash])
+  @@map("withdrawals")
 }
 
 model BonusClaim {
-  id        String    @id @default(uuid())
-  userId    String    @map("user_id")
-  bonusType String    @map("bonus_type") // daily, weekly, monthly, welcome, referral, promo
-  bonusId   String?   @map("bonus_id") // FK to promotions
-  gcAmount  Decimal   @map("gc_amount") @db.Decimal(18, 2)
-  scAmount  Decimal   @map("sc_amount") @db.Decimal(18, 4)
-  claimedAt DateTime  @default(now()) @map("claimed_at")
-  expiresAt DateTime? @map("expires_at")
+  id            String    @id @default(uuid())
+  userId        String    @map("user_id")
+  bonusType     String    @map("bonus_type") // daily, weekly, monthly, welcome, referral, promo
+  bonusId       String?   @map("bonus_id") // FK to promotions
+  // Bonus amount in currency
+  currency      String    @default("USDC") // Currency bonus is awarded in
+  amount        Decimal   @db.Decimal(18, 8)
+  // USDC equivalent for tracking
+  usdcAmount    Decimal   @map("usdc_amount") @db.Decimal(18, 6)
+  exchangeRate  Decimal   @default(1) @map("exchange_rate") @db.Decimal(18, 8)
+  claimedAt     DateTime  @default(now()) @map("claimed_at")
+  expiresAt     DateTime? @map("expires_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -428,12 +500,16 @@ model GameSession {
   id           String    @id @default(uuid())
   userId       String    @map("user_id")
   gameId       String    @map("game_id")
-  coinType     String    @map("coin_type") // GC, SC
+  currency     String // USD, EUR, USDC, BTC, ETH, etc.
   sessionToken String    @map("session_token")
   startedAt    DateTime  @default(now()) @map("started_at")
   endedAt      DateTime? @map("ended_at")
-  totalBet     Decimal   @default(0) @map("total_bet") @db.Decimal(18, 4)
-  totalWin     Decimal   @default(0) @map("total_win") @db.Decimal(18, 4)
+  // Totals in session currency
+  totalBet     Decimal   @default(0) @map("total_bet") @db.Decimal(18, 8)
+  totalWin     Decimal   @default(0) @map("total_win") @db.Decimal(18, 8)
+  // USDC equivalent totals
+  totalBetUsdc Decimal   @default(0) @map("total_bet_usdc") @db.Decimal(18, 6)
+  totalWinUsdc Decimal   @default(0) @map("total_win_usdc") @db.Decimal(18, 6)
   roundsPlayed Int       @default(0) @map("rounds_played")
 
   user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -449,9 +525,14 @@ model GameRound {
   sessionId       String   @map("session_id")
   userId          String   @map("user_id")
   gameId          String   @map("game_id")
-  coinType        String   @map("coin_type") // GC, SC
-  betAmount       Decimal  @map("bet_amount") @db.Decimal(18, 4)
-  winAmount       Decimal  @default(0) @map("win_amount") @db.Decimal(18, 4)
+  currency        String // USD, EUR, USDC, BTC, ETH, etc.
+  // Amounts in round currency
+  betAmount       Decimal  @map("bet_amount") @db.Decimal(18, 8)
+  winAmount       Decimal  @default(0) @map("win_amount") @db.Decimal(18, 8)
+  // USDC equivalent for unified tracking
+  betAmountUsdc   Decimal  @map("bet_amount_usdc") @db.Decimal(18, 6)
+  winAmountUsdc   Decimal  @default(0) @map("win_amount_usdc") @db.Decimal(18, 6)
+  exchangeRate    Decimal  @map("exchange_rate") @db.Decimal(18, 8) // Rate at time of round
   multiplier      Decimal? @db.Decimal(10, 4)
   resultData      Json?    @map("result_data") // game-specific outcome
   providerRoundId String?  @map("provider_round_id")
@@ -472,15 +553,18 @@ model GameRound {
 // ============================================
 
 model Leaderboard {
-  id          String   @id @default(uuid())
-  type        String // biggest_win, most_wagered, most_played
-  period      String // daily, weekly, monthly
-  periodStart DateTime @map("period_start")
-  periodEnd   DateTime @map("period_end")
-  prizePool   Decimal  @map("prize_pool") @db.Decimal(18, 4)
-  coinType    String   @default("SC") @map("coin_type")
-  status      String   @default("active") // active, completed, paid_out
-  createdAt   DateTime @default(now()) @map("created_at")
+  id              String   @id @default(uuid())
+  type            String // biggest_win, most_wagered, most_played
+  period          String // daily, weekly, monthly
+  periodStart     DateTime @map("period_start")
+  periodEnd       DateTime @map("period_end")
+  // Prize pool in USDC
+  prizePoolUsdc   Decimal  @map("prize_pool_usdc") @db.Decimal(18, 6)
+  // Alternative: prize pool in specific currency
+  prizePoolCurrency String? @map("prize_pool_currency")
+  prizePoolAmount Decimal? @map("prize_pool_amount") @db.Decimal(18, 8)
+  status          String   @default("active") // active, completed, paid_out
+  createdAt       DateTime @default(now()) @map("created_at")
 
   entries   LeaderboardEntry[]
   snapshots LeaderboardSnapshot[]
@@ -493,16 +577,18 @@ model LeaderboardEntry {
   id            String   @id @default(uuid())
   leaderboardId String   @map("leaderboard_id")
   userId        String   @map("user_id")
-  score         Decimal  @db.Decimal(18, 4)
+  // Score in USDC equivalent for consistent ranking
+  scoreUsdc     Decimal  @map("score_usdc") @db.Decimal(18, 6)
   rank          Int?
-  prizeAmount   Decimal? @map("prize_amount") @db.Decimal(18, 4)
+  // Prize in USDC
+  prizeUsdc     Decimal? @map("prize_usdc") @db.Decimal(18, 6)
   lastUpdatedAt DateTime @default(now()) @map("last_updated_at")
 
   leaderboard Leaderboard @relation(fields: [leaderboardId], references: [id], onDelete: Cascade)
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([leaderboardId, userId])
-  @@index([leaderboardId, score])
+  @@index([leaderboardId, scoreUsdc])
   @@map("leaderboard_entries")
 }
 
@@ -632,17 +718,25 @@ model Odd {
 }
 
 model Bet {
-  id           String    @id @default(uuid())
-  userId       String    @map("user_id")
-  type         String // single, combo, system
-  stake        Decimal   @db.Decimal(18, 4)
-  coinType     String    @map("coin_type") // GC, SC
-  potentialWin Decimal   @map("potential_win") @db.Decimal(18, 4)
-  actualWin    Decimal?  @map("actual_win") @db.Decimal(18, 4)
-  totalOdds    Decimal   @map("total_odds") @db.Decimal(10, 4)
-  status       String    @default("pending") // pending, won, lost, void, cashout
-  placedAt     DateTime  @default(now()) @map("placed_at")
-  settledAt    DateTime? @map("settled_at")
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  type           String // single, combo, system
+  currency       String // USD, EUR, USDC, BTC, ETH, etc.
+  // Stake in bet currency
+  stake          Decimal   @db.Decimal(18, 8)
+  // USDC equivalent
+  stakeUsdc      Decimal   @map("stake_usdc") @db.Decimal(18, 6)
+  exchangeRate   Decimal   @map("exchange_rate") @db.Decimal(18, 8)
+  // Potential and actual win in bet currency
+  potentialWin   Decimal   @map("potential_win") @db.Decimal(18, 8)
+  actualWin      Decimal?  @map("actual_win") @db.Decimal(18, 8)
+  // USDC equivalent for wins
+  potentialWinUsdc Decimal @map("potential_win_usdc") @db.Decimal(18, 6)
+  actualWinUsdc  Decimal?  @map("actual_win_usdc") @db.Decimal(18, 6)
+  totalOdds      Decimal   @map("total_odds") @db.Decimal(10, 4)
+  status         String    @default("pending") // pending, won, lost, void, cashout
+  placedAt       DateTime  @default(now()) @map("placed_at")
+  settledAt      DateTime? @map("settled_at")
 
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   selections BetSelection[]
@@ -680,12 +774,15 @@ model Promotion {
   slug                String    @unique
   description         String?
   type                String // welcome, deposit, daily, weekly, monthly, spin_wheel, code
-  gcAmount            Decimal?  @map("gc_amount") @db.Decimal(18, 2)
-  scAmount            Decimal?  @map("sc_amount") @db.Decimal(18, 4)
+  // Bonus in specific currency
+  bonusCurrency       String?   @map("bonus_currency") // USD, USDC, BTC, etc. - null means USDC default
+  bonusAmount         Decimal?  @map("bonus_amount") @db.Decimal(18, 8)
+  // USDC equivalent for tracking
+  bonusAmountUsdc     Decimal?  @map("bonus_amount_usdc") @db.Decimal(18, 6)
   percentageBonus     Int?      @map("percentage_bonus") // for deposit match
-  maxBonus            Decimal?  @map("max_bonus") @db.Decimal(18, 4)
+  maxBonusUsdc        Decimal?  @map("max_bonus_usdc") @db.Decimal(18, 6)
   wageringRequirement Int?      @map("wagering_requirement") // multiplier
-  minDeposit          Decimal?  @map("min_deposit") @db.Decimal(10, 2)
+  minDepositUsdc      Decimal?  @map("min_deposit_usdc") @db.Decimal(18, 6)
   code                String? // for promo codes
   imageUrl            String?   @map("image_url")
   terms               String?
@@ -703,14 +800,17 @@ model Promotion {
 }
 
 model SpinWheelSegment {
-  id          String  @id @default(uuid())
-  label       String
-  gcAmount    Decimal @map("gc_amount") @db.Decimal(18, 2)
-  scAmount    Decimal @map("sc_amount") @db.Decimal(18, 4)
-  probability Decimal @db.Decimal(5, 4)
-  color       String
-  sortOrder   Int     @default(0) @map("sort_order")
-  isActive    Boolean @default(true) @map("is_active")
+  id            String  @id @default(uuid())
+  label         String
+  // Bonus in specific currency
+  currency      String  @default("USDC")
+  amount        Decimal @db.Decimal(18, 8)
+  // USDC equivalent for tracking
+  amountUsdc    Decimal @map("amount_usdc") @db.Decimal(18, 6)
+  probability   Decimal @db.Decimal(5, 4)
+  color         String
+  sortOrder     Int     @default(0) @map("sort_order")
+  isActive      Boolean @default(true) @map("is_active")
 
   @@map("spin_wheel_segments")
 }
@@ -805,15 +905,18 @@ model ReferralCode {
 }
 
 model Referral {
-  id             String    @id @default(uuid())
-  referrerId     String    @map("referrer_id")
-  referredId     String    @unique @map("referred_id")
-  status         String    @default("pending") // pending, qualified, rewarded
-  referrerReward Decimal?  @map("referrer_reward") @db.Decimal(18, 4)
-  referredReward Decimal?  @map("referred_reward") @db.Decimal(18, 4)
-  qualifiedAt    DateTime? @map("qualified_at")
-  rewardedAt     DateTime? @map("rewarded_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
+  id                 String    @id @default(uuid())
+  referrerId         String    @map("referrer_id")
+  referredId         String    @unique @map("referred_id")
+  status             String    @default("pending") // pending, qualified, rewarded
+  // Rewards in USDC
+  referrerRewardUsdc Decimal?  @map("referrer_reward_usdc") @db.Decimal(18, 6)
+  referredRewardUsdc Decimal?  @map("referred_reward_usdc") @db.Decimal(18, 6)
+  // Currency rewards are given in
+  rewardCurrency     String?   @map("reward_currency")
+  qualifiedAt        DateTime? @map("qualified_at")
+  rewardedAt         DateTime? @map("rewarded_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
 
   referrer User @relation("ReferrerUser", fields: [referrerId], references: [id], onDelete: Cascade)
   referred User @relation("ReferredUser", fields: [referredId], references: [id], onDelete: Cascade)
@@ -869,14 +972,15 @@ model Jackpot {
   id                  String    @id @default(uuid())
   name                String
   type                String // mini, minor, major, grand
-  currentAmount       Decimal   @map("current_amount") @db.Decimal(18, 4)
-  seedAmount          Decimal   @map("seed_amount") @db.Decimal(18, 4)
+  // Current jackpot in USDC
+  currentAmountUsdc   Decimal   @map("current_amount_usdc") @db.Decimal(18, 6)
+  seedAmountUsdc      Decimal   @map("seed_amount_usdc") @db.Decimal(18, 6)
   contributionPercent Decimal   @map("contribution_percent") @db.Decimal(5, 4)
-  triggerMin          Decimal   @map("trigger_min") @db.Decimal(18, 4)
-  triggerMax          Decimal   @map("trigger_max") @db.Decimal(18, 4)
+  triggerMinUsdc      Decimal   @map("trigger_min_usdc") @db.Decimal(18, 6)
+  triggerMaxUsdc      Decimal   @map("trigger_max_usdc") @db.Decimal(18, 6)
   lastWonAt           DateTime? @map("last_won_at")
   lastWonBy           String?   @map("last_won_by")
-  lastWonAmount       Decimal?  @map("last_won_amount") @db.Decimal(18, 4)
+  lastWonAmountUsdc   Decimal?  @map("last_won_amount_usdc") @db.Decimal(18, 6)
   isActive            Boolean   @default(true) @map("is_active")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
@@ -886,14 +990,19 @@ model Jackpot {
 }
 
 model JackpotWin {
-  id          String   @id @default(uuid())
-  jackpotId   String   @map("jackpot_id")
-  userId      String   @map("user_id")
-  gameId      String   @map("game_id")
-  gameRoundId String   @map("game_round_id")
-  amount      Decimal  @db.Decimal(18, 4)
-  jackpotType String   @map("jackpot_type")
-  wonAt       DateTime @default(now()) @map("won_at")
+  id           String   @id @default(uuid())
+  jackpotId    String   @map("jackpot_id")
+  userId       String   @map("user_id")
+  gameId       String   @map("game_id")
+  gameRoundId  String   @map("game_round_id")
+  // Win amount in player's currency
+  currency     String
+  amount       Decimal  @db.Decimal(18, 8)
+  // USDC equivalent
+  amountUsdc   Decimal  @map("amount_usdc") @db.Decimal(18, 6)
+  exchangeRate Decimal  @map("exchange_rate") @db.Decimal(18, 8)
+  jackpotType  String   @map("jackpot_type")
+  wonAt        DateTime @default(now()) @map("won_at")
 
   jackpot   Jackpot   @relation(fields: [jackpotId], references: [id])
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -912,8 +1021,10 @@ model Prize {
   name          String
   description   String?
   imageUrl      String?  @map("image_url")
-  valueUsd      Decimal  @map("value_usd") @db.Decimal(10, 2)
-  scCost        Decimal? @map("sc_cost") @db.Decimal(18, 4)
+  // Value in USDC
+  valueUsdc     Decimal  @map("value_usdc") @db.Decimal(18, 6)
+  // Cost to redeem (in USDC equivalent)
+  costUsdc      Decimal? @map("cost_usdc") @db.Decimal(18, 6)
   category      String // electronics, gift_cards, merchandise, experiences, bonus_credits
   prizeType     String   @map("prize_type") // leaderboard, redemption_store, both
   stockQuantity Int?     @map("stock_quantity")
@@ -933,7 +1044,8 @@ model PrizeTier {
   leaderboardType String   @map("leaderboard_type") // daily, weekly, monthly
   position        Int // 1, 2, 3, 4, 5
   prizeId         String   @map("prize_id")
-  scAmount        Decimal  @map("sc_amount") @db.Decimal(18, 4)
+  // Prize amount in USDC
+  amountUsdc      Decimal  @map("amount_usdc") @db.Decimal(18, 6)
   createdAt       DateTime @default(now()) @map("created_at")
 
   prize Prize @relation(fields: [prizeId], references: [id])
@@ -992,7 +1104,10 @@ model AmoeEntry {
   username      String?
   code          String    @unique // 15-char alphanumeric
   postalAddress Json?     @map("postal_address")
-  scAmount      Decimal   @map("sc_amount") @db.Decimal(18, 4)
+  // Bonus amount in USDC
+  amountUsdc    Decimal   @map("amount_usdc") @db.Decimal(18, 6)
+  // Currency to credit (default USDC)
+  currency      String    @default("USDC")
   status        String    @default("generated") // generated, submitted, approved, rejected, redeemed
   submittedAt   DateTime? @map("submitted_at")
   reviewedBy    String?   @map("reviewed_by") // admin user id
@@ -1007,14 +1122,15 @@ model AmoeEntry {
 }
 
 model AmoeConfig {
-  id                 String   @id @default(uuid())
-  dailyLimitPerUser  Int      @map("daily_limit_per_user")
-  weeklyLimitPerUser Int      @map("weekly_limit_per_user")
-  scAmountPerEntry   Decimal  @map("sc_amount_per_entry") @db.Decimal(18, 4)
-  isActive           Boolean  @default(true) @map("is_active")
-  termsText          String?  @map("terms_text")
-  mailingAddress     Json?    @map("mailing_address")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(uuid())
+  dailyLimitPerUser    Int      @map("daily_limit_per_user")
+  weeklyLimitPerUser   Int      @map("weekly_limit_per_user")
+  // Amount per entry in USDC
+  amountUsdcPerEntry   Decimal  @map("amount_usdc_per_entry") @db.Decimal(18, 6)
+  isActive             Boolean  @default(true) @map("is_active")
+  termsText            String?  @map("terms_text")
+  mailingAddress       Json?    @map("mailing_address")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@map("amoe_config")
 }
@@ -1077,17 +1193,18 @@ model ContentView {
 // ============================================
 
 model PublicWin {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  gameId      String   @map("game_id")
-  gameRoundId String   @map("game_round_id")
-  displayName String   @map("display_name")
-  avatarUrl   String?  @map("avatar_url")
-  amount      Decimal  @db.Decimal(18, 4)
-  coinType    String   @map("coin_type") // GC, SC
-  multiplier  Decimal? @db.Decimal(10, 4)
-  isFeatured  Boolean  @default(false) @map("is_featured")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  gameId       String   @map("game_id")
+  gameRoundId  String   @map("game_round_id")
+  displayName  String   @map("display_name")
+  avatarUrl    String?  @map("avatar_url")
+  currency     String // USD, EUR, USDC, BTC, etc.
+  amount       Decimal  @db.Decimal(18, 8)
+  amountUsdc   Decimal  @map("amount_usdc") @db.Decimal(18, 6)
+  multiplier   Decimal? @db.Decimal(10, 4)
+  isFeatured   Boolean  @default(false) @map("is_featured")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   game Game @relation(fields: [gameId], references: [id])
@@ -1098,8 +1215,8 @@ model PublicWin {
 
 model WinDisplayConfig {
   id                     String   @id @default(uuid())
-  minGcAmount            Decimal  @map("min_gc_amount") @db.Decimal(18, 4)
-  minScAmount            Decimal  @map("min_sc_amount") @db.Decimal(18, 4)
+  // Minimum amounts in USDC equivalent for display
+  minAmountUsdc          Decimal  @map("min_amount_usdc") @db.Decimal(18, 6)
   maxDisplayCount        Int      @map("max_display_count")
   refreshIntervalSeconds Int      @map("refresh_interval_seconds")
   updatedAt              DateTime @updatedAt @map("updated_at")
@@ -1108,18 +1225,20 @@ model WinDisplayConfig {
 }
 
 model LiveBet {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  gameId      String   @map("game_id")
-  gameRoundId String   @map("game_round_id")
-  displayName String   @map("display_name")
-  gameName    String   @map("game_name")
-  betAmount   Decimal  @map("bet_amount") @db.Decimal(18, 4)
-  coinType    String   @map("coin_type") // GC, SC
-  multiplier  Decimal? @db.Decimal(10, 4)
-  profit      Decimal  @db.Decimal(18, 4)
-  isWin       Boolean  @map("is_win")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  gameId       String   @map("game_id")
+  gameRoundId  String   @map("game_round_id")
+  displayName  String   @map("display_name")
+  gameName     String   @map("game_name")
+  currency     String // USD, EUR, USDC, BTC, etc.
+  betAmount    Decimal  @map("bet_amount") @db.Decimal(18, 8)
+  betAmountUsdc Decimal @map("bet_amount_usdc") @db.Decimal(18, 6)
+  multiplier   Decimal? @db.Decimal(10, 4)
+  profit       Decimal  @db.Decimal(18, 8)
+  profitUsdc   Decimal  @map("profit_usdc") @db.Decimal(18, 6)
+  isWin        Boolean  @map("is_win")
+  createdAt    DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   game Game @relation(fields: [gameId], references: [id])
@@ -1149,8 +1268,9 @@ model SocialProofEvent {
   avatarUrl   String?  @map("avatar_url")
   eventType   String   @map("event_type") // win, jackpot, vip_levelup, bonus_claimed, cashout, leaderboard_rank
   actionText  String   @map("action_text")
-  amount      Decimal? @db.Decimal(18, 4)
-  coinType    String?  @map("coin_type")
+  currency    String? // USD, EUR, USDC, BTC, etc.
+  amount      Decimal? @db.Decimal(18, 8)
+  amountUsdc  Decimal? @map("amount_usdc") @db.Decimal(18, 6)
   isSynthetic Boolean  @default(false) @map("is_synthetic")
   createdAt   DateTime @default(now()) @map("created_at")
 
@@ -1161,13 +1281,14 @@ model SocialProofEvent {
 }
 
 model SocialProofConfig {
-  id                      String   @id @default(uuid())
-  isActive                Boolean  @default(true) @map("is_active")
-  displayFrequencySeconds Int      @map("display_frequency_seconds")
-  minWinAmountToDisplay   Decimal  @map("min_win_amount_to_display") @db.Decimal(18, 4)
-  includeSynthetic        Boolean  @default(true) @map("include_synthetic")
-  eventTypesEnabled       Json     @map("event_types_enabled") // array
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  id                        String   @id @default(uuid())
+  isActive                  Boolean  @default(true) @map("is_active")
+  displayFrequencySeconds   Int      @map("display_frequency_seconds")
+  // Minimum win in USDC equivalent
+  minWinAmountUsdcToDisplay Decimal  @map("min_win_amount_usdc_to_display") @db.Decimal(18, 6)
+  includeSynthetic          Boolean  @default(true) @map("include_synthetic")
+  eventTypesEnabled         Json     @map("event_types_enabled") // array
+  updatedAt                 DateTime @updatedAt @map("updated_at")
 
   @@map("social_proof_config")
 }
@@ -1557,21 +1678,25 @@ model MediaAsset {
 
 // Pre-computed daily stats per user for performance (avoids live aggregation)
 model UserDailyStats {
-  id           String   @id @default(uuid())
-  userId       String   @map("user_id")
-  date         DateTime @db.Date
-  coinType     String   @map("coin_type") // GC or SC
-  totalWagered Decimal  @default(0) @map("total_wagered") @db.Decimal(18, 4)
-  totalWon     Decimal  @default(0) @map("total_won") @db.Decimal(18, 4)
-  gamesPlayed  Int      @default(0) @map("games_played")
-  biggestWin   Decimal  @default(0) @map("biggest_win") @db.Decimal(18, 4)
-  netResult    Decimal  @default(0) @map("net_result") @db.Decimal(18, 4) // totalWon - totalWagered
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  date             DateTime @db.Date
+  currency         String // USD, EUR, USDC, BTC, etc.
+  // Stats in the specific currency
+  totalWagered     Decimal  @default(0) @map("total_wagered") @db.Decimal(18, 8)
+  totalWon         Decimal  @default(0) @map("total_won") @db.Decimal(18, 8)
+  // USDC equivalent for unified reporting
+  totalWageredUsdc Decimal  @default(0) @map("total_wagered_usdc") @db.Decimal(18, 6)
+  totalWonUsdc     Decimal  @default(0) @map("total_won_usdc") @db.Decimal(18, 6)
+  gamesPlayed      Int      @default(0) @map("games_played")
+  biggestWinUsdc   Decimal  @default(0) @map("biggest_win_usdc") @db.Decimal(18, 6)
+  netResultUsdc    Decimal  @default(0) @map("net_result_usdc") @db.Decimal(18, 6) // totalWonUsdc - totalWageredUsdc
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, date, coinType])
+  @@unique([userId, date, currency])
   @@index([userId, date])
   @@index([date])
   @@map("user_daily_stats")
@@ -1598,22 +1723,24 @@ model GameDailyStats {
   @@map("game_daily_stats")
 }
 
-// Platform-wide daily statistics for admin dashboard
+// Platform-wide daily statistics for admin dashboard (all in USDC equivalent)
 model PlatformDailyStats {
-  id               String   @id @default(uuid())
-  date             DateTime @unique @db.Date
-  newUsers         Int      @default(0) @map("new_users")
-  activeUsers      Int      @default(0) @map("active_users")
-  totalDeposits    Decimal  @default(0) @map("total_deposits") @db.Decimal(18, 2)
-  totalRedemptions Decimal  @default(0) @map("total_redemptions") @db.Decimal(18, 2)
-  totalGcWagered   Decimal  @default(0) @map("total_gc_wagered") @db.Decimal(18, 2)
-  totalScWagered   Decimal  @default(0) @map("total_sc_wagered") @db.Decimal(18, 4)
-  totalGcPayout    Decimal  @default(0) @map("total_gc_payout") @db.Decimal(18, 2)
-  totalScPayout    Decimal  @default(0) @map("total_sc_payout") @db.Decimal(18, 4)
-  newVipMembers    Int      @default(0) @map("new_vip_members")
-  totalBonusesPaid Decimal  @default(0) @map("total_bonuses_paid") @db.Decimal(18, 2)
-  createdAt        DateTime @default(now()) @map("created_at")
-  updatedAt        DateTime @updatedAt @map("updated_at")
+  id                   String   @id @default(uuid())
+  date                 DateTime @unique @db.Date
+  newUsers             Int      @default(0) @map("new_users")
+  activeUsers          Int      @default(0) @map("active_users")
+  // All financial stats in USDC equivalent
+  totalDepositsUsdc    Decimal  @default(0) @map("total_deposits_usdc") @db.Decimal(18, 6)
+  totalWithdrawalsUsdc Decimal  @default(0) @map("total_withdrawals_usdc") @db.Decimal(18, 6)
+  totalWageredUsdc     Decimal  @default(0) @map("total_wagered_usdc") @db.Decimal(18, 6)
+  totalPayoutUsdc      Decimal  @default(0) @map("total_payout_usdc") @db.Decimal(18, 6)
+  totalBonusesPaidUsdc Decimal  @default(0) @map("total_bonuses_paid_usdc") @db.Decimal(18, 6)
+  // Breakdown by major currencies (optional - JSON for flexibility)
+  depositsByCurrency   Json?    @map("deposits_by_currency") // { "USD": 1000, "BTC": 0.5 }
+  withdrawalsByCurrency Json?   @map("withdrawals_by_currency")
+  newVipMembers        Int      @default(0) @map("new_vip_members")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@index([date])
   @@map("platform_daily_stats")

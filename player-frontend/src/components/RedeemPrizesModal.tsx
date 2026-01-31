@@ -2,15 +2,14 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Trophy, Gift, Coins, Check, ChevronRight, Loader2, Star, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useAppMode, useWallet } from '@/contexts/AppModeContext';
+import { useWallet } from '@/contexts/AppModeContext';
 import confetti from 'canvas-confetti';
 import { cn } from '@/lib/utils';
 
 interface RedeemPrizesModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess?: (prizeType: string, scAmount: number) => void;
+  onSuccess?: (prizeType: string, usdcAmount: number) => void;
 }
 
 type Step = 'select-prize' | 'confirm' | 'processing' | 'success';
@@ -19,25 +18,25 @@ interface Prize {
   id: string;
   name: string;
   description: string;
-  scCost: number;
+  usdcCost: number;
   category: 'gift-cards' | 'electronics' | 'experiences' | 'merchandise';
   image: string;
   popular?: boolean;
 }
 
 const prizes: Prize[] = [
-  { id: 'gc-25', name: '$25 Gift Card', description: 'Amazon, Visa, or Target', scCost: 2500, category: 'gift-cards', image: '🎁', popular: true },
-  { id: 'gc-50', name: '$50 Gift Card', description: 'Amazon, Visa, or Target', scCost: 5000, category: 'gift-cards', image: '🎁' },
-  { id: 'gc-100', name: '$100 Gift Card', description: 'Amazon, Visa, or Target', scCost: 10000, category: 'gift-cards', image: '🎁', popular: true },
-  { id: 'gc-250', name: '$250 Gift Card', description: 'Amazon, Visa, or Target', scCost: 25000, category: 'gift-cards', image: '🎁' },
-  { id: 'gc-500', name: '$500 Gift Card', description: 'Amazon, Visa, or Target', scCost: 50000, category: 'gift-cards', image: '🎁' },
-  { id: 'airpods', name: 'AirPods Pro', description: 'Apple AirPods Pro 2nd Gen', scCost: 25000, category: 'electronics', image: '🎧' },
-  { id: 'switch', name: 'Nintendo Switch', description: 'OLED Model', scCost: 35000, category: 'electronics', image: '🎮' },
-  { id: 'ipad', name: 'iPad 10th Gen', description: '64GB WiFi', scCost: 45000, category: 'electronics', image: '📱', popular: true },
-  { id: 'ps5', name: 'PlayStation 5', description: 'Digital Edition', scCost: 50000, category: 'electronics', image: '🎮' },
-  { id: 'merch-hat', name: 'Premium Hat', description: 'Exclusive branded cap', scCost: 1000, category: 'merchandise', image: '🧢' },
-  { id: 'merch-hoodie', name: 'Premium Hoodie', description: 'Exclusive branded hoodie', scCost: 3500, category: 'merchandise', image: '👕' },
-  { id: 'exp-vip', name: 'VIP Experience', description: 'Exclusive VIP event access', scCost: 75000, category: 'experiences', image: '⭐' },
+  { id: 'gc-25', name: '$25 Gift Card', description: 'Amazon, Visa, or Target', usdcCost: 25, category: 'gift-cards', image: '🎁', popular: true },
+  { id: 'gc-50', name: '$50 Gift Card', description: 'Amazon, Visa, or Target', usdcCost: 50, category: 'gift-cards', image: '🎁' },
+  { id: 'gc-100', name: '$100 Gift Card', description: 'Amazon, Visa, or Target', usdcCost: 100, category: 'gift-cards', image: '🎁', popular: true },
+  { id: 'gc-250', name: '$250 Gift Card', description: 'Amazon, Visa, or Target', usdcCost: 250, category: 'gift-cards', image: '🎁' },
+  { id: 'gc-500', name: '$500 Gift Card', description: 'Amazon, Visa, or Target', usdcCost: 500, category: 'gift-cards', image: '🎁' },
+  { id: 'airpods', name: 'AirPods Pro', description: 'Apple AirPods Pro 2nd Gen', usdcCost: 250, category: 'electronics', image: '🎧' },
+  { id: 'switch', name: 'Nintendo Switch', description: 'OLED Model', usdcCost: 350, category: 'electronics', image: '🎮' },
+  { id: 'ipad', name: 'iPad 10th Gen', description: '64GB WiFi', usdcCost: 450, category: 'electronics', image: '📱', popular: true },
+  { id: 'ps5', name: 'PlayStation 5', description: 'Digital Edition', usdcCost: 500, category: 'electronics', image: '🎮' },
+  { id: 'merch-hat', name: 'Premium Hat', description: 'Exclusive branded cap', usdcCost: 10, category: 'merchandise', image: '🧢' },
+  { id: 'merch-hoodie', name: 'Premium Hoodie', description: 'Exclusive branded hoodie', usdcCost: 35, category: 'merchandise', image: '👕' },
+  { id: 'exp-vip', name: 'VIP Experience', description: 'Exclusive VIP event access', usdcCost: 750, category: 'experiences', image: '⭐' },
 ];
 
 const categories = [
@@ -49,50 +48,27 @@ const categories = [
 ];
 
 export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesModalProps) {
-  const { mode } = useAppMode();
-  const { scBalance, updateSCBalance, addActivity } = useWallet();
-  
+  const { balances, updateBalance, addActivity, formatCurrency } = useWallet();
+
   const [step, setStep] = useState<Step>('select-prize');
   const [selectedPrize, setSelectedPrize] = useState<Prize | null>(null);
   const [activeCategory, setActiveCategory] = useState('all');
-  const [customAmount, setCustomAmount] = useState('');
+
+  // Use USDC balance for prize redemption
+  const usdcBalance = balances.USDC;
 
   useEffect(() => {
     if (isOpen) {
       setStep('select-prize');
       setSelectedPrize(null);
       setActiveCategory('all');
-      setCustomAmount('');
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Only available in sweepstakes mode
-  if (mode !== 'sweepstakes') {
-    return createPortal(
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative bg-card rounded-2xl border border-border p-6 max-w-md w-full text-center">
-          <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground hover:text-foreground">
-            <X className="w-5 h-5" />
-          </button>
-          <Trophy className="w-12 h-12 text-amber-400 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-foreground mb-2">Sweepstakes Mode Required</h2>
-          <p className="text-muted-foreground mb-4">
-            Prize redemption is only available in Sweepstakes mode. Switch to Sweepstakes mode to redeem your SC for prizes.
-          </p>
-          <Button onClick={onClose} className="bg-primary hover:bg-primary/90">
-            Got it
-          </Button>
-        </div>
-      </div>,
-      document.body
-    );
-  }
-
-  const filteredPrizes = activeCategory === 'all' 
-    ? prizes 
+  const filteredPrizes = activeCategory === 'all'
+    ? prizes
     : prizes.filter(p => p.category === activeCategory);
 
   const handlePrizeSelect = (prize: Prize) => {
@@ -101,23 +77,24 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
   };
 
   const handleConfirmRedeem = () => {
-    if (!selectedPrize || scBalance < selectedPrize.scCost) return;
-    
+    if (!selectedPrize || usdcBalance < selectedPrize.usdcCost) return;
+
     setStep('processing');
-    
+
     setTimeout(() => {
-      updateSCBalance(-selectedPrize.scCost);
+      updateBalance('USDC', -selectedPrize.usdcCost);
       addActivity({
-        type: 'redeem',
-        coinType: 'SC',
-        amount: selectedPrize.scCost,
+        type: 'withdrawal',
+        currency: 'USDC',
+        amount: selectedPrize.usdcCost,
+        usdcAmount: selectedPrize.usdcCost,
         status: 'completed',
-        description: `Redeemed: ${selectedPrize.name}`
+        description: `Prize Redeemed: ${selectedPrize.name}`
       });
-      
+
       setStep('success');
       triggerConfetti();
-      onSuccess?.(selectedPrize.name, selectedPrize.scCost);
+      onSuccess?.(selectedPrize.name, selectedPrize.usdcCost);
     }, 2000);
   };
 
@@ -147,7 +124,7 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
     }
   };
 
-  const formatSC = (amount: number) => `SC ${amount.toLocaleString()}`;
+  const formatUSDC = (amount: number) => formatCurrency(amount, 'USDC');
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -166,7 +143,7 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
             <div>
               <h2 className="text-lg font-bold text-foreground">Redeem Prizes</h2>
               <p className="text-xs text-muted-foreground">
-                Your SC Balance: <span className="text-amber-400 font-semibold">{formatSC(scBalance)}</span>
+                Your USDC Balance: <span className="text-amber-400 font-semibold">{formatUSDC(usdcBalance)}</span>
               </p>
             </div>
           </div>
@@ -200,7 +177,7 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
               {/* Prizes Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {filteredPrizes.map(prize => {
-                  const canAfford = scBalance >= prize.scCost;
+                  const canAfford = usdcBalance >= prize.usdcCost;
                   return (
                     <button
                       key={prize.id}
@@ -230,7 +207,7 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
                               "font-bold text-sm",
                               canAfford ? "text-amber-400" : "text-muted-foreground"
                             )}>
-                              {formatSC(prize.scCost)}
+                              {formatUSDC(prize.usdcCost)}
                             </span>
                           </div>
                         </div>
@@ -261,7 +238,7 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
                 <p className="text-sm text-muted-foreground mb-4">{selectedPrize.description}</p>
                 <div className="inline-flex items-center gap-2 bg-card px-4 py-2 rounded-full border border-border">
                   <Coins className="w-5 h-5 text-amber-400" />
-                  <span className="font-bold text-lg text-amber-400">{formatSC(selectedPrize.scCost)}</span>
+                  <span className="font-bold text-lg text-amber-400">{formatUSDC(selectedPrize.usdcCost)}</span>
                 </div>
               </div>
 
@@ -269,15 +246,15 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
               <div className="bg-muted/50 rounded-xl p-4 space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Current Balance</span>
-                  <span className="font-semibold text-foreground">{formatSC(scBalance)}</span>
+                  <span className="font-semibold text-foreground">{formatUSDC(usdcBalance)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Prize Cost</span>
-                  <span className="font-semibold text-red-400">-{formatSC(selectedPrize.scCost)}</span>
+                  <span className="font-semibold text-red-400">-{formatUSDC(selectedPrize.usdcCost)}</span>
                 </div>
                 <div className="border-t border-border pt-3 flex justify-between">
                   <span className="font-medium text-foreground">Remaining Balance</span>
-                  <span className="font-bold text-foreground">{formatSC(scBalance - selectedPrize.scCost)}</span>
+                  <span className="font-bold text-foreground">{formatUSDC(usdcBalance - selectedPrize.usdcCost)}</span>
                 </div>
               </div>
 
@@ -319,12 +296,12 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
               </p>
               <div className="bg-muted/50 rounded-xl p-4 w-full max-w-xs mb-6">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">SC Spent</span>
-                  <span className="font-semibold text-foreground">{formatSC(selectedPrize.scCost)}</span>
+                  <span className="text-muted-foreground">USDC Spent</span>
+                  <span className="font-semibold text-foreground">{formatUSDC(selectedPrize.usdcCost)}</span>
                 </div>
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-muted-foreground">New Balance</span>
-                  <span className="font-bold text-amber-400">{formatSC(scBalance)}</span>
+                  <span className="font-bold text-amber-400">{formatUSDC(usdcBalance)}</span>
                 </div>
               </div>
               <Button onClick={onClose} className="bg-primary hover:bg-primary/90">
