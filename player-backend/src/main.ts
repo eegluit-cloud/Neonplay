@@ -18,12 +18,12 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // CORS
-  app.enableCors({
-    origin: configService.get<string>('FRONTEND_URL') || 'http://localhost:5173',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
-  });
+  // app.enableCors({
+  //   origin: configService.get<string>('FRONTEND_URL') || 'http://localhost:5173',
+  //   credentials: true,
+  //   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  //   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+  // });
 
   // API Versioning - use 'api' as prefix, versioning handles the version number
   app.setGlobalPrefix(configService.get<string>('API_PREFIX') || 'api');
