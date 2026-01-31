@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ============================================
   # DATABASE SERVICES
@@ -45,35 +43,43 @@ services:
       - neonplay-network
 
   # ============================================
-  # PLAYER SERVICES (WBC2026 Stack)
+  # DATABASE MIGRATIONS
   # ============================================
 
-  # Player Frontend - React + Vite + TypeScript
-  player-frontend:
+  # Run Prisma migrations and seed (runs once then exits)
+  migrations:
     build:
-      context: ./player-frontend
+      context: ./player-backend
       dockerfile: Dockerfile
       target: development
-    container_name: neonplay-player-frontend
-    ports:
-      - "8000:5173"
-    volumes:
-      - ./player-frontend/src:/app/src
-      - ./player-frontend/public:/app/public
-      - /app/node_modules
+    container_name: neonplay-migrations
     environment:
-      - VITE_API_URL=http://localhost:4000/api/v1
-      - VITE_SOCKET_URL=http://localhost:4000
-    stdin_open: true
-    tty: true
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - neonplay-network
+    command: >
+      sh -c "
+        echo 'Running Prisma migrations...' &&
+        npx prisma migrate deploy &&
+        echo 'Running database seed...' &&
+        npx prisma db seed || echo 'Seeding skipped or failed' &&
+        echo 'Migrations complete!'
+      "
+    restart: "no"
+
+  # ============================================
+  # PLAYER SERVICES (WBC2026 Stack)
+  # ============================================
 
   # Player Backend - NestJS + Prisma + PostgreSQL
   player-backend:
     build:
       context: ./player-backend
       dockerfile: Dockerfile
+      target: development
     container_name: neonplay-player-backend
     restart: unless-stopped
     environment:
@@ -96,35 +102,44 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:4000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
     networks:
       - neonplay-network
-    profiles:
-      - with-backend
 
-  # ============================================
-  # ADMIN SERVICES (Original NeonPlay Stack)
-  # ============================================
-
-  # Admin Frontend - React (vanilla JS)
-  admin-frontend:
+  # Player Frontend - React + Vite + TypeScript
+  player-frontend:
     build:
-      context: ./admin-frontend
+      context: ./player-frontend
       dockerfile: Dockerfile
-    container_name: neonplay-admin-frontend
+      target: development
+    container_name: neonplay-player-frontend
+    restart: unless-stopped
     ports:
-      - "8003:8003"
+      - "8000:5173"
     volumes:
-      - ./admin-frontend/src:/app/src
-      - ./admin-frontend/public:/app/public
+      - ./player-frontend/src:/app/src
+      - ./player-frontend/public:/app/public
+      - /app/node_modules
     environment:
-      - PORT=8003
-      - REACT_APP_API_URL=http://localhost:8002/api
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
+      - VITE_API_URL=http://localhost:4000/api/v1
+      - VITE_SOCKET_URL=http://localhost:4000
+    depends_on:
+      - player-backend
     stdin_open: true
     tty: true
     networks:
       - neonplay-network
+
+  # ============================================
+  # ADMIN SERVICES (Original NeonPlay Stack)
+  # ============================================
 
   # Admin Backend - Express.js
   admin-backend:
@@ -132,6 +147,7 @@ services:
       context: ./admin-backend
       dockerfile: Dockerfile
     container_name: neonplay-admin-backend
+    restart: unless-stopped
     ports:
       - "8002:8002"
     volumes:
@@ -145,8 +161,30 @@ services:
       - JWT_EXPIRES_IN=24h
     networks:
       - neonplay-network
-    profiles:
-      - with-backend
+
+  # Admin Frontend - React (vanilla JS)
+  admin-frontend:
+    build:
+      context: ./admin-frontend
+      dockerfile: Dockerfile
+    container_name: neonplay-admin-frontend
+    restart: unless-stopped
+    ports:
+      - "8003:8003"
+    volumes:
+      - ./admin-frontend/src:/app/src
+      - ./admin-frontend/public:/app/public
+    environment:
+      - PORT=8003
+      - REACT_APP_API_URL=http://localhost:8002/api
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    depends_on:
+      - admin-backend
+    stdin_open: true
+    tty: true
+    networks:
+      - neonplay-network
 
   # ============================================
   # DEVELOPMENT TOOLS (Optional)
