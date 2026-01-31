@@ -176,7 +176,7 @@ services:
       - ./admin-frontend/public:/app/public
     environment:
       - PORT=8003
-      - REACT_APP_API_URL=http://localhost:8002/api
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://13.228.114.152:8002/api}
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     depends_on:
