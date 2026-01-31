@@ -26,8 +26,7 @@ export interface LeaderboardDto {
   period: LeaderboardPeriod;
   periodStart: Date;
   periodEnd: Date;
-  prizePool: number;
-  coinType: string;
+  prizePoolUsdc: number;
   status: string;
   entries: LeaderboardEntryDto[];
   totalEntries: number;
@@ -79,7 +78,7 @@ export class LeaderboardService {
       ],
       include: {
         entries: {
-          orderBy: { score: 'desc' },
+          orderBy: { scoreUsdc: 'desc' },
           take: 10,
           include: {
             user: {
@@ -103,16 +102,15 @@ export class LeaderboardService {
       period: lb.period as LeaderboardPeriod,
       periodStart: lb.periodStart,
       periodEnd: lb.periodEnd,
-      prizePool: Number(lb.prizePool),
-      coinType: lb.coinType,
+      prizePoolUsdc: Number(lb.prizePoolUsdc),
       status: lb.status,
       entries: lb.entries.map((entry, index) => ({
         rank: entry.rank ?? index + 1,
         userId: entry.userId,
         username: entry.user.username,
         avatarUrl: entry.user.avatarUrl,
-        score: Number(entry.score),
-        prizeAmount: entry.prizeAmount ? Number(entry.prizeAmount) : null,
+        score: Number(entry.scoreUsdc),
+        prizeAmount: entry.prizeUsdc ? Number(entry.prizeUsdc) : null,
       })),
       totalEntries: lb._count.entries,
     }));
@@ -164,7 +162,7 @@ export class LeaderboardService {
     const [entries, totalEntries] = await Promise.all([
       this.prisma.leaderboardEntry.findMany({
         where: { leaderboardId: leaderboard.id },
-        orderBy: { score: 'desc' },
+        orderBy: { scoreUsdc: 'desc' },
         skip,
         take,
         include: {
@@ -188,16 +186,15 @@ export class LeaderboardService {
       period: leaderboard.period as LeaderboardPeriod,
       periodStart: leaderboard.periodStart,
       periodEnd: leaderboard.periodEnd,
-      prizePool: Number(leaderboard.prizePool),
-      coinType: leaderboard.coinType,
+      prizePoolUsdc: Number(leaderboard.prizePoolUsdc),
       status: leaderboard.status,
       entries: entries.map((entry, index) => ({
         rank: entry.rank ?? skip + index + 1,
         userId: entry.userId,
         username: entry.user.username,
         avatarUrl: entry.user.avatarUrl,
-        score: Number(entry.score),
-        prizeAmount: entry.prizeAmount ? Number(entry.prizeAmount) : null,
+        score: Number(entry.scoreUsdc),
+        prizeAmount: entry.prizeUsdc ? Number(entry.prizeUsdc) : null,
       })),
       totalEntries,
     };
@@ -261,8 +258,8 @@ export class LeaderboardService {
     let prizeAmount: number | null = null;
 
     if (userEntry) {
-      score = Number(userEntry.score);
-      prizeAmount = userEntry.prizeAmount ? Number(userEntry.prizeAmount) : null;
+      score = Number(userEntry.scoreUsdc);
+      prizeAmount = userEntry.prizeUsdc ? Number(userEntry.prizeUsdc) : null;
 
       // Calculate rank if not already set
       if (userEntry.rank) {
@@ -272,7 +269,7 @@ export class LeaderboardService {
         const higherScoreCount = await this.prisma.leaderboardEntry.count({
           where: {
             leaderboardId: leaderboard.id,
-            score: { gt: userEntry.score },
+            scoreUsdc: { gt: userEntry.scoreUsdc },
           },
         });
         rank = higherScoreCount + 1;
@@ -349,8 +346,7 @@ export class LeaderboardService {
       period: lb.period,
       periodStart: lb.periodStart,
       periodEnd: lb.periodEnd,
-      prizePool: Number(lb.prizePool),
-      coinType: lb.coinType,
+      prizePoolUsdc: Number(lb.prizePoolUsdc),
       status: lb.status,
       totalParticipants: lb._count.entries,
       topWinners: lb.entries.map((entry) => ({
@@ -358,8 +354,8 @@ export class LeaderboardService {
         userId: entry.userId,
         username: entry.user.username,
         avatarUrl: entry.user.avatarUrl,
-        score: Number(entry.score),
-        prizeAmount: entry.prizeAmount ? Number(entry.prizeAmount) : null,
+        score: Number(entry.scoreUsdc),
+        prizeAmount: entry.prizeUsdc ? Number(entry.prizeUsdc) : null,
       })),
     }));
 
@@ -431,7 +427,7 @@ export class LeaderboardService {
       switch (type) {
         case 'biggest_win':
           // Only update if new win is bigger
-          if (score > Number(existingEntry.score)) {
+          if (score > Number(existingEntry.scoreUsdc)) {
             newScore = score;
           } else {
             return; // No update needed
@@ -440,14 +436,14 @@ export class LeaderboardService {
         case 'most_wagered':
         case 'most_played':
           // Accumulate scores
-          newScore = Number(existingEntry.score) + score;
+          newScore = Number(existingEntry.scoreUsdc) + score;
           break;
       }
 
       await this.prisma.leaderboardEntry.update({
         where: { id: existingEntry.id },
         data: {
-          score: newScore,
+          scoreUsdc: newScore,
           lastUpdatedAt: new Date(),
         },
       });
@@ -456,7 +452,7 @@ export class LeaderboardService {
         data: {
           leaderboardId,
           userId,
-          score,
+          scoreUsdc: score,
           lastUpdatedAt: new Date(),
         },
       });
@@ -511,7 +507,7 @@ export class LeaderboardService {
             name: true,
             description: true,
             imageUrl: true,
-            valueUsd: true,
+            valueUsdc: true,
           },
         },
       },
@@ -519,14 +515,14 @@ export class LeaderboardService {
 
     const result = prizeTiers.map((tier) => ({
       position: tier.position,
-      scAmount: Number(tier.scAmount),
+      amountUsdc: Number(tier.amountUsdc),
       prize: tier.prize
         ? {
             id: tier.prize.id,
             name: tier.prize.name,
             description: tier.prize.description,
             imageUrl: tier.prize.imageUrl,
-            valueUsd: Number(tier.prize.valueUsd),
+            valueUsdc: Number(tier.prize.valueUsdc),
           }
         : null,
     }));
@@ -641,7 +637,7 @@ export class LeaderboardService {
     // Get all entries ordered by score
     const entries = await this.prisma.leaderboardEntry.findMany({
       where: { leaderboardId },
-      orderBy: { score: 'desc' },
+      orderBy: { scoreUsdc: 'desc' },
     });
 
     let winnersCount = 0;
@@ -654,14 +650,14 @@ export class LeaderboardService {
         const entry = entries[i];
         const rank = i + 1;
         const prizeTier = prizeTiers.find(pt => pt.position === rank);
-        const prizeAmount = prizeTier ? new Decimal(prizeTier.scAmount) : new Decimal(0);
+        const prizeAmount = prizeTier ? new Decimal(prizeTier.amountUsdc) : new Decimal(0);
 
         // Update entry with final rank and prize amount
         await tx.leaderboardEntry.update({
           where: { id: entry.id },
           data: {
             rank,
-            prizeAmount: prizeAmount.gt(0) ? prizeAmount : null,
+            prizeUsdc: prizeAmount.gt(0) ? prizeAmount : null,
           },
         });
 
@@ -672,14 +668,14 @@ export class LeaderboardService {
           });
 
           if (wallet) {
-            const newScBalance = new Decimal(wallet.scBalance).plus(prizeAmount);
+            const newUsdcBalance = new Decimal(wallet.usdcBalance).plus(prizeAmount);
 
             // Update wallet with optimistic locking
             const updateResult = await tx.wallet.updateMany({
               where: { id: wallet.id, version: wallet.version },
               data: {
-                scBalance: newScBalance,
-                scLifetimeEarned: new Decimal(wallet.scLifetimeEarned).plus(prizeAmount),
+                usdcBalance: newUsdcBalance,
+                lifetimeWon: new Decimal(wallet.lifetimeWon).plus(prizeAmount),
                 version: { increment: 1 },
               },
             });
@@ -691,10 +687,12 @@ export class LeaderboardService {
                   userId: entry.userId,
                   walletId: wallet.id,
                   type: 'bonus',
-                  coinType: 'SC',
+                  currency: 'USDC',
                   amount: prizeAmount,
-                  balanceBefore: wallet.scBalance,
-                  balanceAfter: newScBalance,
+                  usdcAmount: prizeAmount,
+                  exchangeRate: 1,
+                  balanceBefore: wallet.usdcBalance,
+                  balanceAfter: newUsdcBalance,
                   referenceType: 'leaderboard',
                   referenceId: leaderboardId,
                   status: 'completed',
@@ -702,7 +700,7 @@ export class LeaderboardService {
                     leaderboardType: leaderboard.type,
                     leaderboardPeriod: leaderboard.period,
                     rank,
-                    score: entry.score.toString(),
+                    score: entry.scoreUsdc.toString(),
                   },
                 },
               });
@@ -713,7 +711,7 @@ export class LeaderboardService {
                   userId: entry.userId,
                   type: 'leaderboard_prize',
                   title: `Leaderboard Prize Won!`,
-                  message: `Congratulations! You placed #${rank} on the ${leaderboard.period} ${leaderboard.type.replace('_', ' ')} leaderboard and won ${prizeAmount.toFixed(2)} SC!`,
+                  message: `Congratulations! You placed #${rank} on the ${leaderboard.period} ${leaderboard.type.replace('_', ' ')} leaderboard and won ${prizeAmount.toFixed(2)} USDC!`,
                   data: {
                     leaderboardId,
                     rank,
@@ -725,7 +723,7 @@ export class LeaderboardService {
               winnersCount++;
               totalPrizeDistributed += prizeAmount.toNumber();
 
-              this.logger.log(`Distributed ${prizeAmount} SC to user ${entry.userId} for rank ${rank}`);
+              this.logger.log(`Distributed ${prizeAmount} USDC to user ${entry.userId} for rank ${rank}`);
             } else {
               this.logger.error(`Failed to update wallet for user ${entry.userId} - concurrent modification`);
             }
@@ -743,7 +741,7 @@ export class LeaderboardService {
             topEntries: entries.slice(0, 100).map((e, i) => ({
               rank: i + 1,
               userId: e.userId,
-              score: e.score.toString(),
+              score: e.scoreUsdc.toString(),
             })),
           },
         },
@@ -762,7 +760,7 @@ export class LeaderboardService {
     for (let i = 0; i < Math.min(entries.length, prizeTiers.length); i++) {
       const entry = entries[i];
       const prizeTier = prizeTiers.find(pt => pt.position === i + 1);
-      if (prizeTier && new Decimal(prizeTier.scAmount).gt(0)) {
+      if (prizeTier && new Decimal(prizeTier.amountUsdc).gt(0)) {
         await this.redis.publish('wallet:balance_updated', {
           userId: entry.userId,
         });
@@ -776,7 +774,7 @@ export class LeaderboardService {
     await this.redis.del(this.ACTIVE_LEADERBOARDS_KEY);
     await this.invalidateLeaderboardCache(leaderboard.type as LeaderboardType, leaderboard.period as LeaderboardPeriod);
 
-    this.logger.log(`Leaderboard ${leaderboardId} finalized. ${winnersCount} winners, ${totalPrizeDistributed} SC distributed.`);
+    this.logger.log(`Leaderboard ${leaderboardId} finalized. ${winnersCount} winners, ${totalPrizeDistributed} USDC distributed.`);
 
     return {
       leaderboardId,
@@ -824,8 +822,7 @@ export class LeaderboardService {
         period,
         periodStart,
         periodEnd,
-        prizePool,
-        coinType: 'SC',
+        prizePoolUsdc: prizePool,
         status: 'active',
       },
     });

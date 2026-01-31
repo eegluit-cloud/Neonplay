@@ -26,8 +26,9 @@ export class UsersService {
         createdAt: true,
         wallet: {
           select: {
-            gcBalance: true,
-            scBalance: true,
+            usdBalance: true,
+            usdcBalance: true,
+            primaryCurrency: true,
           },
         },
         vip: {

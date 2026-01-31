@@ -53,9 +53,9 @@ export class WalletController {
 
   @Public()
   @Get('packages')
-  @ApiOperation({ summary: 'Get available coin packages' })
+  @ApiOperation({ summary: 'Get available deposit packages' })
   async getPackages() {
-    return this.walletService.getCoinPackages();
+    return this.walletService.getDepositPackages();
   }
 
   @Public()
@@ -73,63 +73,65 @@ export class WalletController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('purchase')
+  @Post('deposit')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Initiate coin purchase' })
-  async initiatePurchase(
+  @ApiOperation({ summary: 'Initiate deposit' })
+  async initiateDeposit(
     @CurrentUser('id') userId: string,
-    @Body() body: { packageId: string; paymentMethod: string },
-    @Req() req: Request,
+    @Body() body: { packageId?: string; amount: number; currency: string; paymentMethod: string },
   ) {
-    const ipAddress = req.ip || '';
-    return this.walletService.initiatePurchase(
+    return this.walletService.initiateDeposit(
       userId,
-      body.packageId,
+      body.currency as any,
+      body.amount,
       body.paymentMethod,
-      ipAddress,
+      body.packageId,
     );
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('purchase/confirm')
+  @Post('deposit/confirm')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Confirm purchase after payment' })
-  async confirmPurchase(
+  @ApiOperation({ summary: 'Confirm deposit after payment' })
+  async confirmDeposit(
     @CurrentUser('id') userId: string,
-    @Body() body: { purchaseId: string; paymentIntentId: string },
+    @Body() body: { depositId: string; paymentIntentId: string; txHash?: string },
   ) {
-    return this.walletService.confirmPurchase(
+    return this.walletService.confirmDeposit(
       userId,
-      body.purchaseId,
+      body.depositId,
       body.paymentIntentId,
+      body.txHash,
     );
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('redeem')
+  @Post('withdraw')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Request SC redemption' })
-  async requestRedemption(
+  @ApiOperation({ summary: 'Request withdrawal' })
+  async requestWithdrawal(
     @CurrentUser('id') userId: string,
-    @Body() body: { scAmount: number; method: string; payoutDetails: any },
+    @Body() body: { amount: number; currency: string; method: string; payoutDetails: any; toAddress?: string },
   ) {
-    return this.walletService.requestRedemption(
+    return this.walletService.requestWithdrawal(
       userId,
-      body.scAmount,
+      body.currency as any,
+      body.amount,
       body.method,
       body.payoutDetails,
+      body.toAddress,
     );
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get('redemptions')
+  @Get('withdrawals')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get redemption history' })
-  async getRedemptions(
+  @ApiOperation({ summary: 'Get withdrawal history' })
+  async getWithdrawals(
     @CurrentUser('id') userId: string,
     @Query() query: PaginationDto,
   ) {
-    return this.walletService.getRedemptions(userId, query);
+    return this.walletService.getWithdrawals(userId, query);
   }
 
   @UseGuards(JwtAuthGuard)

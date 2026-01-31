@@ -33,13 +33,13 @@ export class JackpotProcessor {
           id: true,
           name: true,
           type: true,
-          currentAmount: true,
-          seedAmount: true,
-          triggerMin: true,
-          triggerMax: true,
+          currentAmountUsdc: true,
+          seedAmountUsdc: true,
+          triggerMinUsdc: true,
+          triggerMaxUsdc: true,
           lastWonAt: true,
           lastWonBy: true,
-          lastWonAmount: true,
+          lastWonAmountUsdc: true,
         },
       });
 
@@ -50,15 +50,15 @@ export class JackpotProcessor {
           id: jackpot.id,
           name: jackpot.name,
           type: jackpot.type,
-          currentAmount: jackpot.currentAmount.toString(),
-          seedAmount: jackpot.seedAmount.toString(),
-          triggerMin: jackpot.triggerMin.toString(),
-          triggerMax: jackpot.triggerMax.toString(),
+          currentAmount: jackpot.currentAmountUsdc.toString(),
+          seedAmount: jackpot.seedAmountUsdc.toString(),
+          triggerMin: jackpot.triggerMinUsdc.toString(),
+          triggerMax: jackpot.triggerMaxUsdc.toString(),
           lastWonAt: jackpot.lastWonAt?.toISOString() || null,
           lastWonBy: jackpot.lastWonBy,
-          lastWonAmount: jackpot.lastWonAmount?.toString() || null,
-          formattedValue: this.formatJackpotValue(jackpot.currentAmount),
-          isAtMax: jackpot.currentAmount.gte(jackpot.triggerMax),
+          lastWonAmount: jackpot.lastWonAmountUsdc?.toString() || null,
+          formattedValue: this.formatJackpotValue(jackpot.currentAmountUsdc),
+          isAtMax: jackpot.currentAmountUsdc.gte(jackpot.triggerMaxUsdc),
         }, 30); // 30 second TTL
       }
 
@@ -67,8 +67,8 @@ export class JackpotProcessor {
         id: j.id,
         name: j.name,
         type: j.type,
-        currentAmount: j.currentAmount.toString(),
-        formattedValue: this.formatJackpotValue(j.currentAmount),
+        currentAmount: j.currentAmountUsdc.toString(),
+        formattedValue: this.formatJackpotValue(j.currentAmountUsdc),
       }));
       await this.redis.set('jackpots:all', jackpotList, 30);
 
@@ -100,13 +100,13 @@ export class JackpotProcessor {
 
       for (const jackpot of jackpots) {
         const isStale = !jackpot.lastWonAt || jackpot.lastWonAt < staleThreshold;
-        const isNearMax = jackpot.currentAmount.gte(
-          jackpot.triggerMax.mul(0.9), // 90% of max
+        const isNearMax = jackpot.currentAmountUsdc.gte(
+          jackpot.triggerMaxUsdc.mul(0.9), // 90% of max
         );
 
         if (isStale || isNearMax) {
           this.logger.log(
-            `Jackpot ${jackpot.name} is ${isStale ? 'stale' : 'near max'}. Current: ${jackpot.currentAmount}, Last won: ${jackpot.lastWonAt || 'never'}`,
+            `Jackpot ${jackpot.name} is ${isStale ? 'stale' : 'near max'}. Current: ${jackpot.currentAmountUsdc}, Last won: ${jackpot.lastWonAt || 'never'}`,
           );
 
           // Could implement increased trigger rates here
@@ -149,12 +149,12 @@ export class JackpotProcessor {
 
       if (wins.length > 0) {
         const totalWinnings = wins.reduce(
-          (sum, win) => sum.add(win.amount),
+          (sum, win) => sum.add(win.amountUsdc),
           new Decimal(0),
         );
 
         this.logger.log(
-          `Yesterday's jackpot summary: ${wins.length} wins, total ${totalWinnings.toString()} SC`,
+          `Yesterday's jackpot summary: ${wins.length} wins, total ${totalWinnings.toString()} USDC`,
         );
 
         // Group by jackpot type
@@ -164,13 +164,13 @@ export class JackpotProcessor {
             acc[type] = { count: 0, total: new Decimal(0) };
           }
           acc[type].count++;
-          acc[type].total = acc[type].total.add(win.amount);
+          acc[type].total = acc[type].total.add(win.amountUsdc);
           return acc;
         }, {} as Record<string, { count: number; total: Decimal }>);
 
         for (const [type, stats] of Object.entries(byType)) {
           this.logger.log(
-            `  ${type}: ${stats.count} wins, ${stats.total.toString()} SC`,
+            `  ${type}: ${stats.count} wins, ${stats.total.toString()} USDC`,
           );
         }
       } else {
@@ -185,13 +185,13 @@ export class JackpotProcessor {
 
       this.logger.log('Current jackpot values:');
       for (const jackpot of jackpots) {
-        const progress = jackpot.currentAmount
-          .sub(jackpot.triggerMin)
-          .div(jackpot.triggerMax.sub(jackpot.triggerMin))
+        const progress = jackpot.currentAmountUsdc
+          .sub(jackpot.triggerMinUsdc)
+          .div(jackpot.triggerMaxUsdc.sub(jackpot.triggerMinUsdc))
           .mul(100);
 
         this.logger.log(
-          `  ${jackpot.name}: ${this.formatJackpotValue(jackpot.currentAmount)} (${progress.toFixed(1)}% to max)`,
+          `  ${jackpot.name}: ${this.formatJackpotValue(jackpot.currentAmountUsdc)} (${progress.toFixed(1)}% to max)`,
         );
       }
     } catch (error: any) {
@@ -206,20 +206,19 @@ export class JackpotProcessor {
   @Cron(CronExpression.EVERY_MINUTE)
   async checkForcedTriggers() {
     try {
-      const jackpotsAtMax = await this.prisma.jackpot.findMany({
-        where: {
-          isActive: true,
-          currentAmount: { gte: this.prisma.jackpot.fields.triggerMax },
-        },
+      const jackpots = await this.prisma.jackpot.findMany({
+        where: { isActive: true },
       });
 
-      for (const jackpot of jackpotsAtMax) {
-        this.logger.warn(
-          `ALERT: ${jackpot.name} jackpot has reached maximum (${jackpot.currentAmount}). Next eligible bet will trigger!`,
-        );
+      for (const jackpot of jackpots) {
+        if (jackpot.currentAmountUsdc.gte(jackpot.triggerMaxUsdc)) {
+          this.logger.warn(
+            `ALERT: ${jackpot.name} jackpot has reached maximum (${jackpot.currentAmountUsdc}). Next eligible bet will trigger!`,
+          );
 
-        // Set Redis flag for forced trigger
-        await this.redis.set(`jackpot:forced_trigger:${jackpot.id}`, true, 3600);
+          // Set Redis flag for forced trigger
+          await this.redis.set(`jackpot:forced_trigger:${jackpot.id}`, true, 3600);
+        }
       }
     } catch (error: any) {
       this.logger.error('Error checking forced triggers:', error);
@@ -231,9 +230,9 @@ export class JackpotProcessor {
    */
   private formatJackpotValue(value: Decimal): string {
     const numValue = Number(value);
-    return `${numValue.toLocaleString('en-US', {
+    return `$${numValue.toLocaleString('en-US', {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
-    })} SC`;
+    })}`;
   }
 }

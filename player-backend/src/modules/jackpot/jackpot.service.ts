@@ -49,14 +49,14 @@ export class JackpotService {
         id: true,
         name: true,
         type: true,
-        currentAmount: true,
-        seedAmount: true,
+        currentAmountUsdc: true,
+        seedAmountUsdc: true,
         contributionPercent: true,
-        triggerMin: true,
-        triggerMax: true,
+        triggerMinUsdc: true,
+        triggerMaxUsdc: true,
         lastWonAt: true,
         lastWonBy: true,
-        lastWonAmount: true,
+        lastWonAmountUsdc: true,
         isActive: true,
         updatedAt: true,
       },
@@ -66,16 +66,16 @@ export class JackpotService {
       id: jackpot.id,
       name: jackpot.name,
       type: jackpot.type,
-      currentAmount: jackpot.currentAmount.toString(),
-      seedAmount: jackpot.seedAmount.toString(),
+      currentAmount: jackpot.currentAmountUsdc.toString(),
+      seedAmount: jackpot.seedAmountUsdc.toString(),
       contributionPercent: jackpot.contributionPercent.toString(),
-      triggerMin: jackpot.triggerMin.toString(),
-      triggerMax: jackpot.triggerMax.toString(),
+      triggerMin: jackpot.triggerMinUsdc.toString(),
+      triggerMax: jackpot.triggerMaxUsdc.toString(),
       lastWonAt: jackpot.lastWonAt,
       lastWonBy: jackpot.lastWonBy,
-      lastWonAmount: jackpot.lastWonAmount?.toString() || null,
-      formattedValue: this.formatJackpotValue(jackpot.currentAmount),
-      isAtMax: jackpot.currentAmount.gte(jackpot.triggerMax),
+      lastWonAmount: jackpot.lastWonAmountUsdc?.toString() || null,
+      formattedValue: this.formatJackpotValue(jackpot.currentAmountUsdc),
+      isAtMax: jackpot.currentAmountUsdc.gte(jackpot.triggerMaxUsdc),
       updatedAt: jackpot.updatedAt,
     }));
   }
@@ -160,14 +160,14 @@ export class JackpotService {
         id: true,
         name: true,
         type: true,
-        currentAmount: true,
-        seedAmount: true,
+        currentAmountUsdc: true,
+        seedAmountUsdc: true,
         contributionPercent: true,
-        triggerMin: true,
-        triggerMax: true,
+        triggerMinUsdc: true,
+        triggerMaxUsdc: true,
         lastWonAt: true,
         lastWonBy: true,
-        lastWonAmount: true,
+        lastWonAmountUsdc: true,
         isActive: true,
         updatedAt: true,
       },
@@ -181,16 +181,16 @@ export class JackpotService {
       id: jackpot.id,
       name: jackpot.name,
       type: jackpot.type,
-      currentAmount: jackpot.currentAmount.toString(),
-      seedAmount: jackpot.seedAmount.toString(),
+      currentAmount: jackpot.currentAmountUsdc.toString(),
+      seedAmount: jackpot.seedAmountUsdc.toString(),
       contributionPercent: jackpot.contributionPercent.toString(),
-      triggerMin: jackpot.triggerMin.toString(),
-      triggerMax: jackpot.triggerMax.toString(),
+      triggerMin: jackpot.triggerMinUsdc.toString(),
+      triggerMax: jackpot.triggerMaxUsdc.toString(),
       lastWonAt: jackpot.lastWonAt,
       lastWonBy: jackpot.lastWonBy,
-      lastWonAmount: jackpot.lastWonAmount?.toString() || null,
-      formattedValue: this.formatJackpotValue(jackpot.currentAmount),
-      isAtMax: jackpot.currentAmount.gte(jackpot.triggerMax),
+      lastWonAmount: jackpot.lastWonAmountUsdc?.toString() || null,
+      formattedValue: this.formatJackpotValue(jackpot.currentAmountUsdc),
+      isAtMax: jackpot.currentAmountUsdc.gte(jackpot.triggerMaxUsdc),
       updatedAt: jackpot.updatedAt,
     };
   }
@@ -205,14 +205,14 @@ export class JackpotService {
         id: true,
         name: true,
         type: true,
-        currentAmount: true,
-        seedAmount: true,
+        currentAmountUsdc: true,
+        seedAmountUsdc: true,
         contributionPercent: true,
-        triggerMin: true,
-        triggerMax: true,
+        triggerMinUsdc: true,
+        triggerMaxUsdc: true,
         lastWonAt: true,
         lastWonBy: true,
-        lastWonAmount: true,
+        lastWonAmountUsdc: true,
         isActive: true,
         updatedAt: true,
       },
@@ -226,16 +226,16 @@ export class JackpotService {
       id: jackpot.id,
       name: jackpot.name,
       type: jackpot.type,
-      currentAmount: jackpot.currentAmount.toString(),
-      seedAmount: jackpot.seedAmount.toString(),
+      currentAmount: jackpot.currentAmountUsdc.toString(),
+      seedAmount: jackpot.seedAmountUsdc.toString(),
       contributionPercent: jackpot.contributionPercent.toString(),
-      triggerMin: jackpot.triggerMin.toString(),
-      triggerMax: jackpot.triggerMax.toString(),
+      triggerMin: jackpot.triggerMinUsdc.toString(),
+      triggerMax: jackpot.triggerMaxUsdc.toString(),
       lastWonAt: jackpot.lastWonAt,
       lastWonBy: jackpot.lastWonBy,
-      lastWonAmount: jackpot.lastWonAmount?.toString() || null,
-      formattedValue: this.formatJackpotValue(jackpot.currentAmount),
-      isAtMax: jackpot.currentAmount.gte(jackpot.triggerMax),
+      lastWonAmount: jackpot.lastWonAmountUsdc?.toString() || null,
+      formattedValue: this.formatJackpotValue(jackpot.currentAmountUsdc),
+      isAtMax: jackpot.currentAmountUsdc.gte(jackpot.triggerMaxUsdc),
       updatedAt: jackpot.updatedAt,
     };
   }
@@ -245,7 +245,7 @@ export class JackpotService {
    */
   private formatJackpotValue(value: any): string {
     const numValue = typeof value === 'object' ? Number(value) : value;
-    return `${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} SC`;
+    return `$${numValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
   /**
@@ -264,20 +264,14 @@ export class JackpotService {
   // ============================================================================
 
   /**
-   * Contribute to all active jackpots based on bet amount
+   * Contribute to all active jackpots based on bet amount (in USDC)
    * Called when a player places a bet (game round or sports bet)
    * Each jackpot has a contributionPercent that determines how much of the bet goes to it
    */
   async contributeToJackpots(
-    betAmount: number | string | Decimal,
-    coinType: 'GC' | 'SC',
+    betAmountUsdc: number | string | Decimal,
   ): Promise<JackpotContributionResult> {
-    // Only SC bets contribute to jackpots
-    if (coinType !== 'SC') {
-      return { contributions: [], totalContributed: '0' };
-    }
-
-    const bet = new Decimal(betAmount);
+    const bet = new Decimal(betAmountUsdc);
     const activeJackpots = await this.prisma.jackpot.findMany({
       where: { isActive: true },
     });
@@ -292,13 +286,13 @@ export class JackpotService {
       if (contribution.gt(0)) {
         // Cap the jackpot at triggerMax
         const newAmount = Decimal.min(
-          jackpot.currentAmount.add(contribution),
-          jackpot.triggerMax,
+          jackpot.currentAmountUsdc.add(contribution),
+          jackpot.triggerMaxUsdc,
         );
 
         await this.prisma.jackpot.update({
           where: { id: jackpot.id },
-          data: { currentAmount: newAmount },
+          data: { currentAmountUsdc: newAmount },
         });
 
         contributions.push({
@@ -313,7 +307,7 @@ export class JackpotService {
     }
 
     this.logger.debug(
-      `Jackpot contributions from ${bet.toFixed(4)} SC bet: ${totalContributed.toFixed(4)} SC total`,
+      `Jackpot contributions from ${bet.toFixed(4)} USDC bet: ${totalContributed.toFixed(4)} USDC total`,
     );
 
     return {
@@ -335,11 +329,11 @@ export class JackpotService {
     userId: string,
     gameId: string,
     gameSessionId: string,
-    betAmount: number | string | Decimal,
+    betAmountUsdc: number | string | Decimal,
   ): Promise<JackpotWinResult> {
-    const bet = new Decimal(betAmount);
+    const bet = new Decimal(betAmountUsdc);
 
-    // Minimum bet threshold to be eligible for jackpot (0.10 SC)
+    // Minimum bet threshold to be eligible for jackpot (0.10 USDC)
     const minBetForJackpot = new Decimal('0.10');
     if (bet.lt(minBetForJackpot)) {
       return { won: false };
@@ -348,13 +342,12 @@ export class JackpotService {
     const activeJackpots = await this.prisma.jackpot.findMany({
       where: {
         isActive: true,
-        currentAmount: { gte: this.prisma.jackpot.fields.triggerMin },
       },
     });
 
     // Filter jackpots that have reached their minimum trigger threshold
     const eligibleJackpots = activeJackpots.filter((j) =>
-      j.currentAmount.gte(j.triggerMin),
+      j.currentAmountUsdc.gte(j.triggerMinUsdc),
     );
 
     if (eligibleJackpots.length === 0) {
@@ -372,7 +365,7 @@ export class JackpotService {
       const won = this.calculateJackpotWin(jackpot, bet);
 
       if (won) {
-        const winAmount = jackpot.currentAmount;
+        const winAmount = jackpot.currentAmountUsdc;
 
         // Record the win and reset jackpot
         await this.recordJackpotWin(
@@ -384,7 +377,7 @@ export class JackpotService {
         );
 
         this.logger.log(
-          `JACKPOT WIN! User ${userId} won ${jackpot.type} jackpot: ${winAmount.toFixed(4)} SC`,
+          `JACKPOT WIN! User ${userId} won ${jackpot.type} jackpot: ${winAmount.toFixed(4)} USDC`,
         );
 
         return {
@@ -417,11 +410,11 @@ export class JackpotService {
   private calculateJackpotWin(
     jackpot: {
       type: string;
-      currentAmount: Decimal;
-      triggerMin: Decimal;
-      triggerMax: Decimal;
+      currentAmountUsdc: Decimal;
+      triggerMinUsdc: Decimal;
+      triggerMaxUsdc: Decimal;
     },
-    betAmount: Decimal,
+    betAmountUsdc: Decimal,
   ): boolean {
     // Base odds (1 in X)
     const baseOdds: Record<string, number> = {
@@ -434,8 +427,8 @@ export class JackpotService {
     const base = baseOdds[jackpot.type] || 50000;
 
     // Calculate progress towards triggerMax (0 to 1)
-    const range = jackpot.triggerMax.sub(jackpot.triggerMin);
-    const progress = jackpot.currentAmount.sub(jackpot.triggerMin).div(range);
+    const range = jackpot.triggerMaxUsdc.sub(jackpot.triggerMinUsdc);
+    const progress = jackpot.currentAmountUsdc.sub(jackpot.triggerMinUsdc).div(range);
     const progressNum = Math.min(1, Math.max(0, progress.toNumber()));
 
     // Increase odds as jackpot approaches max
@@ -446,7 +439,7 @@ export class JackpotService {
     const effectiveOdds = Math.max(1, Math.floor(base * oddsMultiplier));
 
     // Higher bets have slightly better odds (up to 2x bonus)
-    const betBonus = Math.min(2, 1 + betAmount.toNumber() / 10);
+    const betBonus = Math.min(2, 1 + betAmountUsdc.toNumber() / 10);
     const finalOdds = Math.floor(effectiveOdds / betBonus);
 
     // Random check
@@ -462,7 +455,7 @@ export class JackpotService {
     jackpotId: string,
     gameId: string,
     gameRoundId: string,
-    amount: Decimal,
+    amountUsdc: Decimal,
   ): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
       // Get user info for the win record
@@ -487,7 +480,10 @@ export class JackpotService {
           userId,
           gameId,
           gameRoundId,
-          amount,
+          currency: 'USDC',
+          amount: amountUsdc,
+          amountUsdc,
+          exchangeRate: 1,
           jackpotType: jackpot.type,
         },
       });
@@ -496,10 +492,10 @@ export class JackpotService {
       await tx.jackpot.update({
         where: { id: jackpotId },
         data: {
-          currentAmount: jackpot.seedAmount,
+          currentAmountUsdc: jackpot.seedAmountUsdc,
           lastWonAt: new Date(),
           lastWonBy: user?.username || 'Anonymous',
-          lastWonAmount: amount,
+          lastWonAmountUsdc: amountUsdc,
         },
       });
 
@@ -509,13 +505,13 @@ export class JackpotService {
       });
 
       if (wallet) {
-        const newBalance = wallet.scBalance.add(amount);
+        const newBalance = wallet.usdcBalance.add(amountUsdc);
 
         await tx.wallet.update({
           where: { userId },
           data: {
-            scBalance: newBalance,
-            scLifetimeEarned: wallet.scLifetimeEarned.add(amount),
+            usdcBalance: newBalance,
+            lifetimeWon: wallet.lifetimeWon.add(amountUsdc),
             version: { increment: 1 },
           },
         });
@@ -526,9 +522,11 @@ export class JackpotService {
             userId,
             walletId: wallet.id,
             type: 'jackpot_win',
-            coinType: 'SC',
-            amount,
-            balanceBefore: wallet.scBalance,
+            currency: 'USDC',
+            amount: amountUsdc,
+            usdcAmount: amountUsdc,
+            exchangeRate: 1,
+            balanceBefore: wallet.usdcBalance,
             balanceAfter: newBalance,
             referenceType: 'jackpot_win',
             referenceId: jackpotId,
@@ -549,11 +547,11 @@ export class JackpotService {
           userId,
           type: 'jackpot',
           title: `${jackpot.name} Jackpot Won!`,
-          message: `Congratulations! You've won the ${jackpot.name} jackpot worth ${this.formatJackpotValue(amount)}!`,
+          message: `Congratulations! You've won the ${jackpot.name} jackpot worth ${this.formatJackpotValue(amountUsdc)}!`,
           data: {
             jackpotId,
             jackpotType: jackpot.type,
-            amount: amount.toString(),
+            amount: amountUsdc.toString(),
           },
         },
       });
@@ -566,8 +564,9 @@ export class JackpotService {
           avatarUrl: user?.avatarUrl,
           eventType: 'jackpot_win',
           actionText: `won the ${jackpot.name} jackpot!`,
-          amount,
-          coinType: 'SC',
+          currency: 'USDC',
+          amount: amountUsdc,
+          amountUsdc,
         },
       });
     });
@@ -610,18 +609,18 @@ export class JackpotService {
 
     const seedAmount = newSeedAmount
       ? new Decimal(newSeedAmount)
-      : jackpot.seedAmount;
+      : jackpot.seedAmountUsdc;
 
     await this.prisma.jackpot.update({
       where: { id: jackpotId },
       data: {
-        currentAmount: seedAmount,
-        seedAmount: seedAmount,
+        currentAmountUsdc: seedAmount,
+        seedAmountUsdc: seedAmount,
       },
     });
 
     this.logger.log(
-      `Jackpot ${jackpot.name} reset to ${seedAmount.toFixed(4)} SC`,
+      `Jackpot ${jackpot.name} reset to ${seedAmount.toFixed(4)} USDC`,
     );
   }
 }

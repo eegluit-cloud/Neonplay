@@ -63,10 +63,7 @@ export class AuthService {
         dateOfBirth: dto.dateOfBirth ? new Date(dto.dateOfBirth) : undefined,
         countryCode: dto.countryCode,
         wallet: {
-          create: {
-            gcBalance: 0,
-            scBalance: 0,
-          },
+          create: {},
         },
         vip: {
           create: {
@@ -457,10 +454,7 @@ export class AuthService {
             },
           },
           wallet: {
-            create: {
-              gcBalance: 0,
-              scBalance: 0,
-            },
+            create: {},
           },
           vip: {
             create: {
