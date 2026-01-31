@@ -12,6 +12,21 @@ import {
   PaginationDto,
 } from '../../common/utils/pagination.util';
 
+// Currency balance field mapping
+const CURRENCY_BALANCE_FIELDS: Record<string, string> = {
+  USD: 'usdBalance',
+  EUR: 'eurBalance',
+  GBP: 'gbpBalance',
+  CAD: 'cadBalance',
+  AUD: 'audBalance',
+  USDC: 'usdcBalance',
+  USDT: 'usdtBalance',
+  BTC: 'btcBalance',
+  ETH: 'ethBalance',
+  SOL: 'solBalance',
+  DOGE: 'dogeBalance',
+};
+
 @Injectable()
 export class PromotionsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -42,12 +57,13 @@ export class PromotionsService {
         slug: true,
         description: true,
         type: true,
-        gcAmount: true,
-        scAmount: true,
+        bonusAmount: true,
+        bonusAmountUsdc: true,
+        bonusCurrency: true,
         percentageBonus: true,
-        maxBonus: true,
+        maxBonusUsdc: true,
         wageringRequirement: true,
-        minDeposit: true,
+        minDepositUsdc: true,
         imageUrl: true,
         terms: true,
         startsAt: true,
@@ -67,31 +83,33 @@ export class PromotionsService {
         slug: true,
         description: true,
         type: true,
-        gcAmount: true,
-        scAmount: true,
+        bonusAmount: true,
+        bonusAmountUsdc: true,
+        bonusCurrency: true,
         percentageBonus: true,
-        maxBonus: true,
+        maxBonusUsdc: true,
         wageringRequirement: true,
-        minDeposit: true,
+        minDepositUsdc: true,
         imageUrl: true,
         terms: true,
         startsAt: true,
         endsAt: true,
         maxClaims: true,
         maxClaimsPerUser: true,
-        _count: {
-          select: {
-            userPromotions: {
-              where: { status: { in: ['claimed', 'completed'] } },
-            },
-          },
-        },
       },
     });
 
     if (!promotion) {
       throw new NotFoundException('Promotion not found');
     }
+
+    // Query total claims separately
+    const totalClaims = await this.prisma.userPromotion.count({
+      where: {
+        promotionId: promotion.id,
+        status: { in: ['claimed', 'completed'] },
+      },
+    });
 
     const now = new Date();
     const isActive =
@@ -102,7 +120,7 @@ export class PromotionsService {
     return {
       ...promotion,
       isActive,
-      totalClaims: promotion._count.userPromotions,
+      totalClaims,
     };
   }
 
@@ -167,10 +185,11 @@ export class PromotionsService {
     }
 
     // Calculate bonus amounts
-    const gcAmount = promotion.gcAmount || new Decimal(0);
-    const scAmount = promotion.scAmount || new Decimal(0);
+    const bonusAmount = promotion.bonusAmount || new Decimal(0);
+    const bonusAmountUsdc = promotion.bonusAmountUsdc || new Decimal(0);
+    const bonusCurrency = promotion.bonusCurrency || 'USDC';
     const wageringTarget = promotion.wageringRequirement
-      ? new Decimal(scAmount).times(promotion.wageringRequirement)
+      ? new Decimal(bonusAmountUsdc).times(promotion.wageringRequirement)
       : null;
 
     // Calculate expiration (30 days by default)
@@ -184,7 +203,7 @@ export class PromotionsService {
           userId,
           promotionId: promotion.id,
           status: 'claimed',
-          bonusAmount: scAmount,
+          bonusAmount: bonusAmountUsdc,
           wageredAmount: new Decimal(0),
           wageringTarget,
           claimedAt: now,
@@ -192,39 +211,24 @@ export class PromotionsService {
         },
       });
 
-      // Credit the bonus to wallet
-      const newGcBalance = new Decimal(wallet.gcBalance).plus(gcAmount);
-      const newScBalance = new Decimal(wallet.scBalance).plus(scAmount);
+      // Get the balance field for the bonus currency
+      const balanceField = CURRENCY_BALANCE_FIELDS[bonusCurrency] || 'usdcBalance';
+      const currentBalance = new Decimal((wallet as any)[balanceField] || 0);
+      const newBalance = currentBalance.plus(bonusAmount);
 
-      // Create transactions
-      if (new Decimal(gcAmount).gt(0)) {
+      // Create transaction if bonus amount is greater than 0
+      if (new Decimal(bonusAmount).gt(0)) {
         await tx.transaction.create({
           data: {
             userId,
             walletId: wallet.id,
             type: 'bonus',
-            coinType: 'GC',
-            amount: gcAmount,
-            balanceBefore: wallet.gcBalance,
-            balanceAfter: newGcBalance,
-            referenceType: 'promotion',
-            referenceId: userPromotion.id,
-            status: 'completed',
-            metadata: { promotionSlug: slug },
-          },
-        });
-      }
-
-      if (new Decimal(scAmount).gt(0)) {
-        await tx.transaction.create({
-          data: {
-            userId,
-            walletId: wallet.id,
-            type: 'bonus',
-            coinType: 'SC',
-            amount: scAmount,
-            balanceBefore: wallet.scBalance,
-            balanceAfter: newScBalance,
+            currency: bonusCurrency,
+            amount: bonusAmount,
+            usdcAmount: bonusAmountUsdc,
+            exchangeRate: bonusAmount.gt(0) ? bonusAmountUsdc.div(bonusAmount) : new Decimal(1),
+            balanceBefore: currentBalance,
+            balanceAfter: newBalance,
             referenceType: 'promotion',
             referenceId: userPromotion.id,
             status: 'completed',
@@ -237,9 +241,9 @@ export class PromotionsService {
       await tx.wallet.update({
         where: { id: wallet.id, version: wallet.version },
         data: {
-          gcBalance: newGcBalance,
-          scBalance: newScBalance,
-          scLifetimeEarned: new Decimal(wallet.scLifetimeEarned).plus(scAmount),
+          [balanceField]: newBalance,
+          lifetimeWon: new Decimal(wallet.lifetimeWon).plus(bonusAmountUsdc),
+          lifetimeBonuses: new Decimal(wallet.lifetimeBonuses).plus(bonusAmountUsdc),
           version: { increment: 1 },
         },
       });
@@ -251,8 +255,9 @@ export class PromotionsService {
           slug: promotion.slug,
         },
         bonusAwarded: {
-          gcAmount,
-          scAmount,
+          amount: bonusAmount,
+          currency: bonusCurrency,
+          usdcEquivalent: bonusAmountUsdc,
         },
         wageringRequirement: promotion.wageringRequirement,
         wageringTarget,
@@ -284,8 +289,9 @@ export class PromotionsService {
       select: {
         id: true,
         label: true,
-        gcAmount: true,
-        scAmount: true,
+        currency: true,
+        amount: true,
+        amountUsdc: true,
         color: true,
         sortOrder: true,
       },
@@ -358,10 +364,12 @@ export class PromotionsService {
       throw new NotFoundException('Wallet not found');
     }
 
-    const gcAmount = new Decimal(winningSegment.gcAmount);
-    const scAmount = new Decimal(winningSegment.scAmount);
-    const newGcBalance = new Decimal(wallet.gcBalance).plus(gcAmount);
-    const newScBalance = new Decimal(wallet.scBalance).plus(scAmount);
+    const currency = winningSegment.currency;
+    const amount = new Decimal(winningSegment.amount);
+    const amountUsdc = new Decimal(winningSegment.amountUsdc);
+    const balanceField = CURRENCY_BALANCE_FIELDS[currency] || 'usdcBalance';
+    const currentBalance = new Decimal((wallet as any)[balanceField] || 0);
+    const newBalance = currentBalance.plus(amount);
 
     return this.prisma.$transaction(async (tx) => {
       // Record the spin
@@ -369,40 +377,25 @@ export class PromotionsService {
         data: {
           userId,
           bonusType: 'spin_wheel',
-          gcAmount,
-          scAmount,
+          currency,
+          amount,
+          usdcAmount: amountUsdc,
         },
       });
 
-      // Create transactions
-      if (gcAmount.gt(0)) {
+      // Create transaction if amount is greater than 0
+      if (amount.gt(0)) {
         await tx.transaction.create({
           data: {
             userId,
             walletId: wallet.id,
             type: 'bonus',
-            coinType: 'GC',
-            amount: gcAmount,
-            balanceBefore: wallet.gcBalance,
-            balanceAfter: newGcBalance,
-            referenceType: 'bonus',
-            referenceId: bonusClaim.id,
-            status: 'completed',
-            metadata: { bonusType: 'spin_wheel', segmentId: winningSegment.id },
-          },
-        });
-      }
-
-      if (scAmount.gt(0)) {
-        await tx.transaction.create({
-          data: {
-            userId,
-            walletId: wallet.id,
-            type: 'bonus',
-            coinType: 'SC',
-            amount: scAmount,
-            balanceBefore: wallet.scBalance,
-            balanceAfter: newScBalance,
+            currency,
+            amount,
+            usdcAmount: amountUsdc,
+            exchangeRate: amount.gt(0) ? amountUsdc.div(amount) : new Decimal(1),
+            balanceBefore: currentBalance,
+            balanceAfter: newBalance,
             referenceType: 'bonus',
             referenceId: bonusClaim.id,
             status: 'completed',
@@ -415,9 +408,9 @@ export class PromotionsService {
       const updatedWallet = await tx.wallet.update({
         where: { id: wallet.id, version: wallet.version },
         data: {
-          gcBalance: newGcBalance,
-          scBalance: newScBalance,
-          scLifetimeEarned: new Decimal(wallet.scLifetimeEarned).plus(scAmount),
+          [balanceField]: newBalance,
+          lifetimeWon: new Decimal(wallet.lifetimeWon).plus(amountUsdc),
+          lifetimeBonuses: new Decimal(wallet.lifetimeBonuses).plus(amountUsdc),
           version: { increment: 1 },
         },
       });
@@ -431,13 +424,14 @@ export class PromotionsService {
         winningSegment: {
           id: winningSegment.id,
           label: winningSegment.label,
-          gcAmount,
-          scAmount,
+          currency,
+          amount,
+          amountUsdc,
           color: winningSegment.color,
         },
         wallet: {
-          gcBalance: updatedWallet.gcBalance,
-          scBalance: updatedWallet.scBalance,
+          primaryCurrency: updatedWallet.primaryCurrency,
+          [balanceField]: (updatedWallet as any)[balanceField],
         },
         nextSpinAvailable,
       };

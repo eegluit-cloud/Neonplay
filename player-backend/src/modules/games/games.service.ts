@@ -39,7 +39,47 @@ export interface GameRoundResult {
   };
 }
 
-type CoinType = 'GC' | 'SC';
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'SOL' | 'DOGE';
+
+// Balance field mapping type
+type BalanceFieldMap = {
+  USD: 'usdBalance';
+  EUR: 'eurBalance';
+  GBP: 'gbpBalance';
+  CAD: 'cadBalance';
+  AUD: 'audBalance';
+  USDC: 'usdcBalance';
+  USDT: 'usdtBalance';
+  BTC: 'btcBalance';
+  ETH: 'ethBalance';
+  SOL: 'solBalance';
+  DOGE: 'dogeBalance';
+};
+
+type BalanceField = BalanceFieldMap[Currency];
+
+// Default exchange rate (1:1 for USDC)
+const DEFAULT_EXCHANGE_RATE = new Decimal(1);
+
+// Balance field mapping
+const BALANCE_FIELDS: BalanceFieldMap = {
+  USD: 'usdBalance',
+  EUR: 'eurBalance',
+  GBP: 'gbpBalance',
+  CAD: 'cadBalance',
+  AUD: 'audBalance',
+  USDC: 'usdcBalance',
+  USDT: 'usdtBalance',
+  BTC: 'btcBalance',
+  ETH: 'ethBalance',
+  SOL: 'solBalance',
+  DOGE: 'dogeBalance',
+};
+
+// Helper to get balance field name from currency
+function getBalanceField(currency: Currency): BalanceField {
+  return BALANCE_FIELDS[currency] || 'usdcBalance';
+}
 
 export interface GamesQueryDto extends PaginationDto {
   category?: string;
@@ -351,10 +391,11 @@ export class GamesService {
     return game;
   }
 
-  async launchGame(userId: string, gameSlug: string, coinType: CoinType) {
-    // Validate coin type
-    if (!['GC', 'SC'].includes(coinType)) {
-      throw new BadRequestException('Invalid coin type. Must be GC or SC');
+  async launchGame(userId: string, gameSlug: string, currency: Currency = 'USDC') {
+    // Validate currency
+    const validCurrencies: Currency[] = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE'];
+    if (!validCurrencies.includes(currency)) {
+      throw new BadRequestException(`Invalid currency. Must be one of: ${validCurrencies.join(', ')}`);
     }
 
     // Get game with provider info
@@ -382,11 +423,12 @@ export class GamesService {
       throw new NotFoundException('Wallet not found');
     }
 
-    const balance = coinType === 'GC' ? wallet.gcBalance : wallet.scBalance;
+    const balanceField = getBalanceField(currency);
+    const balance = wallet[balanceField] as Decimal;
     const minBet = game.minBet || 0;
 
     if (Number(balance) < Number(minBet)) {
-      throw new BadRequestException(`Insufficient ${coinType} balance to play this game`);
+      throw new BadRequestException(`Insufficient ${currency} balance to play this game`);
     }
 
     // Generate session token
@@ -397,8 +439,10 @@ export class GamesService {
       data: {
         userId,
         gameId: game.id,
-        coinType,
+        currency,
         sessionToken,
+        totalBetUsdc: new Decimal(0),
+        totalWinUsdc: new Decimal(0),
       },
     });
 
@@ -413,7 +457,7 @@ export class GamesService {
 
     // In production, this would call the game provider's API to get a launch URL
     // For now, return session details
-    const launchUrl = this.generateGameLaunchUrl(game, session.sessionToken, coinType);
+    const launchUrl = this.generateGameLaunchUrl(game, session.sessionToken, currency);
 
     return {
       sessionId: session.id,
@@ -425,15 +469,15 @@ export class GamesService {
         slug: game.slug,
         provider: game.provider.name,
       },
-      coinType,
+      currency,
     };
   }
 
-  private generateGameLaunchUrl(game: any, sessionToken: string, coinType: CoinType): string {
+  private generateGameLaunchUrl(game: any, sessionToken: string, currency: Currency): string {
     // In production, this would generate the actual provider launch URL
     // This is a placeholder implementation
     const baseUrl = process.env.GAME_LAUNCH_BASE_URL || 'https://games.example.com';
-    return `${baseUrl}/play/${game.slug}?session=${sessionToken}&mode=${coinType.toLowerCase()}`;
+    return `${baseUrl}/play/${game.slug}?session=${sessionToken}&currency=${currency.toLowerCase()}`;
   }
 
   async getCategories() {
@@ -827,9 +871,11 @@ export class GamesService {
         take,
         select: {
           id: true,
-          coinType: true,
+          currency: true,
           totalBet: true,
           totalWin: true,
+          totalBetUsdc: true,
+          totalWinUsdc: true,
           roundsPlayed: true,
           startedAt: true,
           endedAt: true,
@@ -932,7 +978,8 @@ export class GamesService {
       take: 10,
       select: {
         totalWin: true,
-        coinType: true,
+        totalWinUsdc: true,
+        currency: true,
         startedAt: true,
         user: {
           select: {
@@ -970,7 +1017,8 @@ export class GamesService {
       bigWins: bigWins.map((w) => ({
         username: w.user?.username || 'Anonymous',
         amount: Number(w.totalWin),
-        coinType: w.coinType,
+        amountUsdc: Number(w.totalWinUsdc),
+        currency: w.currency,
         date: w.startedAt,
       })),
     };
@@ -1017,7 +1065,12 @@ export class GamesService {
 
     const userId = session.userId;
     const gameId = session.gameId;
-    const coinType = session.coinType as 'GC' | 'SC';
+    const currency = session.currency as Currency;
+
+    // For simplicity, use 1:1 exchange rate for USDC, in production this would come from a price service
+    const exchangeRate = DEFAULT_EXCHANGE_RATE;
+    const betAmountUsdc = betAmount.mul(exchangeRate);
+    const winAmountUsdc = winAmount.mul(exchangeRate);
 
     // Execute everything in a transaction
     const result = await this.prisma.$transaction(async (tx) => {
@@ -1030,18 +1083,19 @@ export class GamesService {
         throw new NotFoundException('Wallet not found');
       }
 
-      const currentBalance =
-        coinType === 'GC' ? wallet.gcBalance : wallet.scBalance;
+      const balanceField = getBalanceField(currency);
+      const currentBalance = wallet[balanceField] as Decimal;
 
       // Verify sufficient balance for bet
       if (currentBalance.lt(betAmount)) {
-        throw new BadRequestException(`Insufficient ${coinType} balance`);
+        throw new BadRequestException(`Insufficient ${currency} balance`);
       }
 
       // Calculate new balance after bet and win
       const balanceAfterBet = currentBalance.sub(betAmount);
       const balanceAfterWin = balanceAfterBet.add(winAmount);
       const netResult = winAmount.sub(betAmount);
+      const netResultUsdc = winAmountUsdc.sub(betAmountUsdc);
 
       // Create game round record
       const round = await tx.gameRound.create({
@@ -1049,9 +1103,12 @@ export class GamesService {
           sessionId: session.id,
           userId,
           gameId,
-          coinType,
+          currency,
           betAmount,
           winAmount,
+          betAmountUsdc,
+          winAmountUsdc,
+          exchangeRate,
           multiplier: input.multiplier ? new Decimal(input.multiplier) : null,
           resultData: input.resultData ?? undefined,
           providerRoundId: input.providerRoundId ?? undefined,
@@ -1061,16 +1118,12 @@ export class GamesService {
       // Update wallet balance
       const walletUpdate: any = {
         version: { increment: 1 },
+        [balanceField]: balanceAfterWin,
       };
 
-      if (coinType === 'GC') {
-        walletUpdate.gcBalance = balanceAfterWin;
-      } else {
-        walletUpdate.scBalance = balanceAfterWin;
-        // Track SC earnings if this was a win
-        if (netResult.gt(0)) {
-          walletUpdate.scLifetimeEarned = wallet.scLifetimeEarned.add(netResult);
-        }
+      // Track lifetime winnings if this was a win (in USDC equivalent)
+      if (netResultUsdc.gt(0)) {
+        walletUpdate.lifetimeWon = wallet.lifetimeWon.add(netResultUsdc);
       }
 
       await tx.wallet.update({
@@ -1084,8 +1137,10 @@ export class GamesService {
           userId,
           walletId: wallet.id,
           type: 'game_bet',
-          coinType,
+          currency,
           amount: betAmount.neg(), // Negative for debit
+          usdcAmount: betAmountUsdc.neg(),
+          exchangeRate,
           balanceBefore: currentBalance,
           balanceAfter: balanceAfterBet,
           referenceType: 'game_round',
@@ -1106,8 +1161,10 @@ export class GamesService {
             userId,
             walletId: wallet.id,
             type: 'game_win',
-            coinType,
+            currency,
             amount: winAmount,
+            usdcAmount: winAmountUsdc,
+            exchangeRate,
             balanceBefore: balanceAfterBet,
             balanceAfter: balanceAfterWin,
             referenceType: 'game_round',
@@ -1129,6 +1186,8 @@ export class GamesService {
         data: {
           totalBet: { increment: betAmount },
           totalWin: { increment: winAmount },
+          totalBetUsdc: { increment: betAmountUsdc },
+          totalWinUsdc: { increment: winAmountUsdc },
           roundsPlayed: { increment: 1 },
         },
       });
@@ -1144,29 +1203,28 @@ export class GamesService {
     // These are outside the main transaction to avoid holding locks too long
     let jackpotWin = null;
 
-    if (coinType === 'SC') {
-      // Contribute to jackpots
-      await this.jackpotService.contributeToJackpots(betAmount, 'SC');
+    // Contribute to jackpots (using USDC equivalent for consistency)
+    await this.jackpotService.contributeToJackpots(betAmountUsdc);
 
-      // Check for jackpot win
-      const jackpotResult = await this.jackpotService.checkAndTriggerWin(
-        userId,
-        gameId,
-        session.id,
-        betAmount,
+    // Check for jackpot win
+    const jackpotResult = await this.jackpotService.checkAndTriggerWin(
+      userId,
+      gameId,
+      session.id,
+      betAmountUsdc,
+    );
+
+    if (jackpotResult.won && jackpotResult.jackpot) {
+      jackpotWin = jackpotResult.jackpot;
+      this.logger.log(
+        `User ${userId} won ${jackpotResult.jackpot.type} jackpot: ${jackpotResult.jackpot.amount} ${currency}`,
       );
-
-      if (jackpotResult.won && jackpotResult.jackpot) {
-        jackpotWin = jackpotResult.jackpot;
-        this.logger.log(
-          `User ${userId} won ${jackpotResult.jackpot.type} jackpot: ${jackpotResult.jackpot.amount} SC`,
-        );
-      }
     }
 
     // Record big wins for social proof (outside main transaction)
-    if (winAmount.gte(100)) {
-      await this.recordBigWin(userId, gameId, winAmount, coinType);
+    // Using USDC equivalent for threshold comparison
+    if (winAmountUsdc.gte(100)) {
+      await this.recordBigWin(userId, gameId, winAmount, winAmountUsdc, currency);
     }
 
     return {
@@ -1230,9 +1288,11 @@ export class GamesService {
         take,
         select: {
           id: true,
-          coinType: true,
+          currency: true,
           betAmount: true,
           winAmount: true,
+          betAmountUsdc: true,
+          winAmountUsdc: true,
           multiplier: true,
           createdAt: true,
         },
@@ -1243,9 +1303,11 @@ export class GamesService {
     return createPaginatedResult(
       rounds.map((r) => ({
         id: r.id,
-        coinType: r.coinType,
+        currency: r.currency,
         betAmount: r.betAmount.toString(),
         winAmount: r.winAmount.toString(),
+        betAmountUsdc: r.betAmountUsdc.toString(),
+        winAmountUsdc: r.winAmountUsdc.toString(),
         multiplier: r.multiplier?.toString() || null,
         netResult: r.winAmount.sub(r.betAmount).toString(),
         createdAt: r.createdAt,
@@ -1263,7 +1325,8 @@ export class GamesService {
     userId: string,
     gameId: string,
     amount: Decimal,
-    coinType: string,
+    amountUsdc: Decimal,
+    currency: string,
   ): Promise<void> {
     try {
       // Check user privacy settings
@@ -1283,7 +1346,7 @@ export class GamesService {
 
       // Create public win record (requires gameRoundId - skip if not available)
       // Note: In a full implementation, gameRoundId would be passed from recordGameRound
-      this.logger.log(`Recording big win for user ${userId}: ${amount} ${coinType}`);
+      this.logger.log(`Recording big win for user ${userId}: ${amount} ${currency}`);
 
       // Create social proof event
       await this.prisma.socialProofEvent.create({
@@ -1295,9 +1358,10 @@ export class GamesService {
           ),
           avatarUrl: user?.avatarUrl,
           eventType: 'win',
-          actionText: `won ${amount.toFixed(2)} ${coinType}!`,
+          actionText: `won ${amount.toFixed(2)} ${currency}!`,
           amount,
-          coinType,
+          amountUsdc,
+          currency,
         },
       });
     } catch (error) {

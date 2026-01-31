@@ -57,7 +57,7 @@ export class AmoeService {
       isEnabled: config.isActive,
       maxEntriesPerDay: config.dailyLimitPerUser,
       maxEntriesPerWeek: config.weeklyLimitPerUser,
-      scRewardPerEntry: Number(config.scAmountPerEntry),
+      scRewardPerEntry: Number(config.amountUsdcPerEntry),
       termsAndConditions: config.termsText,
       mailingAddress: config.mailingAddress,
     };
@@ -131,7 +131,8 @@ export class AmoeService {
         userId,
         email,
         code,
-        scAmount: config.scRewardPerEntry,
+        amountUsdc: config.scRewardPerEntry,
+        currency: 'USDC',
         status: 'generated',
       },
     });
@@ -181,7 +182,7 @@ export class AmoeService {
         id: updatedEntry.id,
         code: updatedEntry.code,
         status: updatedEntry.status,
-        scAmount: Number(updatedEntry.scAmount),
+        amountUsdc: Number(updatedEntry.amountUsdc),
         submittedAt: updatedEntry.submittedAt,
       },
       message: 'Your AMOE entry has been submitted and is pending review.',
@@ -202,7 +203,7 @@ export class AmoeService {
         id: entry.id,
         code: entry.code,
         status: entry.status,
-        scAmount: Number(entry.scAmount),
+        amountUsdc: Number(entry.amountUsdc),
         postalAddress: entry.postalAddress,
         submittedAt: entry.submittedAt,
         reviewedAt: entry.reviewedAt,
@@ -211,9 +212,9 @@ export class AmoeService {
       })),
       summary: {
         totalEntries: entries.length,
-        totalScEarned: entries
+        totalUsdcEarned: entries
           .filter((e) => e.status === 'redeemed')
-          .reduce((sum, e) => sum + Number(e.scAmount), 0),
+          .reduce((sum, e) => sum + Number(e.amountUsdc), 0),
       },
     };
   }
@@ -244,8 +245,8 @@ export class AmoeService {
       throw new NotFoundException('Wallet not found');
     }
 
-    const scAmount = new Decimal(entry.scAmount);
-    const newScBalance = new Decimal(wallet.scBalance).plus(scAmount);
+    const usdcAmount = new Decimal(entry.amountUsdc);
+    const newUsdcBalance = new Decimal(wallet.usdcBalance).plus(usdcAmount);
 
     return this.prisma.$transaction(async (tx) => {
       // Update entry to redeemed
@@ -263,10 +264,12 @@ export class AmoeService {
           userId,
           walletId: wallet.id,
           type: 'bonus',
-          coinType: 'SC',
-          amount: scAmount,
-          balanceBefore: wallet.scBalance,
-          balanceAfter: newScBalance,
+          currency: 'USDC',
+          amount: usdcAmount,
+          usdcAmount: usdcAmount,
+          exchangeRate: 1,
+          balanceBefore: wallet.usdcBalance,
+          balanceAfter: newUsdcBalance,
           referenceType: 'amoe',
           referenceId: entryId,
           status: 'completed',
@@ -278,8 +281,8 @@ export class AmoeService {
       const updatedWallet = await tx.wallet.update({
         where: { id: wallet.id, version: wallet.version },
         data: {
-          scBalance: newScBalance,
-          scLifetimeEarned: new Decimal(wallet.scLifetimeEarned).plus(scAmount),
+          usdcBalance: newUsdcBalance,
+          lifetimeWon: new Decimal(wallet.lifetimeWon).plus(usdcAmount),
           version: { increment: 1 },
         },
       });
@@ -288,10 +291,10 @@ export class AmoeService {
         success: true,
         entry: {
           id: entry.id,
-          scAwarded: Number(scAmount),
+          usdcAwarded: Number(usdcAmount),
         },
         wallet: {
-          scBalance: Number(updatedWallet.scBalance),
+          usdcBalance: Number(updatedWallet.usdcBalance),
         },
       };
     });

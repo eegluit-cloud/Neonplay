@@ -26,7 +26,7 @@ export class LeaderboardProcessor {
         // Get entries sorted by score
         const entries = await this.prisma.leaderboardEntry.findMany({
           where: { leaderboardId: leaderboard.id },
-          orderBy: { score: 'desc' },
+          orderBy: { scoreUsdc: 'desc' },
         });
 
         // Update ranks
@@ -41,7 +41,7 @@ export class LeaderboardProcessor {
         const top100 = entries.slice(0, 100).map((e, idx) => ({
           rank: idx + 1,
           userId: e.userId,
-          score: e.score.toString(),
+          score: e.scoreUsdc.toString(),
         }));
 
         await this.prisma.leaderboardSnapshot.create({
@@ -55,7 +55,7 @@ export class LeaderboardProcessor {
         const redisKey = `leaderboard:${leaderboard.type}:${leaderboard.period}`;
         await this.redis.del(redisKey);
         for (const entry of entries) {
-          await this.redis.zadd(redisKey, parseFloat(entry.score.toString()), entry.userId);
+          await this.redis.zadd(redisKey, parseFloat(entry.scoreUsdc.toString()), entry.userId);
         }
       }
 
@@ -96,8 +96,7 @@ export class LeaderboardProcessor {
             period: 'daily',
             periodStart: today,
             periodEnd: tomorrow,
-            prizePool: 1000, // Default prize pool
-            coinType: 'SC',
+            prizePoolUsdc: 1000, // Default prize pool in USDC
             status: 'active',
           },
         });
@@ -140,8 +139,7 @@ export class LeaderboardProcessor {
             period: 'weekly',
             periodStart: today,
             periodEnd: nextWeek,
-            prizePool: 5000, // Default prize pool
-            coinType: 'SC',
+            prizePoolUsdc: 5000, // Default prize pool in USDC
             status: 'active',
           },
         });
@@ -183,8 +181,7 @@ export class LeaderboardProcessor {
             period: 'monthly',
             periodStart: today,
             periodEnd: nextMonth,
-            prizePool: 25000, // Default prize pool
-            coinType: 'SC',
+            prizePoolUsdc: 25000, // Default prize pool in USDC
             status: 'active',
           },
         });

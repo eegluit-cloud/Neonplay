@@ -40,9 +40,9 @@ export interface UsersQueryDto extends PaginationDto {
   sortOrder?: 'asc' | 'desc';
 }
 
-export interface RedemptionsQueryDto extends PaginationDto {
+export interface WithdrawalsQueryDto extends PaginationDto {
   status?: 'pending' | 'processing' | 'completed' | 'rejected';
-  sortBy?: 'createdAt' | 'scAmount' | 'status';
+  sortBy?: 'createdAt' | 'usdcAmount' | 'status';
   sortOrder?: 'asc' | 'desc';
 }
 
@@ -229,26 +229,26 @@ export class AdminService {
       this.prisma.user.count({
         where: { lastLoginAt: { gte: today } },
       }),
-      this.prisma.redemption.count({
+      this.prisma.withdrawal.count({
         where: { status: 'pending' },
       }),
-      this.prisma.redemption.aggregate({
+      this.prisma.withdrawal.aggregate({
         where: { status: 'pending' },
-        _sum: { usdValue: true },
+        _sum: { usdcAmount: true },
       }),
       this.prisma.game.count({
         where: { isActive: true },
       }),
-      this.prisma.purchase.aggregate({
+      this.prisma.deposit.aggregate({
         where: { status: 'completed' },
-        _sum: { amountUsd: true },
+        _sum: { usdcAmount: true },
       }),
-      this.prisma.purchase.aggregate({
+      this.prisma.deposit.aggregate({
         where: {
           status: 'completed',
           completedAt: { gte: today },
         },
-        _sum: { amountUsd: true },
+        _sum: { usdcAmount: true },
       }),
     ]);
 
@@ -259,10 +259,10 @@ export class AdminService {
       totalUsers,
       newUsersToday,
       activeUsersToday,
-      totalRevenue: Number(revenueData._sum.amountUsd || 0),
-      revenueToday: Number(revenueTodayData._sum.amountUsd || 0),
+      totalRevenue: Number(revenueData._sum.usdcAmount || 0),
+      revenueToday: Number(revenueTodayData._sum.usdcAmount || 0),
       pendingRedemptions,
-      totalRedemptionsValue: Number(totalRedemptionsValue._sum.usdValue || 0),
+      totalRedemptionsValue: Number(totalRedemptionsValue._sum.usdcAmount || 0),
       activeGames,
       onlineUsers,
     };
@@ -324,8 +324,8 @@ export class AdminService {
           createdAt: true,
           wallet: {
             select: {
-              gcBalance: true,
-              scBalance: true,
+              usdBalance: true,
+              usdcBalance: true,
             },
           },
           vip: {
@@ -374,11 +374,11 @@ export class AdminService {
         createdAt: true,
         wallet: {
           select: {
-            gcBalance: true,
-            scBalance: true,
-            gcLifetimePurchased: true,
-            scLifetimeEarned: true,
-            scLifetimeRedeemed: true,
+            usdBalance: true,
+            usdcBalance: true,
+            lifetimeDeposited: true,
+            lifetimeWon: true,
+            lifetimeWithdrawn: true,
           },
         },
         vip: {
@@ -401,8 +401,8 @@ export class AdminService {
         _count: {
           select: {
             transactions: true,
-            purchases: true,
-            redemptions: true,
+            deposits: true,
+            withdrawals: true,
             gameSessions: true,
             supportTickets: true,
           },
@@ -503,9 +503,9 @@ export class AdminService {
   }
 
   /**
-   * List redemptions with pagination and filtering
+   * List withdrawals with pagination and filtering
    */
-  async listRedemptions(query: RedemptionsQueryDto) {
+  async listWithdrawals(query: WithdrawalsQueryDto) {
     const { skip, take } = getPaginationParams(query);
 
     const where: any = {};
@@ -520,16 +520,17 @@ export class AdminService {
     const sortDirection = query.sortOrder || 'desc';
     orderBy[sortField] = sortDirection;
 
-    const [redemptions, total] = await Promise.all([
-      this.prisma.redemption.findMany({
+    const [withdrawals, total] = await Promise.all([
+      this.prisma.withdrawal.findMany({
         where,
         orderBy,
         skip,
         take,
         select: {
           id: true,
-          scAmount: true,
-          usdValue: true,
+          currency: true,
+          amount: true,
+          usdcAmount: true,
           method: true,
           status: true,
           rejectionReason: true,
@@ -546,34 +547,34 @@ export class AdminService {
           },
         },
       }),
-      this.prisma.redemption.count({ where }),
+      this.prisma.withdrawal.count({ where }),
     ]);
 
-    return createPaginatedResult(redemptions, total, query.page || 1, query.limit || 20);
+    return createPaginatedResult(withdrawals, total, query.page || 1, query.limit || 20);
   }
 
   /**
-   * Approve a redemption
+   * Approve a withdrawal
    */
-  async approveRedemption(
+  async approveWithdrawal(
     adminId: string,
-    redemptionId: string,
+    withdrawalId: string,
   ): Promise<{ message: string }> {
-    const redemption = await this.prisma.redemption.findUnique({
-      where: { id: redemptionId },
+    const withdrawal = await this.prisma.withdrawal.findUnique({
+      where: { id: withdrawalId },
       select: { id: true, status: true, userId: true },
     });
 
-    if (!redemption) {
-      throw new NotFoundException('Redemption not found');
+    if (!withdrawal) {
+      throw new NotFoundException('Withdrawal not found');
     }
 
-    if (redemption.status !== 'pending') {
-      throw new BadRequestException('Redemption is not in pending status');
+    if (withdrawal.status !== 'pending') {
+      throw new BadRequestException('Withdrawal is not in pending status');
     }
 
-    await this.prisma.redemption.update({
-      where: { id: redemptionId },
+    await this.prisma.withdrawal.update({
+      where: { id: withdrawalId },
       data: {
         status: 'processing',
         processedBy: adminId,
@@ -584,41 +585,57 @@ export class AdminService {
     // Log audit
     await this.logAudit(
       adminId,
-      'redemption_approved',
-      'redemption',
-      redemptionId,
+      'withdrawal_approved',
+      'withdrawal',
+      withdrawalId,
       { status: 'pending' },
       { status: 'processing' },
     );
 
-    return { message: 'Redemption approved and is now processing' };
+    return { message: 'Withdrawal approved and is now processing' };
   }
 
   /**
-   * Reject a redemption
+   * Reject a withdrawal
    */
-  async rejectRedemption(
+  async rejectWithdrawal(
     adminId: string,
-    redemptionId: string,
+    withdrawalId: string,
     reason: string,
   ): Promise<{ message: string }> {
-    const redemption = await this.prisma.redemption.findUnique({
-      where: { id: redemptionId },
-      select: { id: true, status: true, userId: true, scAmount: true },
+    const withdrawal = await this.prisma.withdrawal.findUnique({
+      where: { id: withdrawalId },
+      select: { id: true, status: true, userId: true, currency: true, amount: true },
     });
 
-    if (!redemption) {
-      throw new NotFoundException('Redemption not found');
+    if (!withdrawal) {
+      throw new NotFoundException('Withdrawal not found');
     }
 
-    if (redemption.status !== 'pending') {
-      throw new BadRequestException('Redemption is not in pending status');
+    if (withdrawal.status !== 'pending') {
+      throw new BadRequestException('Withdrawal is not in pending status');
     }
 
-    // Return SC to user's wallet
+    // Get balance field based on currency
+    const balanceFieldMap: Record<string, string> = {
+      USD: 'usdBalance',
+      EUR: 'eurBalance',
+      GBP: 'gbpBalance',
+      CAD: 'cadBalance',
+      AUD: 'audBalance',
+      USDC: 'usdcBalance',
+      USDT: 'usdtBalance',
+      BTC: 'btcBalance',
+      ETH: 'ethBalance',
+      SOL: 'solBalance',
+      DOGE: 'dogeBalance',
+    };
+    const balanceField = balanceFieldMap[withdrawal.currency] || 'usdcBalance';
+
+    // Return funds to user's wallet
     await this.prisma.$transaction([
-      this.prisma.redemption.update({
-        where: { id: redemptionId },
+      this.prisma.withdrawal.update({
+        where: { id: withdrawalId },
         data: {
           status: 'rejected',
           rejectionReason: reason,
@@ -627,9 +644,9 @@ export class AdminService {
         },
       }),
       this.prisma.wallet.update({
-        where: { userId: redemption.userId },
+        where: { userId: withdrawal.userId },
         data: {
-          scBalance: { increment: redemption.scAmount },
+          [balanceField]: { increment: withdrawal.amount },
         },
       }),
     ]);
@@ -637,14 +654,14 @@ export class AdminService {
     // Log audit
     await this.logAudit(
       adminId,
-      'redemption_rejected',
-      'redemption',
-      redemptionId,
+      'withdrawal_rejected',
+      'withdrawal',
+      withdrawalId,
       { status: 'pending' },
       { status: 'rejected', reason },
     );
 
-    return { message: 'Redemption rejected and SC returned to user' };
+    return { message: 'Withdrawal rejected and funds returned to user' };
   }
 
   /**
@@ -822,7 +839,7 @@ export class AdminService {
         select: {
           id: true,
           gameId: true,
-          coinType: true,
+          currency: true,
           betAmount: true,
           winAmount: true,
           createdAt: true,
@@ -1058,7 +1075,7 @@ export class AdminService {
 
     const where: any = {};
     if (query.type) where.type = query.type;
-    if (query.coinType) where.coinType = query.coinType;
+    if (query.currency) where.currency = query.currency;
     if (query.userId) where.userId = query.userId;
     if (query.startDate || query.endDate) {
       where.createdAt = {};
@@ -1100,7 +1117,7 @@ export class AdminService {
   /**
    * Create manual balance adjustment
    */
-  async createAdjustment(adminId: string, data: { userId: string; coinType: string; amount: number; reason: string }) {
+  async createAdjustment(adminId: string, data: { userId: string; currency: string; amount: number; reason: string }) {
     const user = await this.prisma.user.findUnique({
       where: { id: data.userId },
       include: { wallet: true },
@@ -1108,7 +1125,26 @@ export class AdminService {
 
     if (!user || !user.wallet) throw new NotFoundException('User or wallet not found');
 
-    const balanceField = data.coinType === 'GC' ? 'gcBalance' : 'scBalance';
+    // Map currency to balance field
+    const balanceFieldMap: Record<string, string> = {
+      USD: 'usdBalance',
+      EUR: 'eurBalance',
+      GBP: 'gbpBalance',
+      CAD: 'cadBalance',
+      AUD: 'audBalance',
+      USDC: 'usdcBalance',
+      USDT: 'usdtBalance',
+      BTC: 'btcBalance',
+      ETH: 'ethBalance',
+      SOL: 'solBalance',
+      DOGE: 'dogeBalance',
+    };
+    const balanceField = balanceFieldMap[data.currency] || 'usdcBalance';
+    const currentBalance = Number((user.wallet as any)[balanceField] || 0);
+
+    // Calculate USDC equivalent (simplified - in production use exchange rate service)
+    const exchangeRate = data.currency === 'USDC' ? 1 : 1; // TODO: Get actual exchange rate
+    const usdcAmount = Math.abs(data.amount) * exchangeRate;
 
     const [wallet, transaction] = await this.prisma.$transaction([
       this.prisma.wallet.update({
@@ -1119,11 +1155,13 @@ export class AdminService {
         data: {
           userId: data.userId,
           walletId: user.wallet.id,
-          type: data.amount > 0 ? 'adjustment' : 'adjustment',
-          coinType: data.coinType as any,
+          type: 'adjustment',
+          currency: data.currency,
           amount: Math.abs(data.amount),
-          balanceBefore: Number(user.wallet[balanceField]),
-          balanceAfter: Number(user.wallet[balanceField]) + data.amount,
+          usdcAmount,
+          exchangeRate,
+          balanceBefore: currentBalance,
+          balanceAfter: currentBalance + data.amount,
           status: 'completed',
           metadata: { adminId, reason: data.reason },
         },
@@ -1145,34 +1183,34 @@ export class AdminService {
       if (query.endDate) where.createdAt.lte = new Date(query.endDate);
     }
 
-    const [purchases, redemptions, bets, wins] = await Promise.all([
-      this.prisma.purchase.aggregate({
+    const [deposits, withdrawals, bets, wins] = await Promise.all([
+      this.prisma.deposit.aggregate({
         where: { ...where, status: 'completed' },
-        _sum: { amountUsd: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
-      this.prisma.redemption.aggregate({
+      this.prisma.withdrawal.aggregate({
         where: { ...where, status: 'completed' },
-        _sum: { usdValue: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
       this.prisma.transaction.aggregate({
         where: { ...where, type: 'bet' },
-        _sum: { amount: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
       this.prisma.transaction.aggregate({
         where: { ...where, type: 'win' },
-        _sum: { amount: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
     ]);
 
     return {
-      purchases: { total: Number(purchases._sum.amountUsd || 0), count: purchases._count },
-      redemptions: { total: Number(redemptions._sum.usdValue || 0), count: redemptions._count },
-      bets: { total: Number(bets._sum.amount || 0), count: bets._count },
-      wins: { total: Number(wins._sum.amount || 0), count: wins._count },
+      deposits: { total: Number(deposits._sum.usdcAmount || 0), count: deposits._count },
+      withdrawals: { total: Number(withdrawals._sum.usdcAmount || 0), count: withdrawals._count },
+      bets: { total: Number(bets._sum.usdcAmount || 0), count: bets._count },
+      wins: { total: Number(wins._sum.usdcAmount || 0), count: wins._count },
     };
   }
 
@@ -1181,10 +1219,10 @@ export class AdminService {
   // ==========================================
 
   /**
-   * Get redemption details
+   * Get withdrawal details
    */
-  async getRedemption(id: string) {
-    const redemption = await this.prisma.redemption.findUnique({
+  async getWithdrawal(id: string) {
+    const withdrawal = await this.prisma.withdrawal.findUnique({
       where: { id },
       include: {
         user: {
@@ -1200,20 +1238,20 @@ export class AdminService {
       },
     });
 
-    if (!redemption) throw new NotFoundException('Redemption not found');
-    return redemption;
+    if (!withdrawal) throw new NotFoundException('Withdrawal not found');
+    return withdrawal;
   }
 
   /**
-   * Process redemption (mark as processing)
+   * Process withdrawal (mark as processing)
    */
-  async processRedemption(adminId: string, redemptionId: string) {
-    const redemption = await this.prisma.redemption.findUnique({ where: { id: redemptionId } });
-    if (!redemption) throw new NotFoundException('Redemption not found');
-    if (redemption.status !== 'pending') throw new BadRequestException('Redemption must be pending');
+  async processWithdrawal(adminId: string, withdrawalId: string) {
+    const withdrawal = await this.prisma.withdrawal.findUnique({ where: { id: withdrawalId } });
+    if (!withdrawal) throw new NotFoundException('Withdrawal not found');
+    if (withdrawal.status !== 'pending') throw new BadRequestException('Withdrawal must be pending');
 
-    await this.prisma.redemption.update({
-      where: { id: redemptionId },
+    await this.prisma.withdrawal.update({
+      where: { id: withdrawalId },
       data: {
         status: 'processing',
         processedBy: adminId,
@@ -1221,34 +1259,34 @@ export class AdminService {
       },
     });
 
-    await this.logAudit(adminId, 'redemption_processing', 'redemption', redemptionId);
-    return { message: 'Redemption marked as processing' };
+    await this.logAudit(adminId, 'withdrawal_processing', 'withdrawal', withdrawalId);
+    return { message: 'Withdrawal marked as processing' };
   }
 
   /**
-   * Complete redemption
+   * Complete withdrawal
    */
-  async completeRedemption(adminId: string, redemptionId: string) {
-    const redemption = await this.prisma.redemption.findUnique({ where: { id: redemptionId } });
-    if (!redemption) throw new NotFoundException('Redemption not found');
-    if (redemption.status !== 'processing') throw new BadRequestException('Redemption must be processing');
+  async completeWithdrawal(adminId: string, withdrawalId: string) {
+    const withdrawal = await this.prisma.withdrawal.findUnique({ where: { id: withdrawalId } });
+    if (!withdrawal) throw new NotFoundException('Withdrawal not found');
+    if (withdrawal.status !== 'processing') throw new BadRequestException('Withdrawal must be processing');
 
-    await this.prisma.redemption.update({
-      where: { id: redemptionId },
+    await this.prisma.withdrawal.update({
+      where: { id: withdrawalId },
       data: {
         status: 'completed',
-        processedAt: new Date(),
+        completedAt: new Date(),
       },
     });
 
-    // Update user wallet lifetime redeemed
+    // Update user wallet lifetime withdrawn
     await this.prisma.wallet.update({
-      where: { userId: redemption.userId },
-      data: { scLifetimeRedeemed: { increment: redemption.scAmount } },
+      where: { userId: withdrawal.userId },
+      data: { lifetimeWithdrawn: { increment: withdrawal.usdcAmount } },
     });
 
-    await this.logAudit(adminId, 'redemption_completed', 'redemption', redemptionId);
-    return { message: 'Redemption completed successfully' };
+    await this.logAudit(adminId, 'withdrawal_completed', 'withdrawal', withdrawalId);
+    return { message: 'Withdrawal completed successfully' };
   }
 
   // ==========================================
@@ -1304,17 +1342,19 @@ export class AdminService {
       }),
       this.prisma.wallet.update({
         where: { userId: entry.userId },
-        data: { scBalance: { increment: entry.scAmount } },
+        data: { usdcBalance: { increment: entry.amountUsdc } },
       }),
       this.prisma.transaction.create({
         data: {
           userId: entry.userId,
           walletId: wallet.id,
           type: 'bonus',
-          coinType: 'SC',
-          amount: entry.scAmount,
-          balanceBefore: wallet.scBalance,
-          balanceAfter: wallet.scBalance.plus(entry.scAmount),
+          currency: entry.currency,
+          amount: entry.amountUsdc,
+          usdcAmount: entry.amountUsdc,
+          exchangeRate: 1,
+          balanceBefore: wallet.usdcBalance,
+          balanceAfter: wallet.usdcBalance.plus(entry.amountUsdc),
           status: 'completed',
           referenceType: 'amoe_entry',
           referenceId: entryId,
@@ -1381,10 +1421,11 @@ export class AdminService {
         slug: data.slug || data.code?.toLowerCase().replace(/\s+/g, '-') || `promo-${Date.now()}`,
         description: data.description,
         type: data.type,
-        gcAmount: data.gcAmount,
-        scAmount: data.scAmount,
+        bonusAmount: data.bonusAmount || data.gcAmount || 0,
+        bonusAmountUsdc: data.bonusAmountUsdc || data.scAmount || 0,
+        bonusCurrency: data.bonusCurrency || 'USDC',
         percentageBonus: data.bonusPercent || data.percentageBonus,
-        minDeposit: data.minPurchase || data.minDeposit,
+        minDepositUsdc: data.minPurchase || data.minDepositUsdc || data.minDeposit,
         maxClaims: data.maxUsesTotal || data.maxClaims,
         maxClaimsPerUser: data.maxUsesPerUser || data.maxClaimsPerUser,
         startsAt: data.startsAt ? new Date(data.startsAt) : null,
@@ -1577,31 +1618,31 @@ export class AdminService {
     const startDate = query.startDate ? new Date(query.startDate) : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const endDate = query.endDate ? new Date(query.endDate) : new Date();
 
-    const [purchases, redemptions] = await Promise.all([
-      this.prisma.purchase.aggregate({
+    const [deposits, withdrawals] = await Promise.all([
+      this.prisma.deposit.aggregate({
         where: {
           status: 'completed',
           completedAt: { gte: startDate, lte: endDate },
         },
-        _sum: { amountUsd: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
-      this.prisma.redemption.aggregate({
+      this.prisma.withdrawal.aggregate({
         where: {
           status: 'completed',
-          processedAt: { gte: startDate, lte: endDate },
+          completedAt: { gte: startDate, lte: endDate },
         },
-        _sum: { usdValue: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
     ]);
 
     return {
-      totalRevenue: Number(purchases._sum.amountUsd || 0),
-      purchaseCount: purchases._count,
-      totalRedemptions: Number(redemptions._sum.usdValue || 0),
-      redemptionCount: redemptions._count,
-      netRevenue: Number(purchases._sum.amountUsd || 0) - Number(redemptions._sum.usdValue || 0),
+      totalDeposits: Number(deposits._sum.usdcAmount || 0),
+      depositCount: deposits._count,
+      totalWithdrawals: Number(withdrawals._sum.usdcAmount || 0),
+      withdrawalCount: withdrawals._count,
+      netRevenue: Number(deposits._sum.usdcAmount || 0) - Number(withdrawals._sum.usdcAmount || 0),
     };
   }
 
@@ -1711,7 +1752,7 @@ export class AdminService {
         countryCode: true,
         createdAt: true,
         lastLoginAt: true,
-        wallet: { select: { gcBalance: true, scBalance: true } },
+        wallet: { select: { usdBalance: true, usdcBalance: true } },
       },
     });
 

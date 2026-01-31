@@ -298,7 +298,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Manual balance adjustment' })
   async createAdjustment(
     @Req() req: Request,
-    @Body() data: { userId: string; coinType: string; amount: number; reason: string },
+    @Body() data: { userId: string; currency: string; amount: number; reason: string },
   ) {
     const admin = (req as any).admin;
     return this.adminService.createAdjustment(admin.id, data);
@@ -313,63 +313,63 @@ export class AdminController {
   }
 
   // ==========================================
-  // REDEMPTION MANAGEMENT
+  // WITHDRAWAL MANAGEMENT
   // ==========================================
 
   @UseGuards(AdminAuthGuard)
-  @Get('redemptions')
+  @Get('withdrawals')
   @ApiBearerAuth('Admin-JWT')
-  @ApiOperation({ summary: 'List redemption requests' })
-  async listRedemptions(@Query() query: any) {
-    return this.adminService.listRedemptions(query);
+  @ApiOperation({ summary: 'List withdrawal requests' })
+  async listWithdrawals(@Query() query: any) {
+    return this.adminService.listWithdrawals(query);
   }
 
   @UseGuards(AdminAuthGuard)
-  @Get('redemptions/:id')
+  @Get('withdrawals/:id')
   @ApiBearerAuth('Admin-JWT')
-  @ApiOperation({ summary: 'Get redemption details' })
-  async getRedemption(@Param('id') id: string) {
-    return this.adminService.getRedemption(id);
+  @ApiOperation({ summary: 'Get withdrawal details' })
+  async getWithdrawal(@Param('id') id: string) {
+    return this.adminService.getWithdrawal(id);
   }
 
   @UseGuards(AdminAuthGuard)
-  @Patch('redemptions/:id/approve')
+  @Patch('withdrawals/:id/approve')
   @ApiBearerAuth('Admin-JWT')
-  @ApiOperation({ summary: 'Approve redemption' })
-  async approveRedemption(@Req() req: Request, @Param('id') redemptionId: string) {
+  @ApiOperation({ summary: 'Approve withdrawal' })
+  async approveWithdrawal(@Req() req: Request, @Param('id') withdrawalId: string) {
     const admin = (req as any).admin;
-    return this.adminService.approveRedemption(admin.id, redemptionId);
+    return this.adminService.approveWithdrawal(admin.id, withdrawalId);
   }
 
   @UseGuards(AdminAuthGuard)
-  @Patch('redemptions/:id/reject')
+  @Patch('withdrawals/:id/reject')
   @ApiBearerAuth('Admin-JWT')
-  @ApiOperation({ summary: 'Reject redemption' })
-  async rejectRedemption(
+  @ApiOperation({ summary: 'Reject withdrawal' })
+  async rejectWithdrawal(
     @Req() req: Request,
-    @Param('id') redemptionId: string,
+    @Param('id') withdrawalId: string,
     @Body('reason') reason: string,
   ) {
     const admin = (req as any).admin;
-    return this.adminService.rejectRedemption(admin.id, redemptionId, reason);
+    return this.adminService.rejectWithdrawal(admin.id, withdrawalId, reason);
   }
 
   @UseGuards(AdminAuthGuard)
-  @Patch('redemptions/:id/process')
+  @Patch('withdrawals/:id/process')
   @ApiBearerAuth('Admin-JWT')
-  @ApiOperation({ summary: 'Mark redemption as processing' })
-  async processRedemption(@Req() req: Request, @Param('id') redemptionId: string) {
+  @ApiOperation({ summary: 'Mark withdrawal as processing' })
+  async processWithdrawal(@Req() req: Request, @Param('id') withdrawalId: string) {
     const admin = (req as any).admin;
-    return this.adminService.processRedemption(admin.id, redemptionId);
+    return this.adminService.processWithdrawal(admin.id, withdrawalId);
   }
 
   @UseGuards(AdminAuthGuard)
-  @Patch('redemptions/:id/complete')
+  @Patch('withdrawals/:id/complete')
   @ApiBearerAuth('Admin-JWT')
-  @ApiOperation({ summary: 'Mark redemption as completed' })
-  async completeRedemption(@Req() req: Request, @Param('id') redemptionId: string) {
+  @ApiOperation({ summary: 'Mark withdrawal as completed' })
+  async completeWithdrawal(@Req() req: Request, @Param('id') withdrawalId: string) {
     const admin = (req as any).admin;
-    return this.adminService.completeRedemption(admin.id, redemptionId);
+    return this.adminService.completeWithdrawal(admin.id, withdrawalId);
   }
 
   // ==========================================

@@ -177,9 +177,9 @@ export class GamesController {
   async launchGame(
     @CurrentUser('id') userId: string,
     @Param('slug') slug: string,
-    @Body('coinType') coinType: 'GC' | 'SC',
+    @Body('currency') currency?: string,
   ) {
-    return this.gamesService.launchGame(userId, slug, coinType);
+    return this.gamesService.launchGame(userId, slug, currency as any);
   }
 
   @UseGuards(JwtAuthGuard)

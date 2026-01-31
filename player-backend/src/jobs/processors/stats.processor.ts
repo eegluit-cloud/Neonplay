@@ -58,35 +58,43 @@ export class StatsProcessor {
       },
       select: {
         userId: true,
-        coinType: true,
+        currency: true,
         betAmount: true,
         winAmount: true,
+        betAmountUsdc: true,
+        winAmountUsdc: true,
       },
     });
 
-    // Group by user and coin type
+    // Group by user and currency
     const userStatsMap = new Map<string, {
       totalWagered: Decimal;
       totalWon: Decimal;
+      totalWageredUsdc: Decimal;
+      totalWonUsdc: Decimal;
       gamesPlayed: number;
-      biggestWin: Decimal;
+      biggestWinUsdc: Decimal;
     }>();
 
     for (const round of gameRounds) {
-      const key = `${round.userId}:${round.coinType}`;
+      const key = `${round.userId}:${round.currency}`;
       const existing = userStatsMap.get(key) || {
         totalWagered: new Decimal(0),
         totalWon: new Decimal(0),
+        totalWageredUsdc: new Decimal(0),
+        totalWonUsdc: new Decimal(0),
         gamesPlayed: 0,
-        biggestWin: new Decimal(0),
+        biggestWinUsdc: new Decimal(0),
       };
 
       existing.totalWagered = existing.totalWagered.add(round.betAmount);
       existing.totalWon = existing.totalWon.add(round.winAmount);
+      existing.totalWageredUsdc = existing.totalWageredUsdc.add(round.betAmountUsdc);
+      existing.totalWonUsdc = existing.totalWonUsdc.add(round.winAmountUsdc);
       existing.gamesPlayed += 1;
 
-      if (round.winAmount.gt(existing.biggestWin)) {
-        existing.biggestWin = round.winAmount;
+      if (round.winAmountUsdc.gt(existing.biggestWinUsdc)) {
+        existing.biggestWinUsdc = round.winAmountUsdc;
       }
 
       userStatsMap.set(key, existing);
@@ -94,38 +102,42 @@ export class StatsProcessor {
 
     // Upsert stats for each user
     for (const [key, stats] of userStatsMap) {
-      const [userId, coinType] = key.split(':');
-      const netResult = stats.totalWon.sub(stats.totalWagered);
+      const [userId, currency] = key.split(':');
+      const netResultUsdc = stats.totalWonUsdc.sub(stats.totalWageredUsdc);
 
       await this.prisma.userDailyStats.upsert({
         where: {
-          userId_date_coinType: {
+          userId_date_currency: {
             userId,
             date: startDate,
-            coinType,
+            currency,
           },
         },
         update: {
           totalWagered: stats.totalWagered,
           totalWon: stats.totalWon,
+          totalWageredUsdc: stats.totalWageredUsdc,
+          totalWonUsdc: stats.totalWonUsdc,
           gamesPlayed: stats.gamesPlayed,
-          biggestWin: stats.biggestWin,
-          netResult,
+          biggestWinUsdc: stats.biggestWinUsdc,
+          netResultUsdc,
         },
         create: {
           userId,
           date: startDate,
-          coinType,
+          currency,
           totalWagered: stats.totalWagered,
           totalWon: stats.totalWon,
+          totalWageredUsdc: stats.totalWageredUsdc,
+          totalWonUsdc: stats.totalWonUsdc,
           gamesPlayed: stats.gamesPlayed,
-          biggestWin: stats.biggestWin,
-          netResult,
+          biggestWinUsdc: stats.biggestWinUsdc,
+          netResultUsdc,
         },
       });
     }
 
-    this.logger.log(`Aggregated stats for ${userStatsMap.size} user-coinType combinations`);
+    this.logger.log(`Aggregated stats for ${userStatsMap.size} user-currency combinations`);
   }
 
   /**
@@ -229,8 +241,8 @@ export class StatsProcessor {
     });
     const activeUsers = activeUsersResult.length;
 
-    // Total deposits (purchases)
-    const deposits = await this.prisma.purchase.aggregate({
+    // Total deposits
+    const deposits = await this.prisma.deposit.aggregate({
       where: {
         status: 'completed',
         createdAt: {
@@ -238,12 +250,12 @@ export class StatsProcessor {
           lt: endDate,
         },
       },
-      _sum: { amountUsd: true },
+      _sum: { usdcAmount: true },
     });
-    const totalDeposits = deposits._sum.amountUsd || new Decimal(0);
+    const totalDepositsUsdc = deposits._sum.usdcAmount || new Decimal(0);
 
-    // Total redemptions
-    const redemptions = await this.prisma.redemption.aggregate({
+    // Total withdrawals
+    const withdrawals = await this.prisma.withdrawal.aggregate({
       where: {
         status: 'completed',
         createdAt: {
@@ -251,32 +263,23 @@ export class StatsProcessor {
           lt: endDate,
         },
       },
-      _sum: { usdValue: true },
+      _sum: { usdcAmount: true },
     });
-    const totalRedemptions = redemptions._sum.usdValue || new Decimal(0);
+    const totalWithdrawalsUsdc = withdrawals._sum.usdcAmount || new Decimal(0);
 
-    // Wagering stats by coin type
-    const gcWagered = await this.prisma.gameRound.aggregate({
+    // Wagering stats (all currencies combined via USDC equivalent)
+    const wageredStats = await this.prisma.gameRound.aggregate({
       where: {
-        coinType: 'GC',
         createdAt: {
           gte: startDate,
           lt: endDate,
         },
       },
-      _sum: { betAmount: true, winAmount: true },
+      _sum: { betAmountUsdc: true, winAmountUsdc: true },
     });
 
-    const scWagered = await this.prisma.gameRound.aggregate({
-      where: {
-        coinType: 'SC',
-        createdAt: {
-          gte: startDate,
-          lt: endDate,
-        },
-      },
-      _sum: { betAmount: true, winAmount: true },
-    });
+    const totalWageredUsdc = wageredStats._sum?.betAmountUsdc || new Decimal(0);
+    const totalPayoutUsdc = wageredStats._sum?.winAmountUsdc || new Decimal(0);
 
     // New VIP members
     const newVipMembers = await this.prisma.userVip.count({
@@ -288,7 +291,7 @@ export class StatsProcessor {
       },
     });
 
-    // Total bonuses paid
+    // Total bonuses paid (in USDC)
     const bonusesPaid = await this.prisma.bonusClaim.aggregate({
       where: {
         claimedAt: {
@@ -296,35 +299,32 @@ export class StatsProcessor {
           lt: endDate,
         },
       },
-      _sum: { scAmount: true },
+      _sum: { usdcAmount: true },
     });
+    const totalBonusesPaidUsdc = bonusesPaid._sum?.usdcAmount || new Decimal(0);
 
     await this.prisma.platformDailyStats.upsert({
       where: { date: startDate },
       update: {
         newUsers,
         activeUsers,
-        totalDeposits,
-        totalRedemptions,
-        totalGcWagered: gcWagered._sum.betAmount || new Decimal(0),
-        totalScWagered: scWagered._sum.betAmount || new Decimal(0),
-        totalGcPayout: gcWagered._sum.winAmount || new Decimal(0),
-        totalScPayout: scWagered._sum.winAmount || new Decimal(0),
+        totalDepositsUsdc,
+        totalWithdrawalsUsdc,
+        totalWageredUsdc,
+        totalPayoutUsdc,
         newVipMembers,
-        totalBonusesPaid: bonusesPaid._sum.scAmount || new Decimal(0),
+        totalBonusesPaidUsdc,
       },
       create: {
         date: startDate,
         newUsers,
         activeUsers,
-        totalDeposits,
-        totalRedemptions,
-        totalGcWagered: gcWagered._sum.betAmount || new Decimal(0),
-        totalScWagered: scWagered._sum.betAmount || new Decimal(0),
-        totalGcPayout: gcWagered._sum.winAmount || new Decimal(0),
-        totalScPayout: scWagered._sum.winAmount || new Decimal(0),
+        totalDepositsUsdc,
+        totalWithdrawalsUsdc,
+        totalWageredUsdc,
+        totalPayoutUsdc,
         newVipMembers,
-        totalBonusesPaid: bonusesPaid._sum.scAmount || new Decimal(0),
+        totalBonusesPaidUsdc,
       },
     });
 

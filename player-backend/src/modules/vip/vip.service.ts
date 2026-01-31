@@ -214,7 +214,7 @@ export class VipService {
       throw new NotFoundException('Wallet not found');
     }
 
-    const newScBalance = new Decimal(wallet.scBalance).plus(cashbackAmount);
+    const newUsdcBalance = new Decimal(wallet.usdcBalance).plus(cashbackAmount);
 
     return this.prisma.$transaction(async (tx) => {
       // Reset cashback to 0
@@ -231,10 +231,12 @@ export class VipService {
           userId,
           walletId: wallet.id,
           type: 'bonus',
-          coinType: 'SC',
+          currency: 'USDC',
           amount: cashbackAmount,
-          balanceBefore: wallet.scBalance,
-          balanceAfter: newScBalance,
+          usdcAmount: cashbackAmount,
+          exchangeRate: 1,
+          balanceBefore: wallet.usdcBalance,
+          balanceAfter: newUsdcBalance,
           referenceType: 'vip_cashback',
           referenceId: userVip.id,
           status: 'completed',
@@ -249,8 +251,8 @@ export class VipService {
       const updatedWallet = await tx.wallet.update({
         where: { id: wallet.id, version: wallet.version },
         data: {
-          scBalance: newScBalance,
-          scLifetimeEarned: new Decimal(wallet.scLifetimeEarned).plus(cashbackAmount),
+          usdcBalance: newUsdcBalance,
+          lifetimeWon: new Decimal(wallet.lifetimeWon).plus(cashbackAmount),
           version: { increment: 1 },
         },
       });
@@ -259,7 +261,7 @@ export class VipService {
         success: true,
         cashbackClaimed: cashbackAmount,
         wallet: {
-          scBalance: updatedWallet.scBalance,
+          usdcBalance: updatedWallet.usdcBalance,
         },
       };
     });

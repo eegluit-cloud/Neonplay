@@ -15,7 +15,54 @@ import {
 } from '../../common/utils/pagination.util';
 import { Decimal } from '@prisma/client/runtime/library';
 
-type CoinType = 'GC' | 'SC';
+// Supported currencies for the multi-currency model
+const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE'] as const;
+type Currency = (typeof SUPPORTED_CURRENCIES)[number];
+
+// Balance field mapping for multi-currency wallet
+const BALANCE_FIELDS: Record<string, string> = {
+  USD: 'usdBalance',
+  EUR: 'eurBalance',
+  GBP: 'gbpBalance',
+  CAD: 'cadBalance',
+  AUD: 'audBalance',
+  USDC: 'usdcBalance',
+  USDT: 'usdtBalance',
+  BTC: 'btcBalance',
+  ETH: 'ethBalance',
+  SOL: 'solBalance',
+  DOGE: 'dogeBalance',
+};
+
+// Helper to get balance field name for a currency
+function getBalanceField(currency: string): string {
+  const field = BALANCE_FIELDS[currency];
+  if (!field) {
+    throw new Error(`Unsupported currency: ${currency}`);
+  }
+  return field;
+}
+
+// Helper to get exchange rate to USDC (placeholder - should be fetched from price service)
+async function getExchangeRateToUsdc(currency: string): Promise<Decimal> {
+  // For stablecoins, rate is 1:1
+  if (['USD', 'USDC', 'USDT'].includes(currency)) {
+    return new Decimal(1);
+  }
+  // For other currencies, this should be fetched from a price service
+  // Placeholder rates for demonstration
+  const placeholderRates: Record<string, number> = {
+    EUR: 1.08,
+    GBP: 1.27,
+    CAD: 0.74,
+    AUD: 0.65,
+    BTC: 43000,
+    ETH: 2200,
+    SOL: 100,
+    DOGE: 0.08,
+  };
+  return new Decimal(placeholderRates[currency] || 1);
+}
 
 export interface MatchesQueryDto extends PaginationDto {
   sportSlug?: string;
@@ -29,7 +76,7 @@ export interface MatchesQueryDto extends PaginationDto {
 export interface PlaceBetDto {
   type: 'single' | 'combo';
   stake: number;
-  coinType: CoinType;
+  currency: Currency;
   selections: BetSelectionDto[];
 }
 
@@ -836,9 +883,9 @@ export class SportsService {
    * Place a bet (single or combo)
    */
   async placeBet(userId: string, betData: PlaceBetDto) {
-    // Validate coin type
-    if (!['GC', 'SC'].includes(betData.coinType)) {
-      throw new BadRequestException('Invalid coin type. Must be GC or SC');
+    // Validate currency
+    if (!SUPPORTED_CURRENCIES.includes(betData.currency)) {
+      throw new BadRequestException(`Invalid currency. Must be one of: ${SUPPORTED_CURRENCIES.join(', ')}`);
     }
 
     // Validate stake
@@ -877,11 +924,12 @@ export class SportsService {
       throw new NotFoundException('Wallet not found');
     }
 
-    const balance = betData.coinType === 'GC' ? wallet.gcBalance : wallet.scBalance;
+    const balanceField = getBalanceField(betData.currency);
+    const balance = wallet[balanceField as keyof typeof wallet] as Decimal;
     const stake = new Decimal(betData.stake);
 
     if (stake.gt(balance)) {
-      throw new BadRequestException(`Insufficient ${betData.coinType} balance`);
+      throw new BadRequestException(`Insufficient ${betData.currency} balance`);
     }
 
     // Validate all selections and calculate total odds
@@ -894,6 +942,11 @@ export class SportsService {
 
     const potentialWin = stake.mul(totalOdds);
 
+    // Get exchange rate for USDC equivalent calculations
+    const exchangeRate = await getExchangeRateToUsdc(betData.currency);
+    const stakeUsdc = stake.mul(exchangeRate);
+    const potentialWinUsdc = potentialWin.mul(exchangeRate);
+
     // Create bet in a transaction
     return this.prisma.$transaction(async (tx) => {
       // Create the bet
@@ -902,8 +955,11 @@ export class SportsService {
           userId,
           type: betData.type,
           stake,
-          coinType: betData.coinType,
+          currency: betData.currency,
+          stakeUsdc,
+          exchangeRate,
           potentialWin,
+          potentialWinUsdc,
           totalOdds,
           status: 'pending',
         },
@@ -925,7 +981,7 @@ export class SportsService {
       }
 
       // Deduct stake from wallet
-      const currentBalance = betData.coinType === 'GC' ? wallet.gcBalance : wallet.scBalance;
+      const currentBalance = wallet[balanceField as keyof typeof wallet] as Decimal;
       const newBalance = new Decimal(currentBalance).minus(stake);
 
       await tx.transaction.create({
@@ -933,8 +989,10 @@ export class SportsService {
           userId,
           walletId: wallet.id,
           type: 'stake',
-          coinType: betData.coinType,
+          currency: betData.currency,
           amount: stake.neg(),
+          usdcAmount: stakeUsdc.neg(),
+          exchangeRate,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           referenceType: 'bet',
@@ -948,11 +1006,7 @@ export class SportsService {
       });
 
       const updateData: any = { version: { increment: 1 } };
-      if (betData.coinType === 'GC') {
-        updateData.gcBalance = newBalance;
-      } else {
-        updateData.scBalance = newBalance;
-      }
+      updateData[balanceField] = newBalance;
 
       // Use updateMany for proper optimistic locking check
       const walletUpdateResult = await tx.wallet.updateMany({
@@ -969,8 +1023,8 @@ export class SportsService {
       // Publish balance update event
       await this.redis.publish('wallet:balance_updated', {
         userId,
-        gcBalance: betData.coinType === 'GC' ? newBalance.toString() : wallet.gcBalance.toString(),
-        scBalance: betData.coinType === 'SC' ? newBalance.toString() : wallet.scBalance.toString(),
+        currency: betData.currency,
+        balance: newBalance.toString(),
       });
 
       // Fetch complete bet with selections
@@ -994,8 +1048,8 @@ export class SportsService {
         success: true,
         bet: completeBet,
         wallet: {
-          gcBalance: betData.coinType === 'GC' ? newBalance : wallet.gcBalance,
-          scBalance: betData.coinType === 'SC' ? newBalance : wallet.scBalance,
+          currency: betData.currency,
+          balance: newBalance,
         },
       };
     });
@@ -1284,16 +1338,23 @@ export class SportsService {
       });
 
       // Credit cashout amount to wallet
-      const currentBalance = bet.coinType === 'GC' ? wallet.gcBalance : wallet.scBalance;
+      const balanceField = getBalanceField(bet.currency);
+      const currentBalance = wallet[balanceField as keyof typeof wallet] as Decimal;
       const newBalance = new Decimal(currentBalance).plus(cashoutValue);
+
+      // Calculate USDC equivalent for the cashout
+      const exchangeRate = await getExchangeRateToUsdc(bet.currency);
+      const cashoutValueUsdc = cashoutValue.mul(exchangeRate);
 
       await tx.transaction.create({
         data: {
           userId,
           walletId: wallet.id,
           type: 'game_win', // Using game_win type for cashout winnings
-          coinType: bet.coinType,
+          currency: bet.currency,
           amount: cashoutValue,
+          usdcAmount: cashoutValueUsdc,
+          exchangeRate,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           referenceType: 'bet',
@@ -1308,12 +1369,9 @@ export class SportsService {
       });
 
       const updateData: any = { version: { increment: 1 } };
-      if (bet.coinType === 'GC') {
-        updateData.gcBalance = newBalance;
-      } else {
-        updateData.scBalance = newBalance;
-        updateData.scLifetimeEarned = new Decimal(wallet.scLifetimeEarned).plus(cashoutValue);
-      }
+      updateData[balanceField] = newBalance;
+      // Update lifetime won (USDC equivalent)
+      updateData.lifetimeWon = new Decimal(wallet.lifetimeWon).plus(cashoutValueUsdc);
 
       // Use updateMany for proper optimistic locking check
       const walletUpdateResult = await tx.wallet.updateMany({
@@ -1338,8 +1396,8 @@ export class SportsService {
       // Publish balance update event
       await this.redis.publish('wallet:balance_updated', {
         userId,
-        gcBalance: updatedWallet.gcBalance.toString(),
-        scBalance: updatedWallet.scBalance.toString(),
+        currency: bet.currency,
+        balance: (updatedWallet[balanceField as keyof typeof updatedWallet] as Decimal).toString(),
       });
 
       return {
@@ -1347,8 +1405,8 @@ export class SportsService {
         cashoutAmount: cashoutValue,
         bet: updatedBet,
         wallet: {
-          gcBalance: updatedWallet.gcBalance,
-          scBalance: updatedWallet.scBalance,
+          currency: bet.currency,
+          balance: updatedWallet[balanceField as keyof typeof updatedWallet],
         },
       };
     });
@@ -1650,7 +1708,7 @@ export class SportsService {
 
     // Process winnings if any
     if (actualWin.gt(0)) {
-      await this.processWinnings(bet.userId, bet.id, actualWin, bet.coinType);
+      await this.processWinnings(bet.userId, bet.id, actualWin, bet.currency);
     }
 
     // Send notification
@@ -1668,7 +1726,7 @@ export class SportsService {
     userId: string,
     betId: string,
     amount: Decimal,
-    coinType: string,
+    currency: string,
   ): Promise<void> {
     const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
@@ -1679,8 +1737,13 @@ export class SportsService {
       return;
     }
 
-    const currentBalance = coinType === 'GC' ? wallet.gcBalance : wallet.scBalance;
+    const balanceField = getBalanceField(currency);
+    const currentBalance = wallet[balanceField as keyof typeof wallet] as Decimal;
     const newBalance = currentBalance.add(amount);
+
+    // Calculate USDC equivalent
+    const exchangeRate = await getExchangeRateToUsdc(currency);
+    const amountUsdc = amount.mul(exchangeRate);
 
     await this.prisma.$transaction(async (tx) => {
       // Create win transaction
@@ -1689,8 +1752,10 @@ export class SportsService {
           userId,
           walletId: wallet.id,
           type: 'game_win',
-          coinType,
+          currency,
           amount,
+          usdcAmount: amountUsdc,
+          exchangeRate,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           referenceType: 'bet',
@@ -1704,12 +1769,9 @@ export class SportsService {
 
       // Update wallet
       const updateData: any = { version: { increment: 1 } };
-      if (coinType === 'GC') {
-        updateData.gcBalance = newBalance;
-      } else {
-        updateData.scBalance = newBalance;
-        updateData.scLifetimeEarned = wallet.scLifetimeEarned.add(amount);
-      }
+      updateData[balanceField] = newBalance;
+      // Update lifetime won (USDC equivalent)
+      updateData.lifetimeWon = wallet.lifetimeWon.add(amountUsdc);
 
       await tx.wallet.update({
         where: { id: wallet.id },
@@ -1720,8 +1782,8 @@ export class SportsService {
     // Publish balance update
     await this.redis.publish('wallet:balance_updated', {
       userId,
-      coinType,
-      newBalance: newBalance.toString(),
+      currency,
+      balance: newBalance.toString(),
     });
   }
 

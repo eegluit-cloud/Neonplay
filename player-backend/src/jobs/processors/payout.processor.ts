@@ -31,8 +31,8 @@ export class PayoutProcessor {
   @Cron(CronExpression.EVERY_MINUTE)
   async processPayoutQueue() {
     try {
-      // Get processing redemptions that need payout
-      const processingRedemptions = await this.prisma.redemption.findMany({
+      // Get processing withdrawals that need payout
+      const processingWithdrawals = await this.prisma.withdrawal.findMany({
         where: {
           status: 'processing',
           processedAt: {
@@ -45,12 +45,12 @@ export class PayoutProcessor {
         take: 10,
       });
 
-      if (processingRedemptions.length === 0) return;
+      if (processingWithdrawals.length === 0) return;
 
-      this.logger.log(`Processing ${processingRedemptions.length} payouts`);
+      this.logger.log(`Processing ${processingWithdrawals.length} payouts`);
 
-      for (const redemption of processingRedemptions) {
-        await this.processPayout(redemption);
+      for (const withdrawal of processingWithdrawals) {
+        await this.processPayout(withdrawal);
       }
     } catch (error: any) {
       this.logger.error('Error processing payout queue:', error);
@@ -65,7 +65,7 @@ export class PayoutProcessor {
     try {
       const stuckThreshold = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours
 
-      const stuckPayouts = await this.prisma.redemption.findMany({
+      const stuckPayouts = await this.prisma.withdrawal.findMany({
         where: {
           status: 'processing',
           processedAt: { lte: stuckThreshold },
@@ -99,7 +99,7 @@ export class PayoutProcessor {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
-      const dailyStats = await this.prisma.redemption.groupBy({
+      const dailyStats = await this.prisma.withdrawal.groupBy({
         by: ['status', 'method'],
         where: {
           createdAt: {
@@ -109,17 +109,17 @@ export class PayoutProcessor {
         },
         _count: true,
         _sum: {
-          usdValue: true,
+          usdcAmount: true,
         },
       });
 
       const report = {
         date: yesterday.toISOString().split('T')[0],
-        stats: dailyStats.map((s) => ({
+        stats: dailyStats.map((s: any) => ({
           status: s.status,
           method: s.method,
           count: s._count,
-          totalValue: Number(s._sum.usdValue || 0),
+          totalValue: Number(s._sum.usdcAmount || 0),
         })),
         generatedAt: new Date(),
       };
@@ -140,33 +140,33 @@ export class PayoutProcessor {
   /**
    * Process a single payout
    */
-  private async processPayout(redemption: any) {
-    const lockKey = `payout:lock:${redemption.id}`;
+  private async processPayout(withdrawal: any) {
+    const lockKey = `payout:lock:${withdrawal.id}`;
 
     // Try to acquire lock
     const locked = await this.redis.getClient().set(lockKey, '1', 'EX', 300, 'NX');
     if (!locked) {
-      this.logger.log(`Payout ${redemption.id} is already being processed`);
+      this.logger.log(`Payout ${withdrawal.id} is already being processed`);
       return;
     }
 
     try {
-      this.logger.log(`Processing payout: ${redemption.id} - $${redemption.usdValue} via ${redemption.method}`);
+      this.logger.log(`Processing payout: ${withdrawal.id} - $${withdrawal.usdcAmount} via ${withdrawal.method}`);
 
       let payoutSuccess = false;
       let externalRef: string | null = null;
 
       // Process based on payment method
-      switch (redemption.method.toLowerCase()) {
+      switch (withdrawal.method.toLowerCase()) {
         case 'bank_transfer':
         case 'ach':
-          const bankResult = await this.processBankTransfer(redemption);
+          const bankResult = await this.processBankTransfer(withdrawal);
           payoutSuccess = bankResult.success;
           externalRef = bankResult.referenceId;
           break;
 
         case 'paypal':
-          const paypalResult = await this.processPayPalPayout(redemption);
+          const paypalResult = await this.processPayPalPayout(withdrawal);
           payoutSuccess = paypalResult.success;
           externalRef = paypalResult.referenceId;
           break;
@@ -174,39 +174,39 @@ export class PayoutProcessor {
         case 'crypto':
         case 'bitcoin':
         case 'ethereum':
-          const cryptoResult = await this.processCryptoPayout(redemption);
+          const cryptoResult = await this.processCryptoPayout(withdrawal);
           payoutSuccess = cryptoResult.success;
           externalRef = cryptoResult.txHash;
           break;
 
         case 'check':
-          const checkResult = await this.processCheckPayout(redemption);
+          const checkResult = await this.processCheckPayout(withdrawal);
           payoutSuccess = checkResult.success;
           externalRef = checkResult.checkNumber;
           break;
 
         default:
-          this.logger.warn(`Unknown payout method: ${redemption.method}`);
+          this.logger.warn(`Unknown payout method: ${withdrawal.method}`);
           return;
       }
 
       if (payoutSuccess) {
-        // Update redemption to completed
-        await this.prisma.redemption.update({
-          where: { id: redemption.id },
+        // Update withdrawal to completed
+        await this.prisma.withdrawal.update({
+          where: { id: withdrawal.id },
           data: {
             status: 'completed',
-            processedAt: new Date(),
+            completedAt: new Date(),
           },
         });
 
         // Create a PayoutRequest record with the external reference
         await this.prisma.payoutRequest.create({
           data: {
-            redemptionId: redemption.id,
-            userId: redemption.userId,
-            amount: redemption.usdValue,
-            method: redemption.method,
+            redemptionId: withdrawal.id,
+            userId: withdrawal.userId,
+            amount: withdrawal.usdcAmount,
+            method: withdrawal.method,
             status: 'completed',
             processorRef: externalRef,
             completedAt: new Date(),
@@ -214,22 +214,22 @@ export class PayoutProcessor {
           },
         });
 
-        // Update wallet lifetime redeemed
+        // Update wallet lifetime withdrawn (stored in USDC equivalent)
         await this.prisma.wallet.update({
-          where: { userId: redemption.userId },
+          where: { userId: withdrawal.userId },
           data: {
-            scLifetimeRedeemed: { increment: redemption.scAmount },
+            lifetimeWithdrawn: { increment: withdrawal.usdcAmount },
           },
         });
 
         // Notify user
-        await this.notifyPayoutCompleted(redemption);
+        await this.notifyPayoutCompleted(withdrawal);
 
-        this.logger.log(`Payout completed: ${redemption.id}, ref: ${externalRef}`);
+        this.logger.log(`Payout completed: ${withdrawal.id}, ref: ${externalRef}`);
       } else {
-        // Mark as failed for manual review - update status since Redemption doesn't have metadata
-        await this.prisma.redemption.update({
-          where: { id: redemption.id },
+        // Mark as failed for manual review
+        await this.prisma.withdrawal.update({
+          where: { id: withdrawal.id },
           data: {
             status: 'rejected',
             rejectionReason: 'Payout processing failed - requires manual review',
@@ -237,10 +237,10 @@ export class PayoutProcessor {
         });
 
         // Notify admins
-        await this.notifyAdminsPayoutFailed(redemption);
+        await this.notifyAdminsPayoutFailed(withdrawal);
       }
     } catch (error: any) {
-      this.logger.error(`Error processing payout ${redemption.id}:`, error);
+      this.logger.error(`Error processing payout ${withdrawal.id}:`, error);
     } finally {
       // Release lock
       await this.redis.del(lockKey);
@@ -250,13 +250,13 @@ export class PayoutProcessor {
   /**
    * Process bank transfer/ACH payout
    */
-  private async processBankTransfer(redemption: any): Promise<{ success: boolean; referenceId: string | null }> {
+  private async processBankTransfer(withdrawal: any): Promise<{ success: boolean; referenceId: string | null }> {
     // TODO: Integrate with payment processor (Stripe, PayPal Mass Payments, etc.)
     const isProduction = this.configService.get('NODE_ENV') === 'production';
 
     if (!isProduction) {
       // Simulate success in development
-      this.logger.log(`[DEV] Bank transfer simulated for ${redemption.id}`);
+      this.logger.log(`[DEV] Bank transfer simulated for ${withdrawal.id}`);
       return {
         success: true,
         referenceId: `DEV_BANK_${Date.now()}`,
@@ -273,11 +273,11 @@ export class PayoutProcessor {
   /**
    * Process PayPal payout
    */
-  private async processPayPalPayout(redemption: any): Promise<{ success: boolean; referenceId: string | null }> {
+  private async processPayPalPayout(withdrawal: any): Promise<{ success: boolean; referenceId: string | null }> {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
 
     if (!isProduction) {
-      this.logger.log(`[DEV] PayPal payout simulated for ${redemption.id}`);
+      this.logger.log(`[DEV] PayPal payout simulated for ${withdrawal.id}`);
       return {
         success: true,
         referenceId: `DEV_PAYPAL_${Date.now()}`,
@@ -294,11 +294,11 @@ export class PayoutProcessor {
   /**
    * Process cryptocurrency payout
    */
-  private async processCryptoPayout(redemption: any): Promise<{ success: boolean; txHash: string | null }> {
+  private async processCryptoPayout(withdrawal: any): Promise<{ success: boolean; txHash: string | null }> {
     const isProduction = this.configService.get('NODE_ENV') === 'production';
 
     if (!isProduction) {
-      this.logger.log(`[DEV] Crypto payout simulated for ${redemption.id}`);
+      this.logger.log(`[DEV] Crypto payout simulated for ${withdrawal.id}`);
       return {
         success: true,
         txHash: `DEV_TX_${Math.random().toString(36).substr(2, 64)}`,
@@ -314,7 +314,7 @@ export class PayoutProcessor {
   /**
    * Process check payout
    */
-  private async processCheckPayout(redemption: any): Promise<{ success: boolean; checkNumber: string | null }> {
+  private async processCheckPayout(withdrawal: any): Promise<{ success: boolean; checkNumber: string | null }> {
     // Check payouts are typically processed manually
     // This creates a record for the fulfillment team
 
@@ -322,14 +322,14 @@ export class PayoutProcessor {
 
     await this.prisma.payoutRequest.create({
       data: {
-        redemptionId: redemption.id,
-        userId: redemption.userId,
+        redemptionId: withdrawal.id,
+        userId: withdrawal.userId,
         method: 'check',
-        amount: redemption.usdValue,
+        amount: withdrawal.usdcAmount,
         status: 'pending',
         processorRef: checkNumber,
-        payoutDetails: redemption.payoutDetails,
-        metadata: { checkNumber, shippingAddress: (redemption.payoutDetails as any)?.address },
+        payoutDetails: withdrawal.payoutDetails,
+        metadata: { checkNumber, shippingAddress: (withdrawal.payoutDetails as any)?.address },
       },
     });
 
@@ -341,32 +341,32 @@ export class PayoutProcessor {
   /**
    * Notify user of completed payout
    */
-  private async notifyPayoutCompleted(redemption: any) {
+  private async notifyPayoutCompleted(withdrawal: any) {
     await this.prisma.notification.create({
       data: {
-        userId: redemption.userId,
-        type: 'redemption',
+        userId: withdrawal.userId,
+        type: 'withdrawal',
         title: 'Payout Completed! 💰',
-        message: `Your redemption of $${redemption.usdValue} has been sent via ${redemption.method}.`,
-        actionUrl: '/wallet/redemptions',
+        message: `Your withdrawal of $${withdrawal.usdcAmount} has been sent via ${withdrawal.method}.`,
+        actionUrl: '/wallet/withdrawals',
       },
     });
 
     await this.redis.publish('notification:new', {
-      userId: redemption.userId,
-      type: 'redemption',
+      userId: withdrawal.userId,
+      type: 'withdrawal',
       title: 'Payout Completed!',
     });
 
     // Also queue email notification
     await this.redis.rpush('email:queue', {
-      id: `email_payout_${redemption.id}`,
-      to: redemption.user.email,
-      subject: 'Your Redemption Has Been Completed',
+      id: `email_payout_${withdrawal.id}`,
+      to: withdrawal.user.email,
+      subject: 'Your Withdrawal Has Been Completed',
       template: 'payout_completed',
       data: {
-        amount: redemption.usdValue,
-        method: redemption.method,
+        amount: withdrawal.usdcAmount,
+        method: withdrawal.method,
         date: new Date().toLocaleDateString(),
       },
     });
@@ -375,7 +375,7 @@ export class PayoutProcessor {
   /**
    * Notify admins of stuck payout
    */
-  private async notifyAdminsStuckPayout(redemption: any) {
+  private async notifyAdminsStuckPayout(withdrawal: any) {
     const admins = await this.prisma.adminUser.findMany({
       where: {
         isActive: true,
@@ -384,16 +384,16 @@ export class PayoutProcessor {
 
     for (const admin of admins) {
       await this.redis.rpush('email:queue', {
-        id: `email_stuck_${redemption.id}_${admin.id}`,
+        id: `email_stuck_${withdrawal.id}_${admin.id}`,
         to: admin.email,
-        subject: `⚠️ Stuck Payout Alert: ${redemption.id}`,
+        subject: `⚠️ Stuck Payout Alert: ${withdrawal.id}`,
         template: 'admin_stuck_payout',
         data: {
-          redemptionId: redemption.id,
-          userId: redemption.userId,
-          amount: redemption.usdValue,
-          method: redemption.method,
-          processedAt: redemption.processedAt,
+          withdrawalId: withdrawal.id,
+          userId: withdrawal.userId,
+          amount: withdrawal.usdcAmount,
+          method: withdrawal.method,
+          processedAt: withdrawal.processedAt,
         },
         priority: 1,
       });
@@ -403,7 +403,7 @@ export class PayoutProcessor {
   /**
    * Notify admins of failed payout
    */
-  private async notifyAdminsPayoutFailed(redemption: any) {
+  private async notifyAdminsPayoutFailed(withdrawal: any) {
     const admins = await this.prisma.adminUser.findMany({
       where: {
         isActive: true,
@@ -412,16 +412,16 @@ export class PayoutProcessor {
 
     for (const admin of admins) {
       await this.redis.rpush('email:queue', {
-        id: `email_failed_${redemption.id}_${admin.id}`,
+        id: `email_failed_${withdrawal.id}_${admin.id}`,
         to: admin.email,
-        subject: `❌ Payout Failed: ${redemption.id}`,
+        subject: `❌ Payout Failed: ${withdrawal.id}`,
         template: 'admin_payout_failed',
         data: {
-          redemptionId: redemption.id,
-          userId: redemption.userId,
-          userEmail: redemption.user.email,
-          amount: redemption.usdValue,
-          method: redemption.method,
+          withdrawalId: withdrawal.id,
+          userId: withdrawal.userId,
+          userEmail: withdrawal.user.email,
+          amount: withdrawal.usdcAmount,
+          method: withdrawal.method,
         },
         priority: 1,
       });
@@ -431,20 +431,20 @@ export class PayoutProcessor {
   /**
    * Queue a manual payout (admin triggered)
    */
-  async queueManualPayout(redemptionId: string): Promise<void> {
-    const redemption = await this.prisma.redemption.findUnique({
-      where: { id: redemptionId },
+  async queueManualPayout(withdrawalId: string): Promise<void> {
+    const withdrawal = await this.prisma.withdrawal.findUnique({
+      where: { id: withdrawalId },
     });
 
-    if (!redemption) {
-      throw new Error('Redemption not found');
+    if (!withdrawal) {
+      throw new Error('Withdrawal not found');
     }
 
-    if (redemption.status !== 'processing') {
-      throw new Error('Redemption must be in processing status');
+    if (withdrawal.status !== 'processing') {
+      throw new Error('Withdrawal must be in processing status');
     }
 
-    await this.processPayout(redemption);
+    await this.processPayout(withdrawal);
   }
 
   /**
@@ -459,23 +459,23 @@ export class PayoutProcessor {
     }
 
     const [completed, pending, processing, total] = await Promise.all([
-      this.prisma.redemption.aggregate({
+      this.prisma.withdrawal.aggregate({
         where: { ...where, status: 'completed' },
-        _sum: { usdValue: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
-      this.prisma.redemption.aggregate({
+      this.prisma.withdrawal.aggregate({
         where: { status: 'pending' },
-        _sum: { usdValue: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
-      this.prisma.redemption.aggregate({
+      this.prisma.withdrawal.aggregate({
         where: { status: 'processing' },
-        _sum: { usdValue: true },
+        _sum: { usdcAmount: true },
         _count: true,
       }),
-      this.prisma.redemption.aggregate({
-        _sum: { usdValue: true },
+      this.prisma.withdrawal.aggregate({
+        _sum: { usdcAmount: true },
         _count: true,
       }),
     ]);
@@ -483,19 +483,19 @@ export class PayoutProcessor {
     return {
       completed: {
         count: completed._count,
-        value: Number(completed._sum.usdValue || 0),
+        value: Number(completed._sum.usdcAmount || 0),
       },
       pending: {
         count: pending._count,
-        value: Number(pending._sum.usdValue || 0),
+        value: Number(pending._sum.usdcAmount || 0),
       },
       processing: {
         count: processing._count,
-        value: Number(processing._sum.usdValue || 0),
+        value: Number(processing._sum.usdcAmount || 0),
       },
       total: {
         count: total._count,
-        value: Number(total._sum.usdValue || 0),
+        value: Number(total._sum.usdcAmount || 0),
       },
     };
   }

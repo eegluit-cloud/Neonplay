@@ -13,9 +13,10 @@ import {
 } from '../../common/utils/pagination.util';
 
 // Default reward amounts (can be configured via settings)
-const DEFAULT_REFERRER_REWARD = new Decimal(10); // SC reward for referrer
-const DEFAULT_REFERRED_REWARD = new Decimal(5); // SC reward for referred user
+const DEFAULT_REFERRER_REWARD = new Decimal(10); // USDC reward for referrer
+const DEFAULT_REFERRED_REWARD = new Decimal(5); // USDC reward for referred user
 const QUALIFICATION_PURCHASE_AMOUNT = new Decimal(10); // Minimum purchase to qualify
+const EXCHANGE_RATE = new Decimal(1); // 1:1 for USDC
 
 @Injectable()
 export class ReferralsService {
@@ -92,7 +93,7 @@ export class ReferralsService {
           status: 'rewarded',
         },
         _sum: {
-          referrerReward: true,
+          referrerRewardUsdc: true,
         },
       }),
     ]);
@@ -110,7 +111,7 @@ export class ReferralsService {
       qualified: qualifiedCount,
       pending: pendingCount,
       rewarded: rewardedCount,
-      totalEarned: totalEarned._sum.referrerReward || new Decimal(0),
+      totalEarned: totalEarned._sum.referrerRewardUsdc || new Decimal(0),
       rewardPerReferral: DEFAULT_REFERRER_REWARD,
     };
   }
@@ -150,7 +151,7 @@ export class ReferralsService {
         joinedAt: ref.referred.createdAt,
       },
       status: ref.status,
-      referrerReward: ref.referrerReward,
+      referrerRewardUsdc: ref.referrerRewardUsdc,
       qualifiedAt: ref.qualifiedAt,
       rewardedAt: ref.rewardedAt,
       createdAt: ref.createdAt,
@@ -270,11 +271,11 @@ export class ReferralsService {
     const referrerWallet = referral.referrer.wallet;
     const referredWallet = referral.referred.wallet;
 
-    const referrerReward = DEFAULT_REFERRER_REWARD;
-    const referredReward = DEFAULT_REFERRED_REWARD;
+    const referrerRewardUsdc = DEFAULT_REFERRER_REWARD;
+    const referredRewardUsdc = DEFAULT_REFERRED_REWARD;
 
-    const newReferrerScBalance = new Decimal(referrerWallet.scBalance).plus(referrerReward);
-    const newReferredScBalance = new Decimal(referredWallet.scBalance).plus(referredReward);
+    const newReferrerUsdcBalance = new Decimal(referrerWallet.usdcBalance).plus(referrerRewardUsdc);
+    const newReferredUsdcBalance = new Decimal(referredWallet.usdcBalance).plus(referredRewardUsdc);
 
     return this.prisma.$transaction(async (tx) => {
       // Update referral status
@@ -282,8 +283,9 @@ export class ReferralsService {
         where: { id: referralId },
         data: {
           status: 'rewarded',
-          referrerReward,
-          referredReward,
+          referrerRewardUsdc,
+          referredRewardUsdc,
+          rewardCurrency: 'USDC',
           qualifiedAt: now,
           rewardedAt: now,
         },
@@ -295,10 +297,12 @@ export class ReferralsService {
           userId: referral.referrerId,
           walletId: referrerWallet.id,
           type: 'bonus',
-          coinType: 'SC',
-          amount: referrerReward,
-          balanceBefore: referrerWallet.scBalance,
-          balanceAfter: newReferrerScBalance,
+          currency: 'USDC',
+          amount: referrerRewardUsdc,
+          usdcAmount: referrerRewardUsdc,
+          exchangeRate: EXCHANGE_RATE,
+          balanceBefore: referrerWallet.usdcBalance,
+          balanceAfter: newReferrerUsdcBalance,
           referenceType: 'referral',
           referenceId: referralId,
           status: 'completed',
@@ -313,8 +317,8 @@ export class ReferralsService {
       await tx.wallet.update({
         where: { id: referrerWallet.id, version: referrerWallet.version },
         data: {
-          scBalance: newReferrerScBalance,
-          scLifetimeEarned: new Decimal(referrerWallet.scLifetimeEarned).plus(referrerReward),
+          usdcBalance: newReferrerUsdcBalance,
+          lifetimeWon: new Decimal(referrerWallet.lifetimeWon).plus(referrerRewardUsdc),
           version: { increment: 1 },
         },
       });
@@ -325,10 +329,12 @@ export class ReferralsService {
           userId: referral.referredId,
           walletId: referredWallet.id,
           type: 'bonus',
-          coinType: 'SC',
-          amount: referredReward,
-          balanceBefore: referredWallet.scBalance,
-          balanceAfter: newReferredScBalance,
+          currency: 'USDC',
+          amount: referredRewardUsdc,
+          usdcAmount: referredRewardUsdc,
+          exchangeRate: EXCHANGE_RATE,
+          balanceBefore: referredWallet.usdcBalance,
+          balanceAfter: newReferredUsdcBalance,
           referenceType: 'referral',
           referenceId: referralId,
           status: 'completed',
@@ -343,8 +349,8 @@ export class ReferralsService {
       await tx.wallet.update({
         where: { id: referredWallet.id, version: referredWallet.version },
         data: {
-          scBalance: newReferredScBalance,
-          scLifetimeEarned: new Decimal(referredWallet.scLifetimeEarned).plus(referredReward),
+          usdcBalance: newReferredUsdcBalance,
+          lifetimeWon: new Decimal(referredWallet.lifetimeWon).plus(referredRewardUsdc),
           version: { increment: 1 },
         },
       });
@@ -356,15 +362,19 @@ export class ReferralsService {
             userId: referral.referrerId,
             bonusType: 'referral',
             bonusId: referralId,
-            gcAmount: new Decimal(0),
-            scAmount: referrerReward,
+            currency: 'USDC',
+            amount: referrerRewardUsdc,
+            usdcAmount: referrerRewardUsdc,
+            exchangeRate: 1,
           },
           {
             userId: referral.referredId,
             bonusType: 'referral',
             bonusId: referralId,
-            gcAmount: new Decimal(0),
-            scAmount: referredReward,
+            currency: 'USDC',
+            amount: referredRewardUsdc,
+            usdcAmount: referredRewardUsdc,
+            exchangeRate: 1,
           },
         ],
       });
@@ -375,11 +385,11 @@ export class ReferralsService {
         rewards: {
           referrer: {
             userId: referral.referrerId,
-            amount: referrerReward,
+            amount: referrerRewardUsdc,
           },
           referred: {
             userId: referral.referredId,
-            amount: referredReward,
+            amount: referredRewardUsdc,
           },
         },
       };
@@ -437,7 +447,7 @@ export class ReferralsService {
       wasReferred: true,
       referrer: this.maskUsername(referral.referrer.username),
       status: referral.status,
-      reward: referral.status === 'rewarded' ? referral.referredReward : null,
+      reward: referral.status === 'rewarded' ? referral.referredRewardUsdc : null,
       qualifiedAt: referral.qualifiedAt,
       rewardedAt: referral.rewardedAt,
     };

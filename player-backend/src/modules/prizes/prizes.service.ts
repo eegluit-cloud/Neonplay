@@ -47,12 +47,12 @@ export class PrizesService {
     }
 
     if (query.minValue !== undefined || query.maxValue !== undefined) {
-      where.valueUsd = {};
+      where.valueUsdc = {};
       if (query.minValue !== undefined) {
-        where.valueUsd.gte = query.minValue;
+        where.valueUsdc.gte = query.minValue;
       }
       if (query.maxValue !== undefined) {
-        where.valueUsd.lte = query.maxValue;
+        where.valueUsdc.lte = query.maxValue;
       }
     }
 
@@ -68,8 +68,8 @@ export class PrizesService {
           description: true,
           category: true,
           prizeType: true,
-          valueUsd: true,
-          scCost: true,
+          valueUsdc: true,
+          costUsdc: true,
           imageUrl: true,
           stockQuantity: true,
           isPopular: true,
@@ -85,8 +85,8 @@ export class PrizesService {
       description: prize.description,
       category: prize.category,
       prizeType: prize.prizeType,
-      valueUsd: prize.valueUsd.toString(),
-      scCost: prize.scCost?.toString() || null,
+      valueUsdc: prize.valueUsdc.toString(),
+      costUsdc: prize.costUsdc?.toString() || null,
       imageUrl: prize.imageUrl,
       stockQuantity: prize.stockQuantity,
       isPopular: prize.isPopular,
@@ -98,7 +98,7 @@ export class PrizesService {
   }
 
   /**
-   * Get store prizes (purchasable with SC)
+   * Get store prizes (purchasable with USDC)
    */
   async getStorePrizes(query: PrizesQueryDto) {
     const { skip, take } = getPaginationParams(query);
@@ -106,7 +106,7 @@ export class PrizesService {
     const where: any = {
       isActive: true,
       prizeType: { in: ['redemption_store', 'both'] },
-      scCost: { not: null },
+      costUsdc: { not: null },
     };
 
     if (query.category) {
@@ -114,12 +114,12 @@ export class PrizesService {
     }
 
     if (query.minValue !== undefined || query.maxValue !== undefined) {
-      where.scCost = where.scCost || {};
+      where.costUsdc = where.costUsdc || {};
       if (query.minValue !== undefined) {
-        where.scCost.gte = query.minValue;
+        where.costUsdc.gte = query.minValue;
       }
       if (query.maxValue !== undefined) {
-        where.scCost.lte = query.maxValue;
+        where.costUsdc.lte = query.maxValue;
       }
     }
 
@@ -134,8 +134,8 @@ export class PrizesService {
           name: true,
           description: true,
           category: true,
-          valueUsd: true,
-          scCost: true,
+          valueUsdc: true,
+          costUsdc: true,
           imageUrl: true,
           stockQuantity: true,
           isPopular: true,
@@ -150,8 +150,8 @@ export class PrizesService {
       name: prize.name,
       description: prize.description,
       category: prize.category,
-      valueUsd: prize.valueUsd.toString(),
-      scCost: prize.scCost?.toString() || null,
+      valueUsdc: prize.valueUsdc.toString(),
+      costUsdc: prize.costUsdc?.toString() || null,
       imageUrl: prize.imageUrl,
       stockQuantity: prize.stockQuantity,
       isPopular: prize.isPopular,
@@ -189,7 +189,7 @@ export class PrizesService {
             name: true,
             description: true,
             imageUrl: true,
-            valueUsd: true,
+            valueUsdc: true,
           },
         },
       },
@@ -199,14 +199,16 @@ export class PrizesService {
       id: tier.id,
       leaderboardType: tier.leaderboardType,
       position: tier.position,
-      scAmount: tier.scAmount.toString(),
-      prize: {
-        id: tier.prize.id,
-        name: tier.prize.name,
-        description: tier.prize.description,
-        imageUrl: tier.prize.imageUrl,
-        valueUsd: tier.prize.valueUsd.toString(),
-      },
+      amountUsdc: tier.amountUsdc.toString(),
+      prize: tier.prize
+        ? {
+            id: tier.prize.id,
+            name: tier.prize.name,
+            description: tier.prize.description,
+            imageUrl: tier.prize.imageUrl,
+            valueUsdc: tier.prize.valueUsdc.toString(),
+          }
+        : null,
     }));
   }
 
@@ -224,7 +226,7 @@ export class PrizesService {
             name: true,
             description: true,
             category: true,
-            valueUsd: true,
+            valueUsdc: true,
             imageUrl: true,
           },
         },
@@ -238,7 +240,7 @@ export class PrizesService {
         name: redemption.prize.name,
         description: redemption.prize.description,
         category: redemption.prize.category,
-        valueUsd: redemption.prize.valueUsd.toString(),
+        valueUsdc: redemption.prize.valueUsdc.toString(),
         imageUrl: redemption.prize.imageUrl,
       },
       status: redemption.status,
@@ -269,7 +271,7 @@ export class PrizesService {
         id: prizeId,
         isActive: true,
         prizeType: { in: ['redemption_store', 'both'] },
-        scCost: { not: null },
+        costUsdc: { not: null },
       },
     });
 
@@ -281,7 +283,7 @@ export class PrizesService {
       throw new BadRequestException('This prize is out of stock');
     }
 
-    // Check user's SC balance
+    // Check user's USDC balance
     const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
     });
@@ -290,18 +292,18 @@ export class PrizesService {
       throw new NotFoundException('Wallet not found');
     }
 
-    if (wallet.scBalance.lt(prize.scCost!)) {
-      throw new BadRequestException('Insufficient SC balance');
+    if (wallet.usdcBalance.lt(prize.costUsdc!)) {
+      throw new BadRequestException('Insufficient USDC balance');
     }
 
-    // Create redemption and deduct SC
+    // Create redemption and deduct USDC
     return this.prisma.$transaction(async (tx) => {
-      // Deduct SC from wallet
-      const newBalance = wallet.scBalance.minus(prize.scCost!);
+      // Deduct USDC from wallet
+      const newBalance = wallet.usdcBalance.minus(prize.costUsdc!);
       await tx.wallet.update({
         where: { userId },
         data: {
-          scBalance: newBalance,
+          usdcBalance: newBalance,
           version: { increment: 1 },
         },
       });
@@ -312,9 +314,11 @@ export class PrizesService {
           userId,
           walletId: wallet.id,
           type: 'prize_redemption',
-          coinType: 'SC',
-          amount: prize.scCost!.negated(),
-          balanceBefore: wallet.scBalance,
+          currency: 'USDC',
+          amount: prize.costUsdc!.negated(),
+          usdcAmount: prize.costUsdc!.negated(),
+          exchangeRate: 1,
+          balanceBefore: wallet.usdcBalance,
           balanceAfter: newBalance,
           referenceType: 'prize',
           referenceId: prizeId,
@@ -344,7 +348,7 @@ export class PrizesService {
             select: {
               name: true,
               imageUrl: true,
-              valueUsd: true,
+              valueUsdc: true,
             },
           },
         },
@@ -358,7 +362,7 @@ export class PrizesService {
           prize: {
             name: redemption.prize.name,
             imageUrl: redemption.prize.imageUrl,
-            valueUsd: redemption.prize.valueUsd.toString(),
+            valueUsdc: redemption.prize.valueUsdc.toString(),
           },
           shippingAddress: redemption.shippingAddress,
           createdAt: redemption.createdAt,

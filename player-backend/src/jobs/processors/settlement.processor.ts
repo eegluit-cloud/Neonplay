@@ -244,7 +244,7 @@ export class SettlementProcessor {
 
     // If won, credit winnings to wallet
     if (betStatus === 'won' || (betStatus === 'partial_void' && actualWin.gt(0))) {
-      await this.creditWinnings(freshBet.userId, freshBet.coinType, actualWin, freshBet.id);
+      await this.creditWinnings(freshBet.userId, freshBet.currency, actualWin, freshBet.id);
     }
 
     // Send notification
@@ -258,7 +258,7 @@ export class SettlementProcessor {
    */
   private async creditWinnings(
     userId: string,
-    coinType: string,
+    currency: string,
     amount: Decimal,
     betId: string,
   ) {
@@ -271,15 +271,35 @@ export class SettlementProcessor {
       return;
     }
 
-    const balanceField = coinType === 'GC' ? 'gcBalance' : 'scBalance';
-    const currentBalance = new Decimal(wallet[balanceField]);
+    // Get the balance field based on currency
+    const balanceFieldMap: Record<string, keyof typeof wallet> = {
+      USD: 'usdBalance',
+      EUR: 'eurBalance',
+      GBP: 'gbpBalance',
+      CAD: 'cadBalance',
+      AUD: 'audBalance',
+      USDC: 'usdcBalance',
+      USDT: 'usdtBalance',
+      BTC: 'btcBalance',
+      ETH: 'ethBalance',
+      SOL: 'solBalance',
+      DOGE: 'dogeBalance',
+    };
+
+    const balanceField = balanceFieldMap[currency] || 'usdcBalance';
+    const currentBalance = new Decimal(wallet[balanceField] as any);
     const newBalance = currentBalance.plus(amount);
+
+    // For now, use 1:1 exchange rate for USDC and approximate for others
+    const exchangeRate = currency === 'USDC' ? new Decimal(1) : new Decimal(1);
+    const usdcAmount = amount.mul(exchangeRate);
 
     await this.prisma.$transaction([
       this.prisma.wallet.update({
         where: { userId },
         data: {
           [balanceField]: newBalance,
+          lifetimeWon: { increment: usdcAmount },
           version: { increment: 1 },
         },
       }),
@@ -288,8 +308,10 @@ export class SettlementProcessor {
           userId,
           walletId: wallet.id,
           type: 'bet_win',
-          coinType: coinType as any,
+          currency,
           amount,
+          usdcAmount,
+          exchangeRate,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           referenceType: 'bet',
@@ -302,8 +324,8 @@ export class SettlementProcessor {
     // Publish balance update
     await this.redis.publish('wallet:balance_updated', {
       userId,
-      gcBalance: coinType === 'GC' ? newBalance.toString() : wallet.gcBalance.toString(),
-      scBalance: coinType === 'SC' ? newBalance.toString() : wallet.scBalance.toString(),
+      currency,
+      balance: newBalance.toString(),
     });
   }
 
@@ -316,13 +338,13 @@ export class SettlementProcessor {
 
     if (status === 'won') {
       title = 'Bet Won! 🎉';
-      message = `Your ${bet.type} bet won ${amount} ${bet.coinType}!`;
+      message = `Your ${bet.type} bet won ${amount} ${bet.currency}!`;
     } else if (status === 'lost') {
       title = 'Bet Settled';
       message = `Your ${bet.type} bet has been settled. Better luck next time!`;
     } else {
       title = 'Bet Partially Settled';
-      message = `Your bet has been partially settled. You won ${amount} ${bet.coinType}.`;
+      message = `Your bet has been partially settled. You won ${amount} ${bet.currency}.`;
     }
 
     await this.prisma.notification.create({
@@ -435,9 +457,28 @@ export class SettlementProcessor {
 
     if (!wallet) return;
 
-    const balanceField = bet.coinType === 'GC' ? 'gcBalance' : 'scBalance';
-    const currentBalance = new Decimal(wallet[balanceField]);
+    // Get the balance field based on currency
+    const balanceFieldMap: Record<string, keyof typeof wallet> = {
+      USD: 'usdBalance',
+      EUR: 'eurBalance',
+      GBP: 'gbpBalance',
+      CAD: 'cadBalance',
+      AUD: 'audBalance',
+      USDC: 'usdcBalance',
+      USDT: 'usdtBalance',
+      BTC: 'btcBalance',
+      ETH: 'ethBalance',
+      SOL: 'solBalance',
+      DOGE: 'dogeBalance',
+    };
+
+    const balanceField = balanceFieldMap[bet.currency] || 'usdcBalance';
+    const currentBalance = new Decimal(wallet[balanceField] as any);
     const newBalance = currentBalance.plus(bet.stake);
+
+    // Use the exchange rate from the original bet or default to 1:1
+    const exchangeRate = bet.exchangeRate ? new Decimal(bet.exchangeRate) : new Decimal(1);
+    const usdcAmount = new Decimal(bet.stake).mul(exchangeRate);
 
     await this.prisma.$transaction([
       this.prisma.bet.update({
@@ -459,8 +500,10 @@ export class SettlementProcessor {
           userId: bet.userId,
           walletId: wallet.id,
           type: 'refund',
-          coinType: bet.coinType,
+          currency: bet.currency,
           amount: bet.stake,
+          usdcAmount,
+          exchangeRate,
           balanceBefore: currentBalance,
           balanceAfter: newBalance,
           referenceType: 'bet',
@@ -477,7 +520,7 @@ export class SettlementProcessor {
         userId: bet.userId,
         type: 'bet',
         title: 'Bet Voided',
-        message: `Your bet has been voided and ${bet.stake} ${bet.coinType} has been refunded.`,
+        message: `Your bet has been voided and ${bet.stake} ${bet.currency} has been refunded.`,
         actionUrl: `/sports/bets/${bet.id}`,
       },
     });

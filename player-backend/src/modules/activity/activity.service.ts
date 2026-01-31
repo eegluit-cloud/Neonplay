@@ -9,7 +9,7 @@ import {
 
 export interface ActivityQueryDto extends PaginationDto {
   gameId?: string;
-  coinType?: 'GC' | 'SC';
+  currency?: 'GC' | 'SC';
   minAmount?: number;
   userId?: string;
 }
@@ -22,7 +22,7 @@ export interface WinActivityDto {
   gameSlug: string;
   gameThumbnail: string | null;
   amount: number;
-  coinType: string;
+  currency: string;
   multiplier: number | null;
   createdAt: Date;
 }
@@ -35,7 +35,7 @@ export interface BetActivityDto {
   gameSlug: string;
   gameThumbnail: string | null;
   betAmount: number;
-  coinType: string;
+  currency: string;
   createdAt: Date;
 }
 
@@ -46,7 +46,7 @@ export interface HighRollerDto {
   gameName: string;
   gameSlug: string;
   betAmount: number;
-  coinType: string;
+  currency: string;
   createdAt: Date;
 }
 
@@ -57,7 +57,7 @@ export interface MonthlyLeaderDto {
   avatarUrl: string | null;
   totalWagered: number;
   totalWins: number;
-  coinType: string;
+  currency: string;
 }
 
 export interface SocialProofEventDto {
@@ -66,7 +66,7 @@ export interface SocialProofEventDto {
   avatarUrl: string | null;
   gameName: string;
   amount: number;
-  coinType: string;
+  currency: string;
   multiplier?: number;
   timestamp: Date;
 }
@@ -82,7 +82,7 @@ export interface SocialProofConfigDto {
 export interface RecordWinDto {
   gameId: string;
   amount: number;
-  coinType: 'GC' | 'SC';
+  currency: 'GC' | 'SC';
   multiplier?: number;
   roundId?: string;
 }
@@ -90,7 +90,7 @@ export interface RecordWinDto {
 export interface RecordBetDto {
   gameId: string;
   betAmount: number;
-  coinType: 'GC' | 'SC';
+  currency: 'GC' | 'SC';
   roundId?: string;
 }
 
@@ -129,8 +129,8 @@ export class ActivityService {
       where.gameId = query.gameId;
     }
 
-    if (query.coinType) {
-      where.coinType = query.coinType;
+    if (query.currency) {
+      where.currency = query.currency;
     }
 
     if (query.minAmount) {
@@ -156,7 +156,7 @@ export class ActivityService {
         select: {
           id: true,
           winAmount: true,
-          coinType: true,
+          currency: true,
           multiplier: true,
           createdAt: true,
           user: {
@@ -185,7 +185,7 @@ export class ActivityService {
       gameSlug: round.game.slug,
       gameThumbnail: round.game.thumbnailUrl,
       amount: Number(round.winAmount),
-      coinType: round.coinType,
+      currency: round.currency,
       multiplier: round.multiplier ? Number(round.multiplier) : null,
       createdAt: round.createdAt,
     }));
@@ -205,8 +205,8 @@ export class ActivityService {
       where.gameId = query.gameId;
     }
 
-    if (query.coinType) {
-      where.coinType = query.coinType;
+    if (query.currency) {
+      where.currency = query.currency;
     }
 
     const [rounds, total] = await Promise.all([
@@ -218,7 +218,7 @@ export class ActivityService {
         select: {
           id: true,
           betAmount: true,
-          coinType: true,
+          currency: true,
           createdAt: true,
           user: {
             select: {
@@ -246,7 +246,7 @@ export class ActivityService {
       gameSlug: round.game.slug,
       gameThumbnail: round.game.thumbnailUrl,
       betAmount: Number(round.betAmount),
-      coinType: round.coinType,
+      currency: round.currency,
       createdAt: round.createdAt,
     }));
 
@@ -266,8 +266,8 @@ export class ActivityService {
       betAmount: { gte: minBetAmount },
     };
 
-    if (query.coinType) {
-      where.coinType = query.coinType;
+    if (query.currency) {
+      where.currency = query.currency;
     }
 
     const [rounds, total] = await Promise.all([
@@ -279,7 +279,7 @@ export class ActivityService {
         select: {
           id: true,
           betAmount: true,
-          coinType: true,
+          currency: true,
           createdAt: true,
           user: {
             select: {
@@ -305,7 +305,7 @@ export class ActivityService {
       gameName: round.game.name,
       gameSlug: round.game.slug,
       betAmount: Number(round.betAmount),
-      coinType: round.coinType,
+      currency: round.currency,
       createdAt: round.createdAt,
     }));
 
@@ -336,7 +336,7 @@ export class ActivityService {
 
     // Aggregate wagered amounts and wins per user this month
     const leaders = await this.prisma.gameRound.groupBy({
-      by: ['userId', 'coinType'],
+      by: ['userId', 'currency'],
       where: {
         createdAt: { gte: startOfMonth },
         userId: { in: publicUserIds },
@@ -375,7 +375,7 @@ export class ActivityService {
         avatarUrl: user?.avatarUrl || null,
         totalWagered: Number(leader._sum.betAmount) || 0,
         totalWins: Number(leader._sum.winAmount) || 0,
-        coinType: leader.coinType,
+        currency: leader.currency,
       };
     });
 
@@ -416,7 +416,7 @@ export class ActivityService {
         avatarUrl: true,
         actionText: true,
         amount: true,
-        coinType: true,
+        currency: true,
         createdAt: true,
       },
     });
@@ -427,7 +427,7 @@ export class ActivityService {
       avatarUrl: event.avatarUrl,
       gameName: event.actionText,
       amount: Number(event.amount || 0),
-      coinType: event.coinType || 'GC',
+      currency: event.currency || 'GC',
       timestamp: event.createdAt,
     }));
 
@@ -466,7 +466,7 @@ export class ActivityService {
 
     const config: SocialProofConfigDto = {
       enabled: dbConfig?.isActive ?? true,
-      minWinAmount: dbConfig ? Number(dbConfig.minWinAmountToDisplay) : 100,
+      minWinAmount: dbConfig ? Number(dbConfig.minWinAmountUsdcToDisplay) : 100,
       minBetAmount: 500, // Not in schema, use default
       displayDurationMs: dbConfig ? dbConfig.displayFrequencySeconds * 1000 : 5000,
       maxEventsPerMinute: 10, // Not in schema, use default
@@ -508,7 +508,7 @@ export class ActivityService {
           eventType: data.amount >= 10000 || (data.multiplier && data.multiplier >= 100) ? 'big_win' : 'win',
           actionText: `won on ${game?.name || 'Unknown Game'}`,
           amount: data.amount,
-          coinType: data.coinType,
+          currency: data.currency,
           isSynthetic: false,
         },
       });
@@ -523,7 +523,7 @@ export class ActivityService {
         avatarUrl: user?.avatarUrl,
         gameName: game?.name || 'Unknown',
         amount: data.amount,
-        coinType: data.coinType,
+        currency: data.currency,
         multiplier: data.multiplier,
         timestamp: new Date(),
       }));
@@ -560,7 +560,7 @@ export class ActivityService {
           eventType: 'bet',
           actionText: `placed a high bet on ${game?.name || 'Unknown Game'}`,
           amount: data.betAmount,
-          coinType: data.coinType,
+          currency: data.currency,
           isSynthetic: false,
         },
       });
@@ -602,7 +602,7 @@ export class ActivityService {
           id: true,
           betAmount: true,
           winAmount: true,
-          coinType: true,
+          currency: true,
           multiplier: true,
           createdAt: true,
           game: {
@@ -623,7 +623,7 @@ export class ActivityService {
       type: Number(round.winAmount) > 0 ? 'win' : 'bet',
       amount: Number(round.winAmount) || null,
       betAmount: Number(round.betAmount),
-      coinType: round.coinType,
+      currency: round.currency,
       multiplier: round.multiplier ? Number(round.multiplier) : null,
       createdAt: round.createdAt,
       game: round.game,
