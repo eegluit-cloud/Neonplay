@@ -1,0 +1,1302 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Ivontx Dark Theme - Deep Black with Cyan */
+    --background: 220 20% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 15% 8%;
+    --card-foreground: 0 0% 98%;
+    --card-hover: 220 15% 12%;
+
+    --popover: 220 15% 8%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 187 85% 53%;
+    --primary-foreground: 220 20% 4%;
+
+    --secondary: 220 15% 12%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 220 15% 15%;
+    --muted-foreground: 0 0% 55%;
+
+    --accent: 42 100% 50%;
+    --accent-foreground: 220 20% 4%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 15% 18%;
+    --input: 220 15% 12%;
+    --ring: 187 85% 53%;
+
+    --radius: 0.75rem;
+
+    /* Custom Ivontx Colors */
+    --casino-gold: 42 100% 50%;
+    --casino-orange: 25 100% 55%;
+    --casino-green: 187 85% 53%;
+    --casino-red: 0 84% 60%;
+    --casino-purple: 280 80% 55%;
+    --casino-pink: 330 80% 60%;
+    --casino-blue: 199 89% 48%;
+    --casino-blue-light: 187 85% 53%;
+    --casino-cyan: 187 85% 53%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(187 85% 53%) 0%, hsl(199 89% 48%) 100%);
+    --gradient-gold: linear-gradient(135deg, hsl(42 100% 50%) 0%, hsl(25 100% 55%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(220 20% 6%) 0%, hsl(220 20% 4%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(220 15% 10%) 0%, hsl(220 15% 6%) 100%);
+    --gradient-vip: linear-gradient(135deg, hsl(280 80% 55%) 0%, hsl(330 80% 60%) 100%);
+
+    /* Shadows */
+    --shadow-glow: 0 0 30px hsl(187 85% 53% / 0.3);
+    --shadow-gold: 0 0 30px hsl(42 100% 50% / 0.3);
+    --shadow-card: 0 4px 20px hsl(0 0% 0% / 0.5);
+
+    --sidebar-background: 220 20% 6%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 187 85% 53%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 220 15% 12%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 220 15% 12%;
+    --sidebar-ring: 187 85% 53%;
+  }
+
+  .dark {
+    --background: 220 20% 4%;
+    --foreground: 0 0% 98%;
+  }
+
+  .light {
+    --background: 210 20% 98%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --card-hover: 210 15% 96%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    --primary: 187 85% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 15% 92%;
+    --secondary-foreground: 220 20% 15%;
+
+    --muted: 210 15% 88%;
+    --muted-foreground: 220 10% 40%;
+
+    --accent: 36 100% 45%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 15% 82%;
+    --input: 210 15% 90%;
+    --ring: 187 85% 45%;
+
+    --sidebar-background: 210 20% 96%;
+    --sidebar-foreground: 220 20% 15%;
+    --sidebar-primary: 187 85% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 15% 90%;
+    --sidebar-accent-foreground: 220 20% 15%;
+    --sidebar-border: 220 15% 85%;
+    --sidebar-ring: 187 85% 45%;
+
+    /* Gradients for light mode */
+    --gradient-hero: linear-gradient(180deg, hsl(210 20% 98%) 0%, hsl(210 15% 94%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(210 15% 98%) 100%);
+
+    /* Casino colors adjusted for light mode */
+    --casino-gold: 42 90% 42%;
+    --casino-orange: 25 90% 45%;
+    --casino-green: 187 80% 48%;
+    --casino-red: 0 75% 50%;
+    --casino-purple: 280 70% 45%;
+    --casino-pink: 330 70% 50%;
+    --casino-blue: 199 85% 42%;
+    --casino-blue-light: 187 80% 48%;
+
+    /* Shadows for light mode */
+    --shadow-glow: 0 4px 20px hsl(187 85% 45% / 0.15);
+    --shadow-gold: 0 4px 20px hsl(42 100% 45% / 0.2);
+    --shadow-card: 0 2px 12px hsl(220 20% 10% / 0.08);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* Prevent horizontal scroll */
+    overflow-x: hidden;
+  }
+  
+  /* Prevent layout shift when scrollbar appears/disappears - desktop only */
+  @media (min-width: 768px) {
+    html {
+      scrollbar-gutter: stable;
+    }
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: 100dvh;
+    /* Prevent overscroll/bounce on iOS */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area support for notched devices */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  
+  .safe-left {
+    padding-left: env(safe-area-inset-left, 0px);
+  }
+  
+  .safe-right {
+    padding-right: env(safe-area-inset-right, 0px);
+  }
+
+  /* Mobile app shell - fixed header/footer with scrollable content */
+  @media (max-width: 767px) {
+    #root {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+      position: relative;
+    }
+  }
+
+  /* ========== TABLET BREAKPOINT SYSTEM ========== */
+  /* Tablet Portrait: 768px - 834px */
+  /* Tablet Landscape: 834px - 1024px */
+  /* Uses md: (768px) and lg: (1024px) breakpoints */
+  
+  @media (min-width: 768px) and (max-width: 1023px) {
+    /* Tablet-specific app shell */
+    #root {
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+    
+    /* Tablet container max-width */
+    .container, .container-tablet {
+      max-width: 100%;
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  /* ========== MOBILE-FIRST TYPOGRAPHY SYSTEM ========== */
+  /* Based on Home page design - consistent across all pages */
+  
+  h1 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    line-height: 1.2;
+    @apply text-xl sm:text-2xl md:text-3xl;
+  }
+
+  h2 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    line-height: 1.25;
+    @apply text-lg sm:text-xl md:text-2xl;
+  }
+
+  h3 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    line-height: 1.3;
+    @apply text-base sm:text-lg md:text-xl;
+  }
+
+  h4 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    line-height: 1.35;
+    @apply text-sm sm:text-base md:text-lg;
+  }
+
+  h5, h6 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    line-height: 1.4;
+    @apply text-sm md:text-base;
+  }
+
+  /* Body text */
+  p {
+    line-height: 1.6;
+  }
+
+  /* Small/caption text */
+  small, .text-caption {
+    @apply text-xs sm:text-sm;
+    line-height: 1.5;
+  }
+
+  /* ========== TAP TARGETS - 44px minimum ========== */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Allow smaller elements with explicit class */
+  .btn-sm, .tap-sm, 
+  [class*="h-6"], [class*="h-7"], [class*="h-8"], [class*="h-9"], 
+  [class*="w-6"], [class*="w-7"], [class*="w-8"], [class*="w-9"],
+  .text-xs, .text-sm {
+    min-height: auto;
+    min-width: auto;
+  }
+}
+
+@layer components {
+  /* ========== BUTTON SYSTEM (Based on Home page) ========== */
+  /* Height: 44px mobile (h-11), 48px desktop (md:h-12) */
+  /* Padding: px-4 mobile, px-6 desktop */
+  /* Font: text-sm font-semibold */
+  /* Radius: rounded-lg (0.5rem) */
+  
+  .btn-base {
+    @apply inline-flex items-center justify-center gap-2 
+           h-11 md:h-12 px-4 md:px-6 
+           text-sm font-semibold 
+           rounded-lg 
+           whitespace-nowrap 
+           transition-all duration-200
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
+           disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-primary {
+    @apply btn-base bg-primary text-primary-foreground hover:opacity-90;
+    background: var(--gradient-primary);
+    box-shadow: var(--shadow-glow);
+  }
+
+  .btn-gold {
+    @apply btn-base text-accent-foreground hover:opacity-90;
+    background: var(--gradient-gold);
+    box-shadow: var(--shadow-gold);
+  }
+
+  .btn-secondary {
+    @apply btn-base bg-secondary text-secondary-foreground hover:bg-secondary/80;
+  }
+
+  .btn-outline {
+    @apply btn-base bg-transparent border border-border text-foreground hover:bg-secondary hover:border-primary/50;
+  }
+
+  .btn-ghost {
+    @apply btn-base bg-transparent hover:bg-secondary hover:text-foreground;
+  }
+
+  /* Compact button variant */
+  .btn-compact {
+    @apply h-9 md:h-10 px-3 md:px-4 text-xs sm:text-sm;
+  }
+
+  /* Large button variant */
+  .btn-lg {
+    @apply h-12 md:h-14 px-6 md:px-8 text-base md:text-lg;
+  }
+
+  /* Full-width on mobile only */
+  .btn-mobile-full {
+    @apply w-full sm:w-auto;
+  }
+
+  .card-casino {
+    @apply bg-card border border-border rounded-xl transition-all duration-300;
+    background: var(--gradient-card);
+  }
+
+  .card-casino:hover {
+    @apply border-primary/30;
+    box-shadow: var(--shadow-glow);
+  }
+
+  .game-card {
+    @apply relative overflow-hidden rounded-xl cursor-pointer transition-all duration-300;
+  }
+
+  .game-card:hover {
+    @apply scale-105;
+    box-shadow: 0 8px 30px hsl(0 0% 0% / 0.5);
+  }
+
+  .light .game-card:hover {
+    box-shadow: 0 8px 30px hsl(220 20% 10% / 0.15);
+  }
+
+  .game-card:hover .game-overlay {
+    @apply opacity-100;
+  }
+
+  /* Light mode game card overlay */
+  .light .game-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.15) 0%, transparent 50%);
+    border-radius: inherit;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .game-overlay {
+    @apply absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 transition-opacity duration-300;
+    z-index: 5;
+  }
+
+  .light .game-overlay {
+    @apply bg-black/40;
+  }
+
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm text-foreground/80 hover:text-foreground hover:bg-sidebar-accent transition-all duration-200 cursor-pointer;
+  }
+
+  .light .sidebar-item {
+    @apply text-foreground/70;
+  }
+
+  .sidebar-item.active {
+    @apply text-primary bg-primary/10;
+  }
+
+  /* Sidebar light mode styles */
+  .light .sidebar-widget {
+    background-color: hsl(0 0% 100%);
+    border: 1px solid hsl(220 15% 90%);
+    box-shadow: 0 2px 8px hsl(220 20% 10% / 0.05);
+  }
+
+  .light .sidebar-card {
+    background-color: hsl(210 15% 97%) !important;
+    border: 1px solid hsl(220 15% 90%);
+  }
+
+  .light .sidebar-position-badge {
+    background-color: hsl(0 0% 100%) !important;
+    border-color: hsl(220 15% 85%) !important;
+  }
+
+  .light .sidebar-settings-card {
+    background-color: hsl(0 0% 100%);
+    border: 1px solid hsl(220 15% 90%);
+  }
+
+  .daily-spin-widget {
+    background: linear-gradient(to right, #1a2e1a, #0d1f0d);
+  }
+
+  .light .daily-spin-widget {
+    background: linear-gradient(to right, hsl(140 30% 92%), hsl(140 25% 96%));
+    border-color: hsl(140 30% 80%) !important;
+  }
+
+  .light .daily-spin-widget p:first-child {
+    color: hsl(140 40% 25%);
+  }
+
+  /* Light mode card enhancements */
+  .light .card-casino {
+    box-shadow: 0 2px 8px hsl(220 20% 10% / 0.06);
+  }
+
+  .light .card-casino:hover {
+    box-shadow: 0 4px 16px hsl(160 84% 35% / 0.12);
+  }
+
+  /* Hero banner light mode adjustments */
+  .hero-light-overlay {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .light .hero-banner-wrapper {
+    box-shadow: 0 4px 20px hsl(220 20% 10% / 0.1);
+    border: 1px solid hsl(220 15% 85%);
+    background-color: hsl(0 0% 5%);
+  }
+
+  .light .hero-light-overlay {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 40%,
+      transparent 60%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: inherit;
+  }
+
+  .light .hero-banner-wrapper img {
+    filter: brightness(1.02) contrast(1.02);
+  }
+
+  .nav-tab {
+    @apply px-4 py-2 rounded-full text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all duration-200 cursor-pointer border border-transparent;
+  }
+
+  .nav-tab.active {
+    @apply bg-primary text-primary-foreground border-primary;
+  }
+
+  /* Header styles */
+  .header-bar {
+    @apply bg-background/95 backdrop-blur-sm;
+  }
+
+  .light .header-bar {
+    @apply bg-white/95;
+    box-shadow: 0 1px 3px hsl(220 20% 10% / 0.08);
+  }
+
+  .light .header-jackpot-card,
+  .light .header-balance-card,
+  .light .header-trophy-card {
+    background-color: hsl(210 15% 96%);
+    border: 1px solid hsl(220 15% 90%);
+  }
+
+  .light .header-balance-card {
+    background-color: hsl(210 15% 94%);
+  }
+
+  /* Header jackpot amount: keep readable in light mode */
+  .light .header-jackpot-amount {
+    background: none !important;
+    color: hsl(var(--foreground)) !important;
+    -webkit-text-fill-color: hsl(var(--foreground)) !important;
+    filter: none !important;
+    text-shadow: none !important;
+  }
+
+  /* ========== LIGHT MODE GLOBAL STYLES ========== */
+  
+  /* Text colors for light mode */
+  .light h1,
+  .light h2,
+  .light h3,
+  .light h4,
+  .light h5,
+  .light h6,
+  .light .text-white {
+    color: hsl(220 20% 10%);
+  }
+
+  /* Preserve white text in gradient backgrounds and specific contexts */
+  .light [class*="from-emerald"],
+  .light [class*="from-purple"],
+  .light [class*="from-yellow"],
+  .light [class*="from-amber"],
+  .light [class*="from-casino"],
+  .light [class*="bg-gradient"],
+  .light [class*="bg-primary"],
+  .light .btn-primary,
+  .light .btn-gold {
+    color: white;
+  }
+
+  .light [class*="from-emerald"] h1,
+  .light [class*="from-emerald"] h2,
+  .light [class*="from-emerald"] h3,
+  .light [class*="from-emerald"] p,
+  .light [class*="from-emerald"] span,
+  .light [class*="from-purple"] h1,
+  .light [class*="from-purple"] h2,
+  .light [class*="from-purple"] h3,
+  .light [class*="from-purple"] p,
+  .light [class*="from-purple"] span {
+    color: white;
+  }
+
+  /* Footer light mode */
+  .light footer {
+    border-color: hsl(220 15% 88%);
+  }
+
+  .light footer h4 {
+    color: hsl(220 20% 15%);
+  }
+
+  /* Leaderboard & Tables light mode */
+  .light .bg-secondary {
+    background-color: hsl(210 15% 94%);
+  }
+
+  .light table th {
+    color: hsl(220 10% 35%);
+  }
+
+  /* Cards & sections in light mode */
+  .light .bg-card {
+    background-color: hsl(0 0% 100%);
+    box-shadow: 0 1px 3px hsl(220 20% 10% / 0.06);
+  }
+
+  .light .bg-card\/50 {
+    background-color: hsl(0 0% 100% / 0.7);
+  }
+
+  /* Provider logos light mode enhancement */
+  .light .animate-scroll img {
+    filter: brightness(0.95) contrast(1.05);
+  }
+
+  /* Prizes page light mode */
+  .light .prize-card {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 88%);
+  }
+
+  /* Game sections headers */
+  .light section h2 {
+    color: hsl(220 20% 10%);
+  }
+
+  /* Dropdown menus light mode */
+  .light [data-radix-popper-content-wrapper] > div {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 88%);
+  }
+
+  /* Badges & tags light mode */
+  .light .bg-orange-500\/20 {
+    background-color: hsl(25 95% 50% / 0.15);
+  }
+
+  /* VIP page specific styles */
+  .light .vip-status-card {
+    border-color: hsl(160 50% 70%);
+  }
+
+  .light .vip-benefit-card {
+    background-color: hsl(160 30% 97%);
+    border-color: hsl(160 40% 85%);
+  }
+
+  /* ReferFriend page enhancements */
+  .light .referral-stats-bar {
+    background-color: hsl(210 15% 96%);
+  }
+
+  /* Modal/Dialog light mode */
+  .light [role="dialog"] {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 88%);
+  }
+
+  /* Pagination buttons */
+  .light .pagination-btn {
+    border-color: hsl(220 15% 85%);
+  }
+
+  .light .pagination-btn:hover {
+    background-color: hsl(210 15% 96%);
+  }
+
+  /* Input fields in light mode */
+  .light input,
+  .light textarea,
+  .light select {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 85%);
+    color: hsl(220 20% 10%);
+  }
+
+  .light input::placeholder,
+  .light textarea::placeholder {
+    color: hsl(220 10% 50%);
+  }
+
+  /* Wallet modal light mode */
+  .light .wallet-modal-content {
+    background-color: hsl(0 0% 100%);
+  }
+
+  /* AuthModals light mode */
+  .light .auth-modal {
+    background-color: hsl(0 0% 100%);
+  }
+
+  /* Category tabs & filters light mode */
+  .light .category-tab {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 88%);
+  }
+
+  .light .filter-button {
+    background-color: hsl(210 15% 97%);
+    border-color: hsl(220 15% 88%);
+    color: hsl(220 20% 15%);
+  }
+
+  .light .filter-button:hover {
+    background-color: hsl(210 15% 94%);
+  }
+
+  /* Spin wheel modal light mode */
+  .light .spin-wheel-modal {
+    background-color: hsl(0 0% 100%);
+  }
+
+  /* Notifications panel light mode */
+  .light .notifications-panel {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 88%);
+  }
+
+  /* Profile page specific */
+  .light .profile-card {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 88%);
+  }
+
+  /* Enhanced table styling for light mode */
+  .light table {
+    background-color: hsl(0 0% 100%);
+  }
+
+  .light table thead tr {
+    background-color: hsl(210 15% 97%);
+  }
+
+  .light table tbody tr:hover {
+    background-color: hsl(210 15% 98%);
+  }
+
+  .light table td,
+  .light table th {
+    border-color: hsl(220 15% 92%);
+  }
+
+  /* Tabs light mode */
+  .light [role="tablist"] {
+    background-color: hsl(0 0% 100%);
+    border-color: hsl(220 15% 88%);
+  }
+
+  .light [role="tab"][data-state="active"] {
+    background-color: hsl(210 15% 96%);
+  }
+
+  /* Progress bars light mode */
+  .light .progress-bar-bg {
+    background-color: hsl(210 15% 90%);
+  }
+
+  /* Avatar borders light mode */
+  .light .avatar-border {
+    border-color: hsl(220 15% 88%);
+  }
+
+  /* Button variants in light mode */
+  .light .btn-outline {
+    border-color: hsl(220 15% 80%);
+    color: hsl(220 20% 15%);
+  }
+
+  .light .btn-outline:hover {
+    background-color: hsl(210 15% 96%);
+  }
+
+  /* Section dividers */
+  .light .section-divider {
+    border-color: hsl(220 15% 90%);
+  }
+
+  .glow-text {
+    text-shadow: 0 0 20px hsl(var(--primary) / 0.5);
+  }
+
+  .light .glow-text {
+    text-shadow: none;
+  }
+
+  .gold-text {
+    background: var(--gradient-gold);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Spin Wheel Animation */
+  @keyframes spin-wheel {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-spin-wheel {
+    animation: spin-wheel 3s cubic-bezier(0.17, 0.67, 0.12, 0.99) forwards;
+  }
+
+  /* Floating Animation */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+
+  .animate-float {
+    animation: float 3s ease-in-out infinite;
+  }
+
+  /* Slide up animation for mobile modals */
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out forwards;
+  }
+
+  /* Pulse Glow */
+  @keyframes pulse-glow {
+    0%, 100% {
+      box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    }
+    50% {
+      box-shadow: 0 0 40px hsl(var(--primary) / 0.6);
+    }
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 2s ease-in-out infinite;
+  }
+
+  /* Shimmer effect */
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent 0%, hsl(var(--primary) / 0.3) 50%, transparent 100%);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+
+  /* Light sweep/shine effect */
+  @keyframes light-sweep {
+    0% {
+      left: -100%;
+    }
+    100% {
+      left: 100%;
+    }
+  }
+
+  .shine-effect {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shine-effect::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.4) 50%,
+      transparent 100%
+    );
+    animation: light-sweep 4s ease-in-out infinite;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* ========== PAGE LAYOUT UTILITIES ========== */
+  /* Consistent page content padding based on Home page */
+  .page-content {
+    @apply p-3 sm:p-4 lg:p-6;
+  }
+
+  .page-spacing {
+    @apply space-y-4 sm:space-y-6 lg:space-y-8;
+  }
+
+  /* Mobile-first spacing utilities */
+  .container-mobile {
+    @apply px-3 sm:px-4 md:px-6 lg:px-8;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* ========== SECTION SPACING ========== */
+  .section-gap {
+    @apply gap-3 sm:gap-4 md:gap-6;
+  }
+
+  .card-padding {
+    @apply p-4 sm:p-5 md:p-6;
+  }
+
+  /* Safe area padding for mobile devices */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Prevent horizontal overflow */
+  .no-overflow-x {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  /* Touch-friendly spacing */
+  .touch-spacing {
+    @apply gap-3 md:gap-4;
+  }
+
+  /* ========== RESPONSIVE GRIDS ========== */
+  .grid-mobile-1 {
+    @apply grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4;
+  }
+
+  .grid-mobile-2 {
+    @apply grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5;
+  }
+
+  .grid-cards {
+    @apply grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6;
+  }
+
+  .grid-benefits {
+    @apply grid grid-cols-1 md:grid-cols-3 gap-4;
+  }
+
+  /* ========== TABLET-OPTIMIZED GRIDS ========== */
+  /* Game cards: 3 cols tablet portrait, 4 cols tablet landscape */
+  .grid-games-tablet {
+    @apply grid grid-cols-3 gap-2;
+  }
+  
+  @media (min-width: 834px) and (max-width: 1023px) {
+    .grid-games-tablet {
+      @apply grid-cols-4;
+    }
+  }
+  
+  /* Promotional cards: 2 cols tablet */
+  .grid-promos-tablet {
+    @apply grid grid-cols-2 gap-4;
+  }
+  
+  /* Form layouts: 2 cols on tablet */
+  .grid-form-tablet {
+    @apply grid grid-cols-1 gap-4;
+  }
+  
+  @media (min-width: 768px) {
+    .grid-form-tablet {
+      @apply grid-cols-2;
+    }
+  }
+
+  /* ========== TEXT UTILITIES ========== */
+  .text-section-title {
+    @apply text-xl sm:text-2xl md:text-3xl font-bold text-foreground;
+  }
+
+  .text-section-subtitle {
+    @apply text-sm sm:text-base text-muted-foreground;
+  }
+
+  .text-card-title {
+    @apply text-base sm:text-lg font-bold text-foreground;
+  }
+
+  .text-card-description {
+    @apply text-xs sm:text-sm text-muted-foreground;
+  }
+
+  /* Full-width buttons on mobile */
+  .btn-mobile-full {
+    @apply w-full sm:w-auto;
+  }
+
+  /* ========== TABLET TYPOGRAPHY ========== */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .text-tablet-base {
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    
+    .text-tablet-lg {
+      font-size: 1.125rem;
+      line-height: 1.4;
+    }
+    
+    .text-tablet-xl {
+      font-size: 1.25rem;
+      line-height: 1.35;
+    }
+    
+    .text-tablet-2xl {
+      font-size: 1.5rem;
+      line-height: 1.3;
+    }
+  }
+
+  /* ========== TABLET NAVIGATION ========== */
+  /* Hide mobile bottom nav on tablets, show sidebar */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .tablet-hide-bottom-nav {
+      display: none;
+    }
+    
+    .tablet-show-sidebar {
+      display: block;
+    }
+    
+    /* Tablet sidebar width */
+    .tablet-sidebar-width {
+      width: 14rem;
+    }
+    
+    .tablet-sidebar-collapsed {
+      width: 4rem;
+    }
+  }
+
+  /* ========== TABLET MODAL SIZING ========== */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .tablet-modal {
+      max-width: 80vw;
+      max-height: 85vh;
+    }
+    
+    .tablet-modal-lg {
+      max-width: 90vw;
+      max-height: 90vh;
+    }
+  }
+}
+
+/* Jackpot glow animation */
+@keyframes jackpot-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.3));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7)) drop-shadow(0 0 12px rgba(255, 180, 0, 0.5));
+  }
+}
+
+/* Slow blink animation for player dots */
+@keyframes slow-blink {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-slow-blink {
+  animation: slow-blink 2s ease-in-out infinite;
+}
+
+/* Jackpot mobile animations */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+/* ========== NATIVE APP-LIKE TOUCH FEEDBACK ========== */
+
+/* Tap/pressed state for interactive elements */
+.tap-feedback {
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+.tap-feedback:active {
+  transform: scale(0.97);
+  opacity: 0.85;
+}
+
+/* Stronger feedback for buttons */
+.tap-feedback-strong:active {
+  transform: scale(0.95);
+  opacity: 0.8;
+}
+
+/* Subtle feedback for list items */
+.tap-feedback-subtle:active {
+  background-color: hsl(var(--muted) / 0.5);
+}
+
+/* Nav item press state */
+.nav-item-press {
+  transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.nav-item-press:active {
+  background-color: hsl(var(--primary) / 0.15);
+  transform: scale(0.98);
+}
+
+/* Smooth page transitions */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-transition-enter {
+  animation: page-enter 0.2s ease-out;
+}
+
+/* Drawer animation improvements */
+@keyframes drawer-slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes drawer-slide-out {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-100%);
+  }
+}
+
+.drawer-enter {
+  animation: drawer-slide-in 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.drawer-exit {
+  animation: drawer-slide-out 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Prevent text selection on interactive elements (app-like) */
+@media (max-width: 767px) {
+  button, a, [role="button"], .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Smooth momentum scrolling */
+  .scroll-smooth-mobile {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbars on mobile for cleaner look */
+  .scrollbar-hide-mobile::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide-mobile {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* ========== PERFORMANCE OPTIMIZATIONS ========== */
+
+/* Optimize image loading with content-visibility */
+.lazy-section {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 500px;
+}
+
+/* GPU acceleration for smooth animations */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Reduce layout shift with aspect ratio containers */
+.aspect-game-card {
+  aspect-ratio: 3 / 4;
+}
+
+.aspect-banner {
+  aspect-ratio: 352 / 172;
+}
+
+.aspect-hero {
+  aspect-ratio: 16 / 9;
+}
+
+/* Image loading optimization */
+img {
+  content-visibility: auto;
+}
+
+/* Smooth fade-in for lazy loaded content */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+/* Optimized skeleton pulse animation */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.skeleton-loading {
+  animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted) / 0.5) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Route transition animations */
+.page-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+/* Preload critical resources hint */
+.preload-hint {
+  display: none;
+  visibility: hidden;
+}
+
+/* Shimmer animation for slot machine win effect */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); opacity: 0; }
+  50% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite;
+}

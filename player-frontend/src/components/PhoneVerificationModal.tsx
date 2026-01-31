@@ -1,0 +1,219 @@
+import { useState } from 'react';
+import { ChevronLeft, ChevronRight, Phone } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useIsMobile } from '@/hooks/use-mobile';
+import phoneDealer from '@/assets/phone-dealer.png';
+
+interface PhoneVerificationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onVerifyByEmail?: () => void;
+  onSendOTP?: (phone: string) => void;
+}
+
+export function PhoneVerificationModal({ isOpen, onClose, onVerifyByEmail, onSendOTP }: PhoneVerificationModalProps) {
+  const [countryCode, setCountryCode] = useState('+1');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const isMobile = useIsMobile();
+
+  if (!isOpen) return null;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const fullPhone = countryCode + phoneNumber;
+    console.log('Send OTP to:', fullPhone);
+    if (onSendOTP) {
+      onSendOTP(fullPhone);
+    }
+  };
+
+  // Mobile version - clean wallet-style design
+  if (isMobile) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-end justify-center">
+        <div 
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        
+        <div className="relative w-full bg-gradient-to-b from-card to-background border-t-2 border-primary/50 rounded-t-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto scrollbar-hide animate-slide-up">
+          <div className="p-4 relative">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={onClose}
+                className="w-8 h-8 flex items-center justify-center bg-secondary hover:bg-secondary/80 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+              </button>
+              <h2 className="text-lg font-bold text-foreground">Phone Verification</h2>
+            </div>
+
+            {/* Title Badge */}
+            <div className="flex bg-secondary/50 rounded-full p-1 mb-6 w-fit">
+              <div className="px-6 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-cyan-500 to-blue-400 text-white shadow">
+                Verify Phone
+              </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="p-4 bg-secondary/50 rounded-xl mb-6">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-foreground font-medium mb-1">Verify Your Phone</p>
+                  <p className="text-xs text-muted-foreground">
+                    Enter your phone number to receive a verification code via SMS.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+              <div>
+                <label className="text-foreground text-xs font-semibold mb-2 block">
+                  MOBILE NUMBER
+                </label>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="w-20 h-14 bg-secondary/80 border-border text-foreground text-center"
+                  />
+                  <Input
+                    type="tel"
+                    placeholder="Enter Mobile No"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    className="flex-1 h-14 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  className="flex-1 h-14 bg-secondary/50 border-border hover:bg-secondary text-foreground font-semibold"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!phoneNumber.trim()}
+                  className="flex-1 h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
+                >
+                  Send OTP
+                </Button>
+              </div>
+            </form>
+
+            {/* Divider */}
+            <div className="flex items-center gap-3 my-4">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-muted-foreground text-xs">Or</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            {/* Email verification option */}
+            <Button
+              variant="outline"
+              onClick={onVerifyByEmail}
+              className="w-full h-14 bg-secondary/50 border-border hover:bg-secondary text-foreground font-semibold"
+            >
+              Verify by Email
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop version - original design with dealer image
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      
+      <div className="relative w-full max-w-3xl bg-card rounded-2xl overflow-hidden shadow-2xl border border-border">
+        <button 
+          onClick={onClose}
+          className="absolute top-3 right-3 z-20 w-7 h-7 flex items-center justify-center rounded-lg bg-secondary border border-border hover:bg-secondary/80 transition-colors"
+        >
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 min-h-[380px]">
+            {/* Left Side - Character */}
+            <div className="relative flex items-center justify-center p-6 order-1">
+              <img
+                src={phoneDealer}
+                alt="Casino Dealer"
+                className="w-full max-w-[280px] h-auto object-contain select-none pointer-events-none"
+                loading="eager"
+              />
+            </div>
+
+            {/* Right Side - Content */}
+            <div className="relative p-6 flex items-center order-2">
+              <div className="relative w-full">
+                <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-b from-white/20 via-white/5 to-transparent" />
+                <div className="relative bg-gradient-to-br from-[#1a1f26] to-[#12161c] rounded-xl p-6 text-center">
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    Please verify your phone number
+                  </h2>
+                  <p className="text-muted-foreground text-sm mb-5">
+                    Enter your phone number to receive a verification code
+                  </p>
+
+                  <form onSubmit={handleSubmit} className="space-y-3">
+                    <div className="text-left">
+                      <label className="text-white text-xs font-semibold mb-2 block">
+                        MOBILE NUMBER
+                      </label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="text"
+                          value={countryCode}
+                          onChange={(e) => setCountryCode(e.target.value)}
+                          className="w-20 h-11 bg-[#2a3038] border-[#3a4048] text-white text-center focus:border-cyan-400 text-sm"
+                        />
+                        <Input
+                          type="tel"
+                          placeholder="Enter Mobile No"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          className="flex-1 h-11 bg-[#2a3038] border-[#3a4048] text-white placeholder:text-muted-foreground focus:border-cyan-400 text-sm"
+                        />
+                      </div>
+                    </div>
+
+                    <Button 
+                      type="submit"
+                      className="w-full h-11 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm"
+                    >
+                      Send OTP
+                    </Button>
+                  </form>
+
+                  <button 
+                    onClick={onVerifyByEmail}
+                    className="mt-4 text-muted-foreground text-xs hover:text-white transition-colors underline"
+                  >
+                    Or verify by Your Email Id
+                  </button>
+                </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,1620 @@
+// Prisma Schema for WBC 2026 Social Casino Platform
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// USER & AUTHENTICATION
+// ============================================
+
+model User {
+  id                 String    @id @default(uuid())
+  email              String    @unique
+  phone              String?   @unique
+  passwordHash       String?   @map("password_hash")
+  username           String    @unique
+  firstName          String?   @map("first_name")
+  lastName           String?   @map("last_name")
+  dateOfBirth        DateTime? @map("date_of_birth")
+  countryCode        String?   @map("country_code")
+  stateCode          String?   @map("state_code")
+  avatarUrl          String?   @map("avatar_url")
+  emailVerifiedAt    DateTime? @map("email_verified_at")
+  phoneVerifiedAt    DateTime? @map("phone_verified_at")
+  identityVerifiedAt DateTime? @map("identity_verified_at")
+  isActive           Boolean   @default(true) @map("is_active")
+  isSuspended        Boolean   @default(false) @map("is_suspended")
+  suspendedReason    String?   @map("suspended_reason")
+  lastLoginAt        DateTime? @map("last_login_at")
+  lastLoginIp        String?   @map("last_login_ip")
+  twoFactorSecret    String?   @map("two_factor_secret")
+  twoFactorEnabled   Boolean   @default(false) @map("two_factor_enabled")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sessions           UserSession[]
+  oauthAccounts      UserOAuthAccount[]
+  verificationCodes  VerificationCode[]
+  wallet             Wallet?
+  transactions       Transaction[]
+  purchases          Purchase[]
+  redemptions        Redemption[]
+  bonusClaims        BonusClaim[]
+  favoriteGames      UserFavoriteGame[]
+  recentGames        UserRecentGame[]
+  gameSessions       GameSession[]
+  gameRounds         GameRound[]
+  leaderboardEntries LeaderboardEntry[]
+  bets               Bet[]
+  userPromotions     UserPromotion[]
+  vip                UserVip?
+  referralCode       ReferralCode?
+  referredBy         Referral?                 @relation("ReferredUser")
+  referrals          Referral[]                @relation("ReferrerUser")
+  notifications      Notification[]
+  notificationPrefs  NotificationPreference?
+  addresses          UserAddress[]
+  prizeRedemptions   PrizeRedemption[]
+  amoeEntries        AmoeEntry[]
+  contentViews       ContentView[]
+  supportTickets     SupportTicket[]
+  supportMessages    SupportMessage[]
+  settings           UserSetting?
+  responsibleGaming  ResponsibleGamingSetting?
+  activityLogs       UserActivityLog[]
+  privacySettings    UserPrivacySetting?
+  vipXpHistory       VipXpHistory[]
+  jackpotWins        JackpotWin[]
+  publicWins         PublicWin[]
+  liveBets           LiveBet[]
+  socialProofEvents  SocialProofEvent[]
+  dailyStats         UserDailyStats[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  refreshTokenHash String   @map("refresh_token_hash")
+  deviceInfo       Json?    @map("device_info")
+  ipAddress        String?  @map("ip_address")
+  userAgent        String?  @map("user_agent")
+  expiresAt        DateTime @map("expires_at")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_sessions")
+}
+
+model UserOAuthAccount {
+  id             String   @id @default(uuid())
+  userId         String   @map("user_id")
+  provider       String // google, facebook, apple
+  providerUserId String   @map("provider_user_id")
+  accessToken    String?  @map("access_token")
+  refreshToken   String?  @map("refresh_token")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+  @@map("user_oauth_accounts")
+}
+
+model VerificationCode {
+  id         String    @id @default(uuid())
+  userId     String?   @map("user_id")
+  type       String // email, phone, password_reset, 2fa
+  codeHash   String    @map("code_hash")
+  identifier String // email or phone
+  attempts   Int       @default(0)
+  expiresAt  DateTime  @map("expires_at")
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("verification_codes")
+}
+
+model LoginAttempt {
+  id            String   @id @default(uuid())
+  identifier    String // email or phone
+  ipAddress     String   @map("ip_address")
+  success       Boolean
+  failureReason String?  @map("failure_reason")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([identifier, createdAt])
+  @@map("login_attempts")
+}
+
+// ============================================
+// WALLET & TRANSACTIONS
+// ============================================
+
+model Wallet {
+  id                  String   @id @default(uuid())
+  userId              String   @unique @map("user_id")
+  gcBalance           Decimal  @default(0) @map("gc_balance") @db.Decimal(18, 2)
+  scBalance           Decimal  @default(0) @map("sc_balance") @db.Decimal(18, 4)
+  gcLifetimePurchased Decimal  @default(0) @map("gc_lifetime_purchased") @db.Decimal(18, 2)
+  scLifetimeEarned    Decimal  @default(0) @map("sc_lifetime_earned") @db.Decimal(18, 4)
+  scLifetimeRedeemed  Decimal  @default(0) @map("sc_lifetime_redeemed") @db.Decimal(18, 4)
+  version             Int      @default(0) // optimistic locking
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  userId        String   @map("user_id")
+  walletId      String   @map("wallet_id")
+  type          String // purchase, bonus, game_win, game_loss, stake, redeem, refund, adjustment
+  coinType      String   @map("coin_type") // GC, SC
+  amount        Decimal  @db.Decimal(18, 4)
+  balanceBefore Decimal  @map("balance_before") @db.Decimal(18, 4)
+  balanceAfter  Decimal  @map("balance_after") @db.Decimal(18, 4)
+  referenceType String?  @map("reference_type") // game_round, bonus, purchase, redemption
+  referenceId   String?  @map("reference_id")
+  status        String   @default("completed") // pending, completed, failed, reversed
+  metadata      Json?
+  ipAddress     String?  @map("ip_address")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@map("transactions")
+}
+
+model CoinPackage {
+  id              String   @id @default(uuid())
+  name            String
+  gcAmount        Decimal  @map("gc_amount") @db.Decimal(18, 2)
+  scBonusAmount   Decimal  @map("sc_bonus_amount") @db.Decimal(18, 4)
+  priceUsd        Decimal  @map("price_usd") @db.Decimal(10, 2)
+  discountPercent Int?     @map("discount_percent")
+  isPopular       Boolean  @default(false) @map("is_popular")
+  isBestValue     Boolean  @default(false) @map("is_best_value")
+  isActive        Boolean  @default(true) @map("is_active")
+  sortOrder       Int      @default(0) @map("sort_order")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  purchases Purchase[]
+
+  @@map("coin_packages")
+}
+
+model Purchase {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  packageId       String    @map("package_id")
+  amountUsd       Decimal   @map("amount_usd") @db.Decimal(10, 2)
+  gcAmount        Decimal   @map("gc_amount") @db.Decimal(18, 2)
+  scBonusAmount   Decimal   @map("sc_bonus_amount") @db.Decimal(18, 4)
+  paymentProvider String    @map("payment_provider") // stripe, paypal, etc
+  paymentIntentId String?   @map("payment_intent_id")
+  status          String    @default("pending") // pending, completed, failed, refunded
+  completedAt     DateTime? @map("completed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  package CoinPackage @relation(fields: [packageId], references: [id])
+
+  @@index([userId, createdAt])
+  @@map("purchases")
+}
+
+model Redemption {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  scAmount        Decimal   @map("sc_amount") @db.Decimal(18, 4)
+  usdValue        Decimal   @map("usd_value") @db.Decimal(10, 2)
+  method          String // bank_transfer, paypal, crypto
+  payoutDetails   Json?     @map("payout_details") // encrypted
+  status          String    @default("pending") // pending, processing, completed, rejected
+  rejectionReason String?   @map("rejection_reason")
+  processedBy     String?   @map("processed_by") // admin user id
+  processedAt     DateTime? @map("processed_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("redemptions")
+}
+
+model BonusClaim {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  bonusType String    @map("bonus_type") // daily, weekly, monthly, welcome, referral, promo
+  bonusId   String?   @map("bonus_id") // FK to promotions
+  gcAmount  Decimal   @map("gc_amount") @db.Decimal(18, 2)
+  scAmount  Decimal   @map("sc_amount") @db.Decimal(18, 4)
+  claimedAt DateTime  @default(now()) @map("claimed_at")
+  expiresAt DateTime? @map("expires_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, bonusType, claimedAt])
+  @@map("bonus_claims")
+}
+
+model PaymentMethod {
+  id                  String   @id @default(uuid())
+  type                String // credit_card, apple_pay, google_pay, bank_transfer, crypto
+  name                String
+  iconUrl             String?  @map("icon_url")
+  isActive            Boolean  @default(true) @map("is_active")
+  minAmount           Decimal  @map("min_amount") @db.Decimal(10, 2)
+  maxAmount           Decimal  @map("max_amount") @db.Decimal(10, 2)
+  processingTime      String?  @map("processing_time")
+  feesPercent         Decimal? @map("fees_percent") @db.Decimal(5, 2)
+  supportedCurrencies Json?    @map("supported_currencies")
+  config              Json?
+  sortOrder           Int      @default(0) @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  @@map("payment_methods")
+}
+
+model CryptoPaymentOption {
+  id                    String   @id @default(uuid())
+  currency              String // ETH, BTC, USDT, USDC, SOL, DOGE
+  name                  String
+  iconUrl               String?  @map("icon_url")
+  networks              Json // array of supported networks with addresses
+  isActive              Boolean  @default(true) @map("is_active")
+  minAmount             Decimal  @map("min_amount") @db.Decimal(18, 8)
+  confirmationsRequired Int      @map("confirmations_required")
+  createdAt             DateTime @default(now()) @map("created_at")
+
+  @@map("crypto_payment_options")
+}
+
+// ============================================
+// GAMES
+// ============================================
+
+model GameAggregator {
+  id                  String   @id @default(uuid())
+  name                String
+  slug                String   @unique
+  logoUrl             String?  @map("logo_url")
+  description         String?
+  apiEndpoint         String?  @map("api_endpoint")
+  apiKey              String?  @map("api_key") // encrypted
+  apiSecret           String?  @map("api_secret") // encrypted
+  callbackUrl         String?  @map("callback_url")
+  isActive            Boolean  @default(true) @map("is_active")
+  supportedCurrencies Json?    @map("supported_currencies")
+  config              Json?
+  sortOrder           Int      @default(0) @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  providers GameProvider[]
+
+  @@map("game_aggregators")
+}
+
+model GameProvider {
+  id                  String   @id @default(uuid())
+  aggregatorId        String?  @map("aggregator_id")
+  name                String
+  slug                String   @unique
+  logoUrl             String?  @map("logo_url")
+  apiEndpoint         String?  @map("api_endpoint")
+  apiKey              String?  @map("api_key") // encrypted
+  apiSecret           String?  @map("api_secret") // encrypted
+  isActive            Boolean  @default(true) @map("is_active")
+  supportedCurrencies Json?    @map("supported_currencies")
+  config              Json?
+  sortOrder           Int      @default(0) @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  aggregator GameAggregator? @relation(fields: [aggregatorId], references: [id])
+  games      Game[]
+
+  @@index([aggregatorId])
+  @@map("game_providers")
+}
+
+model GameCategory {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  icon        String?
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  games Game[]
+
+  @@map("game_categories")
+}
+
+model Game {
+  id             String    @id @default(uuid())
+  providerId     String    @map("provider_id")
+  externalGameId String?   @map("external_game_id")
+  name           String
+  slug           String    @unique
+  description    String?
+  thumbnailUrl   String?   @map("thumbnail_url")
+  bannerUrl      String?   @map("banner_url")
+  categoryId     String    @map("category_id")
+  tags           Json? // array of tags
+  rtp            Decimal?  @db.Decimal(5, 2)
+  volatility     String? // low, medium, high
+  minBet         Decimal?  @map("min_bet") @db.Decimal(10, 4)
+  maxBet         Decimal?  @map("max_bet") @db.Decimal(10, 4)
+  features       Json? // free spins, multipliers, etc
+  isFeatured     Boolean   @default(false) @map("is_featured")
+  isNew          Boolean   @default(false) @map("is_new")
+  isHot          Boolean   @default(false) @map("is_hot")
+  isActive       Boolean   @default(true) @map("is_active")
+  playCount      Int       @default(0) @map("play_count")
+  sortOrder      Int       @default(0) @map("sort_order")
+  releasedAt     DateTime? @map("released_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+
+  provider      GameProvider       @relation(fields: [providerId], references: [id])
+  category      GameCategory       @relation(fields: [categoryId], references: [id])
+  favoriteUsers UserFavoriteGame[]
+  recentUsers   UserRecentGame[]
+  sessions      GameSession[]
+  rounds        GameRound[]
+  jackpotWins   JackpotWin[]
+  publicWins    PublicWin[]
+  liveBets      LiveBet[]
+  dailyStats    GameDailyStats[]
+
+  @@index([categoryId])
+  @@index([providerId])
+  @@index([isActive, isFeatured])
+  @@map("games")
+}
+
+model UserFavoriteGame {
+  userId    String   @map("user_id")
+  gameId    String   @map("game_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([userId, gameId])
+  @@map("user_favorite_games")
+}
+
+model UserRecentGame {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  gameId       String   @map("game_id")
+  lastPlayedAt DateTime @default(now()) @map("last_played_at")
+  playCount    Int      @default(1) @map("play_count")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, gameId])
+  @@map("user_recent_games")
+}
+
+model GameSession {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  gameId       String    @map("game_id")
+  coinType     String    @map("coin_type") // GC, SC
+  sessionToken String    @map("session_token")
+  startedAt    DateTime  @default(now()) @map("started_at")
+  endedAt      DateTime? @map("ended_at")
+  totalBet     Decimal   @default(0) @map("total_bet") @db.Decimal(18, 4)
+  totalWin     Decimal   @default(0) @map("total_win") @db.Decimal(18, 4)
+  roundsPlayed Int       @default(0) @map("rounds_played")
+
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game   Game        @relation(fields: [gameId], references: [id])
+  rounds GameRound[]
+
+  @@index([userId, startedAt])
+  @@map("game_sessions")
+}
+
+model GameRound {
+  id              String   @id @default(uuid())
+  sessionId       String   @map("session_id")
+  userId          String   @map("user_id")
+  gameId          String   @map("game_id")
+  coinType        String   @map("coin_type") // GC, SC
+  betAmount       Decimal  @map("bet_amount") @db.Decimal(18, 4)
+  winAmount       Decimal  @default(0) @map("win_amount") @db.Decimal(18, 4)
+  multiplier      Decimal? @db.Decimal(10, 4)
+  resultData      Json?    @map("result_data") // game-specific outcome
+  providerRoundId String?  @map("provider_round_id")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  session     GameSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game        Game         @relation(fields: [gameId], references: [id])
+  jackpotWins JackpotWin[]
+
+  @@index([userId, createdAt])
+  @@index([gameId, createdAt])
+  @@map("game_rounds")
+}
+
+// ============================================
+// LEADERBOARDS
+// ============================================
+
+model Leaderboard {
+  id          String   @id @default(uuid())
+  type        String // biggest_win, most_wagered, most_played
+  period      String // daily, weekly, monthly
+  periodStart DateTime @map("period_start")
+  periodEnd   DateTime @map("period_end")
+  prizePool   Decimal  @map("prize_pool") @db.Decimal(18, 4)
+  coinType    String   @default("SC") @map("coin_type")
+  status      String   @default("active") // active, completed, paid_out
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  entries   LeaderboardEntry[]
+  snapshots LeaderboardSnapshot[]
+
+  @@index([type, period, status])
+  @@map("leaderboards")
+}
+
+model LeaderboardEntry {
+  id            String   @id @default(uuid())
+  leaderboardId String   @map("leaderboard_id")
+  userId        String   @map("user_id")
+  score         Decimal  @db.Decimal(18, 4)
+  rank          Int?
+  prizeAmount   Decimal? @map("prize_amount") @db.Decimal(18, 4)
+  lastUpdatedAt DateTime @default(now()) @map("last_updated_at")
+
+  leaderboard Leaderboard @relation(fields: [leaderboardId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([leaderboardId, userId])
+  @@index([leaderboardId, score])
+  @@map("leaderboard_entries")
+}
+
+model LeaderboardSnapshot {
+  id            String   @id @default(uuid())
+  leaderboardId String   @map("leaderboard_id")
+  snapshotData  Json     @map("snapshot_data") // top 100 at snapshot time
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  leaderboard Leaderboard @relation(fields: [leaderboardId], references: [id], onDelete: Cascade)
+
+  @@map("leaderboard_snapshots")
+}
+
+// ============================================
+// SPORTS BETTING
+// ============================================
+
+model Sport {
+  id        String  @id @default(uuid())
+  name      String
+  slug      String  @unique
+  iconKey   String? @map("icon_key")
+  isActive  Boolean @default(true) @map("is_active")
+  sortOrder Int     @default(0) @map("sort_order")
+
+  leagues League[]
+  teams   Team[]
+  matches Match[]
+
+  @@map("sports")
+}
+
+model League {
+  id          String  @id @default(uuid())
+  sportId     String  @map("sport_id")
+  name        String
+  slug        String  @unique
+  country     String?
+  countryFlag String? @map("country_flag")
+  logoUrl     String? @map("logo_url")
+  isActive    Boolean @default(true) @map("is_active")
+  sortOrder   Int     @default(0) @map("sort_order")
+
+  sport   Sport   @relation(fields: [sportId], references: [id])
+  matches Match[]
+
+  @@map("leagues")
+}
+
+model Team {
+  id        String  @id @default(uuid())
+  sportId   String  @map("sport_id")
+  name      String
+  shortName String? @map("short_name")
+  slug      String  @unique
+  logoUrl   String? @map("logo_url")
+  country   String?
+
+  sport       Sport   @relation(fields: [sportId], references: [id])
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+
+  @@map("teams")
+}
+
+model Match {
+  id              String    @id @default(uuid())
+  sportId         String    @map("sport_id")
+  leagueId        String    @map("league_id")
+  homeTeamId      String    @map("home_team_id")
+  awayTeamId      String    @map("away_team_id")
+  externalMatchId String?   @map("external_match_id")
+  scheduledAt     DateTime  @map("scheduled_at")
+  startedAt       DateTime? @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  status          String    @default("upcoming") // upcoming, live, finished, cancelled, postponed
+  homeScore       Int?      @map("home_score")
+  awayScore       Int?      @map("away_score")
+  liveMinute      Int?      @map("live_minute")
+  livePeriod      String?   @map("live_period")
+  result          String? // home, draw, away
+  isFeatured      Boolean   @default(false) @map("is_featured")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  sport         Sport          @relation(fields: [sportId], references: [id])
+  league        League         @relation(fields: [leagueId], references: [id])
+  homeTeam      Team           @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam      Team           @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  markets       Market[]
+  betSelections BetSelection[]
+
+  @@index([status, scheduledAt])
+  @@map("matches")
+}
+
+model Market {
+  id          String   @id @default(uuid())
+  matchId     String   @map("match_id")
+  type        String // 1x2, over_under, handicap, both_score, etc
+  name        String
+  line        Decimal? @db.Decimal(5, 2) // for over/under, handicap
+  isActive    Boolean  @default(true) @map("is_active")
+  isSuspended Boolean  @default(false) @map("is_suspended")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  odds  Odd[]
+
+  @@map("markets")
+}
+
+model Odd {
+  id        String   @id @default(uuid())
+  marketId  String   @map("market_id")
+  selection String // home, draw, away, over, under, yes, no
+  value     Decimal  @db.Decimal(6, 2)
+  isActive  Boolean  @default(true) @map("is_active")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  market        Market         @relation(fields: [marketId], references: [id], onDelete: Cascade)
+  betSelections BetSelection[]
+
+  @@map("odds")
+}
+
+model Bet {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  type         String // single, combo, system
+  stake        Decimal   @db.Decimal(18, 4)
+  coinType     String    @map("coin_type") // GC, SC
+  potentialWin Decimal   @map("potential_win") @db.Decimal(18, 4)
+  actualWin    Decimal?  @map("actual_win") @db.Decimal(18, 4)
+  totalOdds    Decimal   @map("total_odds") @db.Decimal(10, 4)
+  status       String    @default("pending") // pending, won, lost, void, cashout
+  placedAt     DateTime  @default(now()) @map("placed_at")
+  settledAt    DateTime? @map("settled_at")
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selections BetSelection[]
+
+  @@index([userId, placedAt])
+  @@index([status])
+  @@map("bets")
+}
+
+model BetSelection {
+  id              String    @id @default(uuid())
+  betId           String    @map("bet_id")
+  matchId         String    @map("match_id")
+  marketId        String    @map("market_id")
+  oddId           String    @map("odd_id")
+  selection       String
+  oddsAtPlacement Decimal   @map("odds_at_placement") @db.Decimal(6, 2)
+  status          String    @default("pending") // pending, won, lost, void
+  settledAt       DateTime? @map("settled_at")
+
+  bet   Bet   @relation(fields: [betId], references: [id], onDelete: Cascade)
+  match Match @relation(fields: [matchId], references: [id])
+  odd   Odd   @relation(fields: [oddId], references: [id])
+
+  @@map("bet_selections")
+}
+
+// ============================================
+// PROMOTIONS & BONUSES
+// ============================================
+
+model Promotion {
+  id                  String    @id @default(uuid())
+  name                String
+  slug                String    @unique
+  description         String?
+  type                String // welcome, deposit, daily, weekly, monthly, spin_wheel, code
+  gcAmount            Decimal?  @map("gc_amount") @db.Decimal(18, 2)
+  scAmount            Decimal?  @map("sc_amount") @db.Decimal(18, 4)
+  percentageBonus     Int?      @map("percentage_bonus") // for deposit match
+  maxBonus            Decimal?  @map("max_bonus") @db.Decimal(18, 4)
+  wageringRequirement Int?      @map("wagering_requirement") // multiplier
+  minDeposit          Decimal?  @map("min_deposit") @db.Decimal(10, 2)
+  code                String? // for promo codes
+  imageUrl            String?   @map("image_url")
+  terms               String?
+  maxClaims           Int?      @map("max_claims") // total
+  maxClaimsPerUser    Int?      @map("max_claims_per_user")
+  isActive            Boolean   @default(true) @map("is_active")
+  startsAt            DateTime? @map("starts_at")
+  endsAt              DateTime? @map("ends_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  userPromotions UserPromotion[]
+
+  @@map("promotions")
+}
+
+model SpinWheelSegment {
+  id          String  @id @default(uuid())
+  label       String
+  gcAmount    Decimal @map("gc_amount") @db.Decimal(18, 2)
+  scAmount    Decimal @map("sc_amount") @db.Decimal(18, 4)
+  probability Decimal @db.Decimal(5, 4)
+  color       String
+  sortOrder   Int     @default(0) @map("sort_order")
+  isActive    Boolean @default(true) @map("is_active")
+
+  @@map("spin_wheel_segments")
+}
+
+model UserPromotion {
+  id             String    @id @default(uuid())
+  userId         String    @map("user_id")
+  promotionId    String    @map("promotion_id")
+  status         String    @default("available") // available, claimed, completed, expired
+  bonusAmount    Decimal?  @map("bonus_amount") @db.Decimal(18, 4)
+  wageredAmount  Decimal   @default(0) @map("wagered_amount") @db.Decimal(18, 4)
+  wageringTarget Decimal?  @map("wagering_target") @db.Decimal(18, 4)
+  claimedAt      DateTime? @map("claimed_at")
+  completedAt    DateTime? @map("completed_at")
+  expiresAt      DateTime? @map("expires_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  promotion Promotion @relation(fields: [promotionId], references: [id])
+
+  @@index([userId, status])
+  @@map("user_promotions")
+}
+
+// ============================================
+// VIP & LOYALTY
+// ============================================
+
+model VipTier {
+  id                     String   @id @default(uuid())
+  name                   String
+  slug                   String   @unique
+  level                  Int // 1-5
+  minXp                  BigInt   @map("min_xp")
+  iconUrl                String?  @map("icon_url")
+  color                  String?
+  benefits               Json?
+  cashbackPercent        Decimal  @map("cashback_percent") @db.Decimal(4, 2)
+  redemptionBonusPercent Decimal  @map("redemption_bonus_percent") @db.Decimal(4, 2)
+  exclusivePromotions    Json?    @map("exclusive_promotions")
+  createdAt              DateTime @default(now()) @map("created_at")
+
+  userVips UserVip[]
+
+  @@map("vip_tiers")
+}
+
+model UserVip {
+  id                String    @id @default(uuid())
+  userId            String    @unique @map("user_id")
+  tierId            String    @map("tier_id")
+  xpCurrent         BigInt    @default(0) @map("xp_current")
+  xpLifetime        BigInt    @default(0) @map("xp_lifetime")
+  tierUpgradedAt    DateTime? @map("tier_upgraded_at")
+  nextTierXp        BigInt?   @map("next_tier_xp")
+  cashbackAvailable Decimal   @default(0) @map("cashback_available") @db.Decimal(18, 4)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  user User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier VipTier @relation(fields: [tierId], references: [id])
+
+  @@map("user_vip")
+}
+
+model VipXpHistory {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  xpAmount    BigInt   @map("xp_amount")
+  source      String // game_play, purchase, bonus
+  referenceId String?  @map("reference_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@map("vip_xp_history")
+}
+
+// ============================================
+// REFERRALS
+// ============================================
+
+model ReferralCode {
+  id        String   @id @default(uuid())
+  userId    String   @unique @map("user_id")
+  code      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("referral_codes")
+}
+
+model Referral {
+  id             String    @id @default(uuid())
+  referrerId     String    @map("referrer_id")
+  referredId     String    @unique @map("referred_id")
+  status         String    @default("pending") // pending, qualified, rewarded
+  referrerReward Decimal?  @map("referrer_reward") @db.Decimal(18, 4)
+  referredReward Decimal?  @map("referred_reward") @db.Decimal(18, 4)
+  qualifiedAt    DateTime? @map("qualified_at")
+  rewardedAt     DateTime? @map("rewarded_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  referrer User @relation("ReferrerUser", fields: [referrerId], references: [id], onDelete: Cascade)
+  referred User @relation("ReferredUser", fields: [referredId], references: [id], onDelete: Cascade)
+
+  @@map("referrals")
+}
+
+// ============================================
+// NOTIFICATIONS
+// ============================================
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String    @map("user_id")
+  type      String // system, promotion, wallet, game, leaderboard, bet
+  title     String
+  message   String
+  actionUrl String?   @map("action_url")
+  imageUrl  String?   @map("image_url")
+  data      Json?
+  isRead    Boolean   @default(false) @map("is_read")
+  readAt    DateTime? @map("read_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id                String   @id @default(uuid())
+  userId            String   @unique @map("user_id")
+  emailPromotions   Boolean  @default(true) @map("email_promotions")
+  emailTransactions Boolean  @default(true) @map("email_transactions")
+  pushEnabled       Boolean  @default(true) @map("push_enabled")
+  pushPromotions    Boolean  @default(true) @map("push_promotions")
+  pushTransactions  Boolean  @default(true) @map("push_transactions")
+  smsEnabled        Boolean  @default(false) @map("sms_enabled")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// ============================================
+// JACKPOT
+// ============================================
+
+model Jackpot {
+  id                  String    @id @default(uuid())
+  name                String
+  type                String // mini, minor, major, grand
+  currentAmount       Decimal   @map("current_amount") @db.Decimal(18, 4)
+  seedAmount          Decimal   @map("seed_amount") @db.Decimal(18, 4)
+  contributionPercent Decimal   @map("contribution_percent") @db.Decimal(5, 4)
+  triggerMin          Decimal   @map("trigger_min") @db.Decimal(18, 4)
+  triggerMax          Decimal   @map("trigger_max") @db.Decimal(18, 4)
+  lastWonAt           DateTime? @map("last_won_at")
+  lastWonBy           String?   @map("last_won_by")
+  lastWonAmount       Decimal?  @map("last_won_amount") @db.Decimal(18, 4)
+  isActive            Boolean   @default(true) @map("is_active")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  wins JackpotWin[]
+
+  @@map("jackpots")
+}
+
+model JackpotWin {
+  id          String   @id @default(uuid())
+  jackpotId   String   @map("jackpot_id")
+  userId      String   @map("user_id")
+  gameId      String   @map("game_id")
+  gameRoundId String   @map("game_round_id")
+  amount      Decimal  @db.Decimal(18, 4)
+  jackpotType String   @map("jackpot_type")
+  wonAt       DateTime @default(now()) @map("won_at")
+
+  jackpot   Jackpot   @relation(fields: [jackpotId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game      Game      @relation(fields: [gameId], references: [id])
+  gameRound GameRound @relation(fields: [gameRoundId], references: [id])
+
+  @@map("jackpot_wins")
+}
+
+// ============================================
+// PRIZES & REWARDS
+// ============================================
+
+model Prize {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  imageUrl      String?  @map("image_url")
+  valueUsd      Decimal  @map("value_usd") @db.Decimal(10, 2)
+  scCost        Decimal? @map("sc_cost") @db.Decimal(18, 4)
+  category      String // electronics, gift_cards, merchandise, experiences, bonus_credits
+  prizeType     String   @map("prize_type") // leaderboard, redemption_store, both
+  stockQuantity Int?     @map("stock_quantity")
+  isPopular     Boolean  @default(false) @map("is_popular")
+  isActive      Boolean  @default(true) @map("is_active")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  prizeTiers  PrizeTier[]
+  redemptions PrizeRedemption[]
+
+  @@map("prizes")
+}
+
+model PrizeTier {
+  id              String   @id @default(uuid())
+  leaderboardType String   @map("leaderboard_type") // daily, weekly, monthly
+  position        Int // 1, 2, 3, 4, 5
+  prizeId         String   @map("prize_id")
+  scAmount        Decimal  @map("sc_amount") @db.Decimal(18, 4)
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  prize Prize @relation(fields: [prizeId], references: [id])
+
+  @@map("prize_tiers")
+}
+
+model PrizeRedemption {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  prizeId         String    @map("prize_id")
+  leaderboardId   String?   @map("leaderboard_id")
+  shippingAddress Json?     @map("shipping_address") // encrypted
+  trackingNumber  String?   @map("tracking_number")
+  carrier         String?
+  status          String    @default("pending") // pending, processing, shipped, delivered, cancelled
+  notes           String?
+  processedAt     DateTime? @map("processed_at")
+  shippedAt       DateTime? @map("shipped_at")
+  deliveredAt     DateTime? @map("delivered_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  prize Prize @relation(fields: [prizeId], references: [id])
+
+  @@index([userId, status])
+  @@map("prize_redemptions")
+}
+
+model UserAddress {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  label        String? // home, work, etc.
+  addressLine1 String   @map("address_line_1") // encrypted
+  addressLine2 String?  @map("address_line_2") // encrypted
+  city         String
+  state        String
+  postalCode   String   @map("postal_code")
+  country      String
+  isDefault    Boolean  @default(false) @map("is_default")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_addresses")
+}
+
+// ============================================
+// AMOE (Alternative Method of Entry)
+// ============================================
+
+model AmoeEntry {
+  id            String    @id @default(uuid())
+  userId        String?   @map("user_id")
+  email         String
+  username      String?
+  code          String    @unique // 15-char alphanumeric
+  postalAddress Json?     @map("postal_address")
+  scAmount      Decimal   @map("sc_amount") @db.Decimal(18, 4)
+  status        String    @default("generated") // generated, submitted, approved, rejected, redeemed
+  submittedAt   DateTime? @map("submitted_at")
+  reviewedBy    String?   @map("reviewed_by") // admin user id
+  reviewedAt    DateTime? @map("reviewed_at")
+  redeemedAt    DateTime? @map("redeemed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([email, status])
+  @@map("amoe_entries")
+}
+
+model AmoeConfig {
+  id                 String   @id @default(uuid())
+  dailyLimitPerUser  Int      @map("daily_limit_per_user")
+  weeklyLimitPerUser Int      @map("weekly_limit_per_user")
+  scAmountPerEntry   Decimal  @map("sc_amount_per_entry") @db.Decimal(18, 4)
+  isActive           Boolean  @default(true) @map("is_active")
+  termsText          String?  @map("terms_text")
+  mailingAddress     Json?    @map("mailing_address")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("amoe_config")
+}
+
+// ============================================
+// CONTENT / WBCTV
+// ============================================
+
+model ContentCategory {
+  id        String  @id @default(uuid())
+  name      String
+  slug      String  @unique
+  icon      String?
+  sortOrder Int     @default(0) @map("sort_order")
+  isActive  Boolean @default(true) @map("is_active")
+
+  videos ContentVideo[]
+
+  @@map("content_categories")
+}
+
+model ContentVideo {
+  id              String    @id @default(uuid())
+  categoryId      String    @map("category_id")
+  title           String
+  description     String?
+  thumbnailUrl    String?   @map("thumbnail_url")
+  videoUrl        String    @map("video_url")
+  durationSeconds Int       @map("duration_seconds")
+  isLive          Boolean   @default(false) @map("is_live")
+  isFeatured      Boolean   @default(false) @map("is_featured")
+  scheduledAt     DateTime? @map("scheduled_at")
+  publishedAt     DateTime? @map("published_at")
+  viewCount       Int       @default(0) @map("view_count")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  category ContentCategory @relation(fields: [categoryId], references: [id])
+  views    ContentView[]
+
+  @@map("content_videos")
+}
+
+model ContentView {
+  id             String   @id @default(uuid())
+  videoId        String   @map("video_id")
+  userId         String?  @map("user_id")
+  watchedSeconds Int      @default(0) @map("watched_seconds")
+  completed      Boolean  @default(false)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  video ContentVideo @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user  User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("content_views")
+}
+
+// ============================================
+// ACTIVITY FEED
+// ============================================
+
+model PublicWin {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  gameId      String   @map("game_id")
+  gameRoundId String   @map("game_round_id")
+  displayName String   @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  amount      Decimal  @db.Decimal(18, 4)
+  coinType    String   @map("coin_type") // GC, SC
+  multiplier  Decimal? @db.Decimal(10, 4)
+  isFeatured  Boolean  @default(false) @map("is_featured")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+  @@map("public_wins")
+}
+
+model WinDisplayConfig {
+  id                     String   @id @default(uuid())
+  minGcAmount            Decimal  @map("min_gc_amount") @db.Decimal(18, 4)
+  minScAmount            Decimal  @map("min_sc_amount") @db.Decimal(18, 4)
+  maxDisplayCount        Int      @map("max_display_count")
+  refreshIntervalSeconds Int      @map("refresh_interval_seconds")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  @@map("win_display_config")
+}
+
+model LiveBet {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  gameId      String   @map("game_id")
+  gameRoundId String   @map("game_round_id")
+  displayName String   @map("display_name")
+  gameName    String   @map("game_name")
+  betAmount   Decimal  @map("bet_amount") @db.Decimal(18, 4)
+  coinType    String   @map("coin_type") // GC, SC
+  multiplier  Decimal? @db.Decimal(10, 4)
+  profit      Decimal  @db.Decimal(18, 4)
+  isWin       Boolean  @map("is_win")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  game Game @relation(fields: [gameId], references: [id])
+
+  @@index([createdAt(sort: Desc)])
+  @@map("live_bets")
+}
+
+model UserPrivacySetting {
+  id                    String   @id @default(uuid())
+  userId                String   @unique @map("user_id")
+  showInLeaderboard     Boolean  @default(true) @map("show_in_leaderboard")
+  showInRecentWins      Boolean  @default(true) @map("show_in_recent_wins")
+  displayNamePreference String   @default("full") @map("display_name_preference") // full, first_initial, anonymous
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_privacy_settings")
+}
+
+model SocialProofEvent {
+  id          String   @id @default(uuid())
+  userId      String?  @map("user_id")
+  displayName String   @map("display_name")
+  avatarUrl   String?  @map("avatar_url")
+  eventType   String   @map("event_type") // win, jackpot, vip_levelup, bonus_claimed, cashout, leaderboard_rank
+  actionText  String   @map("action_text")
+  amount      Decimal? @db.Decimal(18, 4)
+  coinType    String?  @map("coin_type")
+  isSynthetic Boolean  @default(false) @map("is_synthetic")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@map("social_proof_events")
+}
+
+model SocialProofConfig {
+  id                      String   @id @default(uuid())
+  isActive                Boolean  @default(true) @map("is_active")
+  displayFrequencySeconds Int      @map("display_frequency_seconds")
+  minWinAmountToDisplay   Decimal  @map("min_win_amount_to_display") @db.Decimal(18, 4)
+  includeSynthetic        Boolean  @default(true) @map("include_synthetic")
+  eventTypesEnabled       Json     @map("event_types_enabled") // array
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  @@map("social_proof_config")
+}
+
+// ============================================
+// FAQ & HELP CENTER
+// ============================================
+
+model FaqCategory {
+  id          String  @id @default(uuid())
+  name        String
+  slug        String  @unique
+  icon        String?
+  description String?
+  sortOrder   Int     @default(0) @map("sort_order")
+  isActive    Boolean @default(true) @map("is_active")
+
+  faqs Faq[]
+
+  @@map("faq_categories")
+}
+
+model Faq {
+  id         String   @id @default(uuid())
+  categoryId String   @map("category_id")
+  question   String
+  answer     String // rich text/markdown
+  sortOrder  Int      @default(0) @map("sort_order")
+  isFeatured Boolean  @default(false) @map("is_featured")
+  viewCount  Int      @default(0) @map("view_count")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  category FaqCategory @relation(fields: [categoryId], references: [id])
+
+  @@map("faqs")
+}
+
+model SupportTicket {
+  id           String    @id @default(uuid())
+  userId       String    @map("user_id")
+  ticketNumber String    @unique @map("ticket_number")
+  subject      String
+  message      String
+  category     String // general, technical, billing, verification, responsible_gaming
+  priority     String    @default("medium") // low, medium, high, urgent
+  status       String    @default("open") // open, awaiting_user, in_progress, resolved, closed
+  assignedTo   String?   @map("assigned_to") // admin user id
+  resolvedAt   DateTime? @map("resolved_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages SupportMessage[]
+
+  @@index([userId, status])
+  @@map("support_tickets")
+}
+
+model SupportMessage {
+  id          String   @id @default(uuid())
+  ticketId    String   @map("ticket_id")
+  senderId    String   @map("sender_id")
+  senderType  String   @map("sender_type") // user, admin, system
+  message     String
+  attachments Json? // array of URLs
+  isInternal  Boolean  @default(false) @map("is_internal")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  sender User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@map("support_messages")
+}
+
+// ============================================
+// USER SETTINGS
+// ============================================
+
+model UserSetting {
+  id               String   @id @default(uuid())
+  userId           String   @unique @map("user_id")
+  theme            String   @default("dark") // dark, light, system
+  language         String   @default("en") // en, es, fr, de, pt, etc.
+  timezone         String?
+  currencyDisplay  String   @default("USD") @map("currency_display")
+  soundEnabled     Boolean  @default(true) @map("sound_enabled")
+  animationReduced Boolean  @default(false) @map("animation_reduced")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_settings")
+}
+
+model ResponsibleGamingSetting {
+  id                          String    @id @default(uuid())
+  userId                      String    @unique @map("user_id")
+  dailyDepositLimit           Decimal?  @map("daily_deposit_limit") @db.Decimal(10, 2)
+  weeklyDepositLimit          Decimal?  @map("weekly_deposit_limit") @db.Decimal(10, 2)
+  monthlyDepositLimit         Decimal?  @map("monthly_deposit_limit") @db.Decimal(10, 2)
+  dailyLossLimit              Decimal?  @map("daily_loss_limit") @db.Decimal(18, 4)
+  dailyWagerLimit             Decimal?  @map("daily_wager_limit") @db.Decimal(18, 4)
+  sessionTimeLimitMinutes     Int?      @map("session_time_limit_minutes")
+  realityCheckIntervalMinutes Int?      @map("reality_check_interval_minutes")
+  selfExclusionUntil          DateTime? @map("self_exclusion_until")
+  coolingOffUntil             DateTime? @map("cooling_off_until")
+  excludedGameCategories      Json?     @map("excluded_game_categories") // array
+  createdAt                   DateTime  @default(now()) @map("created_at")
+  updatedAt                   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("responsible_gaming_settings")
+}
+
+model UserActivityLog {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  action    String // login, logout, password_change, settings_update, 2fa_enabled, etc.
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  location  Json? // city, country from IP
+  metadata  Json? // additional context
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("user_activity_logs")
+}
+
+// ============================================
+// ADMIN
+// ============================================
+
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         String // super_admin, admin, support, marketing, finance
+  permissions  Json? // granular permissions
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  lastLoginIp  String?   @map("last_login_ip")
+  createdBy    String?   @map("created_by")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  sessions  AdminSession[]
+  auditLogs AdminAuditLog[]
+
+  @@map("admin_users")
+}
+
+model AdminSession {
+  id        String   @id @default(uuid())
+  adminId   String   @map("admin_id")
+  tokenHash String   @map("token_hash")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("admin_sessions")
+}
+
+model AdminAuditLog {
+  id         String   @id @default(uuid())
+  adminId    String   @map("admin_id")
+  action     String
+  entityType String   @map("entity_type") // user, game, promotion, transaction, redemption, ticket, etc.
+  entityId   String?  @map("entity_id")
+  oldValues  Json?    @map("old_values")
+  newValues  Json?    @map("new_values")
+  ipAddress  String?  @map("ip_address")
+  reason     String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  admin AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([entityType, entityId])
+  @@index([adminId, createdAt(sort: Desc)])
+  @@map("admin_audit_logs")
+}
+
+// ============================================
+// CMS / STATIC CONTENT
+// ============================================
+
+model StaticPage {
+  id              String    @id @default(uuid())
+  slug            String    @unique // terms, privacy, fairness, responsible-gaming, about, careers, contact
+  title           String
+  content         String // rich text/markdown
+  metaTitle       String?   @map("meta_title")
+  metaDescription String?   @map("meta_description")
+  isPublished     Boolean   @default(false) @map("is_published")
+  publishedAt     DateTime? @map("published_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  @@map("static_pages")
+}
+
+model Announcement {
+  id          String    @id @default(uuid())
+  title       String
+  content     String // rich text/markdown
+  type        String // general, maintenance, promotion, update
+  priority    String    @default("medium") // low, medium, high, critical
+  isPinned    Boolean   @default(false) @map("is_pinned")
+  isPublished Boolean   @default(false) @map("is_published")
+  publishedAt DateTime? @map("published_at")
+  expiresAt   DateTime? @map("expires_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("announcements")
+}
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique // site_name, support_email, social_links, etc.
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("site_settings")
+}
+
+model HeroBanner {
+  id                 String    @id @default(uuid())
+  title              String
+  subtitle           String?
+  ctaText            String?   @map("cta_text")
+  ctaLink            String?   @map("cta_link")
+  imageUrl           String?   @map("image_url")
+  videoUrl           String?   @map("video_url")
+  backgroundGradient String?   @map("background_gradient")
+  targetAudience     String    @default("all") @map("target_audience") // all, new_users, vip, etc.
+  platform           String    @default("all") // all, desktop, mobile, tablet
+  isActive           Boolean   @default(true) @map("is_active")
+  sortOrder          Int       @default(0) @map("sort_order")
+  startsAt           DateTime? @map("starts_at")
+  endsAt             DateTime? @map("ends_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@map("hero_banners")
+}
+
+// ============================================
+// EMAIL & SMS LOGS
+// ============================================
+
+model EmailLog {
+  id           String    @id @default(uuid())
+  toEmail      String    @map("to_email")
+  fromEmail    String?   @map("from_email")
+  subject      String
+  templateId   String?   @map("template_id")
+  templateData Json?     @map("template_data")
+  status       String    @default("pending") // pending, sent, failed, bounced, delivered
+  provider     String? // sendgrid, ses, smtp
+  providerId   String?   @map("provider_id") // external message ID
+  attempts     Int       @default(0)
+  lastAttempt  DateTime? @map("last_attempt")
+  sentAt       DateTime? @map("sent_at")
+  error        String?
+  metadata     Json?
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  @@index([toEmail, createdAt])
+  @@index([status, createdAt])
+  @@map("email_logs")
+}
+
+model SmsLog {
+  id          String    @id @default(uuid())
+  toPhone     String    @map("to_phone")
+  fromPhone   String?   @map("from_phone")
+  message     String
+  templateId  String?   @map("template_id")
+  status      String    @default("pending") // pending, sent, failed, delivered
+  provider    String? // twilio, nexmo, sns
+  providerId  String?   @map("provider_id") // external message ID
+  attempts    Int       @default(0)
+  lastAttempt DateTime? @map("last_attempt")
+  sentAt      DateTime? @map("sent_at")
+  error       String?
+  metadata    Json?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([toPhone, createdAt])
+  @@index([status, createdAt])
+  @@map("sms_logs")
+}
+
+// ============================================
+// PAYOUT REQUESTS
+// ============================================
+
+model PayoutRequest {
+  id            String    @id @default(uuid())
+  redemptionId  String    @map("redemption_id")
+  userId        String    @map("user_id")
+  amount        Decimal   @db.Decimal(10, 2)
+  currency      String    @default("USD")
+  method        String // bank_transfer, paypal, crypto, check
+  payoutDetails Json?     @map("payout_details") // encrypted account info
+  status        String    @default("pending") // pending, processing, completed, failed, cancelled
+  processorRef  String?   @map("processor_ref") // external reference
+  processedBy   String?   @map("processed_by") // admin user id
+  processedAt   DateTime? @map("processed_at")
+  failureReason String?   @map("failure_reason")
+  attempts      Int       @default(0)
+  lastAttempt   DateTime? @map("last_attempt")
+  scheduledFor  DateTime? @map("scheduled_for")
+  completedAt   DateTime? @map("completed_at")
+  metadata      Json?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([redemptionId])
+  @@map("payout_requests")
+}
+
+// ============================================
+// MEDIA LIBRARY
+// ============================================
+
+model MediaCategory {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  description  String?
+  allowedTypes Json     @map("allowed_types") // ["image/jpeg", "image/png", "image/webp"]
+  maxFileSize  Int      @map("max_file_size") // bytes
+  dimensions   Json? // { minWidth, maxWidth, minHeight, maxHeight, aspectRatio }
+  isActive     Boolean  @default(true) @map("is_active")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  assets MediaAsset[]
+
+  @@map("media_categories")
+}
+
+model MediaAsset {
+  id           String   @id @default(uuid())
+  key          String   @unique // e.g., "game:gates-of-olympus", "provider:pragmatic", "banner:welcome"
+  categoryId   String   @map("category_id")
+  filename     String // original filename
+  mimeType     String   @map("mime_type")
+  size         Int // bytes
+  width        Int? // for images
+  height       Int? // for images
+  url          String // full CDN/storage URL
+  thumbnailUrl String?  @map("thumbnail_url") // auto-generated thumbnail for large images/videos
+  altText      String?  @map("alt_text")
+  title        String? // display title
+  description  String?
+  metadata     Json? // additional data (duration for videos, blurhash, dominant color, etc.)
+  uploadedBy   String?  @map("uploaded_by") // admin user id
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  category MediaCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+  @@index([key])
+  @@index([isActive, categoryId])
+  @@map("media_assets")
+}
+
+// ============================================================================
+// ANALYTICS & AGGREGATION
+// ============================================================================
+
+// Pre-computed daily stats per user for performance (avoids live aggregation)
+model UserDailyStats {
+  id           String   @id @default(uuid())
+  userId       String   @map("user_id")
+  date         DateTime @db.Date
+  coinType     String   @map("coin_type") // GC or SC
+  totalWagered Decimal  @default(0) @map("total_wagered") @db.Decimal(18, 4)
+  totalWon     Decimal  @default(0) @map("total_won") @db.Decimal(18, 4)
+  gamesPlayed  Int      @default(0) @map("games_played")
+  biggestWin   Decimal  @default(0) @map("biggest_win") @db.Decimal(18, 4)
+  netResult    Decimal  @default(0) @map("net_result") @db.Decimal(18, 4) // totalWon - totalWagered
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, coinType])
+  @@index([userId, date])
+  @@index([date])
+  @@map("user_daily_stats")
+}
+
+// Pre-computed daily stats per game for analytics dashboards
+model GameDailyStats {
+  id            String   @id @default(uuid())
+  gameId        String   @map("game_id")
+  date          DateTime @db.Date
+  totalPlays    Int      @default(0) @map("total_plays")
+  uniquePlayers Int      @default(0) @map("unique_players")
+  totalWagered  Decimal  @default(0) @map("total_wagered") @db.Decimal(18, 4)
+  totalPayout   Decimal  @default(0) @map("total_payout") @db.Decimal(18, 4)
+  houseEdge     Decimal  @default(0) @map("house_edge") @db.Decimal(8, 4) // percentage
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  game Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([gameId, date])
+  @@index([gameId, date])
+  @@index([date])
+  @@map("game_daily_stats")
+}
+
+// Platform-wide daily statistics for admin dashboard
+model PlatformDailyStats {
+  id               String   @id @default(uuid())
+  date             DateTime @unique @db.Date
+  newUsers         Int      @default(0) @map("new_users")
+  activeUsers      Int      @default(0) @map("active_users")
+  totalDeposits    Decimal  @default(0) @map("total_deposits") @db.Decimal(18, 2)
+  totalRedemptions Decimal  @default(0) @map("total_redemptions") @db.Decimal(18, 2)
+  totalGcWagered   Decimal  @default(0) @map("total_gc_wagered") @db.Decimal(18, 2)
+  totalScWagered   Decimal  @default(0) @map("total_sc_wagered") @db.Decimal(18, 4)
+  totalGcPayout    Decimal  @default(0) @map("total_gc_payout") @db.Decimal(18, 2)
+  totalScPayout    Decimal  @default(0) @map("total_sc_payout") @db.Decimal(18, 4)
+  newVipMembers    Int      @default(0) @map("new_vip_members")
+  totalBonusesPaid Decimal  @default(0) @map("total_bonuses_paid") @db.Decimal(18, 2)
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@index([date])
+  @@map("platform_daily_stats")
+}
