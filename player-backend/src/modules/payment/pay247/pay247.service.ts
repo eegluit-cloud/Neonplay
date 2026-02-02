@@ -97,8 +97,8 @@ export class Pay247Service {
         where: { id: deposit.depositId },
         data: {
           merchantOrderId,
-          pay247OrderId: pay247Response.order_no,
-          paymentUrl: pay247Response.pay_url,
+          pay247OrderId: pay247Response.order_id,
+          paymentUrl: pay247Response.payment_url,
           pay247Metadata: pay247Response as any,
         },
       });
@@ -107,13 +107,13 @@ export class Pay247Service {
 
       return {
         depositId: deposit.depositId,
-        paymentUrl: pay247Response.pay_url,
+        paymentUrl: pay247Response.payment_url,
         merchantOrderId,
-        pay247OrderId: pay247Response.order_no,
+        pay247OrderId: pay247Response.order_id,
       };
-    } catch (error) {
+    } catch (error: unknown) {
       console.log(error)
-      this.logger.error(`Failed to create deposit for user ${userId}:`, error);
+      this.logger.error(`Failed to create deposit for user ${userId}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -265,17 +265,20 @@ export class Pay247Service {
           });
 
           return { success: true, message: 'Webhook processed successfully' };
-        } catch (error) {
+        } catch (error: unknown) {
           // STEP 10: ERROR HANDLING
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : undefined;
+
           this.logger.error('Error processing deposit webhook', {
-            error: error.message,
-            stack: error.stack,
+            error: errorMessage,
+            stack: errorStack,
             webhookData,
           });
 
           await tx.pay247WebhookLog.update({
             where: { id: webhookLog.id },
-            data: { processingError: error.message },
+            data: { processingError: errorMessage },
           });
 
           throw error;
@@ -344,8 +347,8 @@ export class Pay247Service {
         pay247OrderId: pay247Response.payout_id,
         status: 'processing',
       };
-    } catch (error) {
-      this.logger.error(`Failed to create withdrawal for user ${userId}:`, error);
+    } catch (error: unknown) {
+      this.logger.error(`Failed to create withdrawal for user ${userId}:`, error instanceof Error ? error.message : String(error));
       throw error;
     }
   }
@@ -499,17 +502,20 @@ export class Pay247Service {
           });
 
           return { success: true, message: 'Webhook processed successfully' };
-        } catch (error) {
+        } catch (error: unknown) {
           // STEP 10: ERROR HANDLING
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorStack = error instanceof Error ? error.stack : undefined;
+
           this.logger.error('Error processing withdrawal webhook', {
-            error: error.message,
-            stack: error.stack,
+            error: errorMessage,
+            stack: errorStack,
             webhookData,
           });
 
           await tx.pay247WebhookLog.update({
             where: { id: webhookLog.id },
-            data: { processingError: error.message },
+            data: { processingError: errorMessage },
           });
 
           throw error;
