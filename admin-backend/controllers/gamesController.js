@@ -1,30 +1,32 @@
-const { getDb } = require('../database/init');
+const prisma = require('../lib/prisma');
+const { invalidateCategoryCache, invalidateProviderCache, invalidateGameCache } = require('../lib/redis');
 
 // Categories
 const getCategories = async (req, res) => {
   try {
-    const db = getDb();
-
-    const categories = db.prepare(`
-      SELECT c.*, COUNT(gc.game_id) as game_count
-      FROM categories c
-      LEFT JOIN game_categories gc ON c.id = gc.category_id
-      GROUP BY c.id
-      ORDER BY c.sort_order ASC, c.name ASC
-    `).all();
+    const categories = await prisma.gameCategory.findMany({
+      include: {
+        _count: {
+          select: { games: true }
+        }
+      },
+      orderBy: [
+        { sortOrder: 'asc' },
+        { name: 'asc' }
+      ]
+    });
 
     res.json({
       categories: categories.map(c => ({
         id: c.id,
         name: c.name,
         slug: c.slug,
-        type: c.type,
         description: c.description,
         icon: c.icon,
-        sortOrder: c.sort_order,
-        status: c.status,
-        gameCount: c.game_count,
-        createdAt: c.created_at
+        sortOrder: c.sortOrder,
+        status: c.isActive ? 'active' : 'inactive',
+        gameCount: c._count.games,
+        createdAt: c.createdAt
       }))
     });
   } catch (error) {
@@ -36,24 +38,30 @@ const getCategories = async (req, res) => {
 const createCategory = async (req, res) => {
   try {
     const { name, slug, description, icon, sortOrder } = req.body;
-    const db = getDb();
 
-    const existing = db.prepare('SELECT id FROM categories WHERE slug = ?').get(slug);
-    if (existing) {
-      return res.status(400).json({ error: 'Category slug already exists' });
-    }
+    const category = await prisma.gameCategory.create({
+      data: {
+        name,
+        slug,
+        description,
+        icon,
+        sortOrder: sortOrder || 0,
+        isActive: true
+      }
+    });
 
-    const result = db.prepare(`
-      INSERT INTO categories (name, slug, type, description, icon, sort_order)
-      VALUES (?, ?, 'custom', ?, ?, ?)
-    `).run(name, slug, description, icon, sortOrder || 0);
+    // Invalidate category cache in player-backend
+    await invalidateCategoryCache();
 
     res.status(201).json({
       message: 'Category created',
-      category: { id: result.lastInsertRowid, name, slug }
+      category: { id: category.id, name: category.name, slug: category.slug }
     });
   } catch (error) {
     console.error('Create category error:', error);
+    if (error.code === 'P2002') {
+      return res.status(400).json({ error: 'Category slug already exists' });
+    }
     res.status(500).json({ error: 'Failed to create category' });
   }
 };
@@ -62,27 +70,28 @@ const updateCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
     const { name, description, icon, sortOrder, status } = req.body;
-    const db = getDb();
 
-    const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId);
-    if (!category) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (description !== undefined) data.description = description;
+    if (icon !== undefined) data.icon = icon;
+    if (sortOrder !== undefined) data.sortOrder = sortOrder;
+    if (status !== undefined) data.isActive = status === 'active';
 
-    db.prepare(`
-      UPDATE categories
-      SET name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          icon = COALESCE(?, icon),
-          sort_order = COALESCE(?, sort_order),
-          status = COALESCE(?, status),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(name, description, icon, sortOrder, status, categoryId);
+    await prisma.gameCategory.update({
+      where: { id: categoryId },
+      data
+    });
+
+    // Invalidate category cache in player-backend
+    await invalidateCategoryCache();
 
     res.json({ message: 'Category updated' });
   } catch (error) {
     console.error('Update category error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Category not found' });
+    }
     res.status(500).json({ error: 'Failed to update category' });
   }
 };
@@ -90,40 +99,36 @@ const updateCategory = async (req, res) => {
 const deleteCategory = async (req, res) => {
   try {
     const { categoryId } = req.params;
-    const db = getDb();
 
-    const category = db.prepare('SELECT * FROM categories WHERE id = ?').get(categoryId);
-    if (!category) {
-      return res.status(404).json({ error: 'Category not found' });
-    }
+    await prisma.gameCategory.delete({
+      where: { id: categoryId }
+    });
 
-    if (category.type === 'system') {
-      return res.status(400).json({ error: 'Cannot delete system categories' });
-    }
-
-    db.prepare('DELETE FROM game_categories WHERE category_id = ?').run(categoryId);
-    db.prepare('DELETE FROM categories WHERE id = ?').run(categoryId);
+    // Invalidate category cache in player-backend
+    await invalidateCategoryCache();
 
     res.json({ message: 'Category deleted' });
   } catch (error) {
     console.error('Delete category error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Category not found' });
+    }
     res.status(500).json({ error: 'Failed to delete category' });
   }
 };
 
 const reorderCategories = async (req, res) => {
   try {
-    const { order } = req.body; // Array of { id, sortOrder }
-    const db = getDb();
+    const { order } = req.body;
 
-    const updateStmt = db.prepare('UPDATE categories SET sort_order = ? WHERE id = ?');
-    const updateMany = db.transaction((items) => {
-      for (const item of items) {
-        updateStmt.run(item.sortOrder, item.id);
-      }
-    });
-
-    updateMany(order);
+    await prisma.$transaction(
+      order.map(item =>
+        prisma.gameCategory.update({
+          where: { id: item.id },
+          data: { sortOrder: item.sortOrder }
+        })
+      )
+    );
 
     res.json({ message: 'Categories reordered' });
   } catch (error) {
@@ -135,26 +140,29 @@ const reorderCategories = async (req, res) => {
 // Aggregators
 const getAggregators = async (req, res) => {
   try {
-    const db = getDb();
-
-    const aggregators = db.prepare(`
-      SELECT a.*, COUNT(DISTINCT p.id) as provider_count, COUNT(DISTINCT g.id) as game_count
-      FROM aggregators a
-      LEFT JOIN providers p ON a.id = p.aggregator_id
-      LEFT JOIN games g ON p.id = g.provider_id
-      GROUP BY a.id
-      ORDER BY a.name ASC
-    `).all();
+    const aggregators = await prisma.gameAggregator.findMany({
+      include: {
+        providers: {
+          include: {
+            _count: {
+              select: { games: true }
+            }
+          }
+        }
+      },
+      orderBy: { name: 'asc' }
+    });
 
     res.json({
       aggregators: aggregators.map(a => ({
         id: a.id,
         name: a.name,
-        apiUrl: a.api_url,
-        status: a.status,
-        providerCount: a.provider_count,
-        gameCount: a.game_count,
-        createdAt: a.created_at
+        slug: a.slug,
+        apiUrl: a.apiEndpoint,
+        status: a.isActive ? 'active' : 'inactive',
+        providerCount: a.providers.length,
+        gameCount: a.providers.reduce((sum, p) => sum + p._count.games, 0),
+        createdAt: a.createdAt
       }))
     });
   } catch (error) {
@@ -167,25 +175,23 @@ const updateAggregator = async (req, res) => {
   try {
     const { aggregatorId } = req.params;
     const { name, apiUrl, status } = req.body;
-    const db = getDb();
 
-    const aggregator = db.prepare('SELECT id FROM aggregators WHERE id = ?').get(aggregatorId);
-    if (!aggregator) {
-      return res.status(404).json({ error: 'Aggregator not found' });
-    }
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (apiUrl !== undefined) data.apiEndpoint = apiUrl;
+    if (status !== undefined) data.isActive = status === 'active';
 
-    db.prepare(`
-      UPDATE aggregators
-      SET name = COALESCE(?, name),
-          api_url = COALESCE(?, api_url),
-          status = COALESCE(?, status),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(name, apiUrl, status, aggregatorId);
+    await prisma.gameAggregator.update({
+      where: { id: aggregatorId },
+      data
+    });
 
     res.json({ message: 'Aggregator updated' });
   } catch (error) {
     console.error('Update aggregator error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Aggregator not found' });
+    }
     res.status(500).json({ error: 'Failed to update aggregator' });
   }
 };
@@ -193,36 +199,36 @@ const updateAggregator = async (req, res) => {
 // Providers
 const getProviders = async (req, res) => {
   try {
-    const db = getDb();
     const { aggregatorId } = req.query;
 
-    let query = `
-      SELECT p.*, a.name as aggregator_name, COUNT(g.id) as game_count
-      FROM providers p
-      JOIN aggregators a ON p.aggregator_id = a.id
-      LEFT JOIN games g ON p.id = g.provider_id
-    `;
-    const params = [];
+    const where = {};
+    if (aggregatorId) where.aggregatorId = aggregatorId;
 
-    if (aggregatorId) {
-      query += ' WHERE p.aggregator_id = ?';
-      params.push(aggregatorId);
-    }
-
-    query += ' GROUP BY p.id ORDER BY a.name, p.name';
-
-    const providers = db.prepare(query).all(...params);
+    const providers = await prisma.gameProvider.findMany({
+      where,
+      include: {
+        aggregator: true,
+        _count: {
+          select: { games: true }
+        }
+      },
+      orderBy: [
+        { aggregator: { name: 'asc' } },
+        { name: 'asc' }
+      ]
+    });
 
     res.json({
       providers: providers.map(p => ({
         id: p.id,
         name: p.name,
-        aggregatorId: p.aggregator_id,
-        aggregatorName: p.aggregator_name,
-        commissionRate: p.commission_rate,
-        status: p.status,
-        gameCount: p.game_count,
-        createdAt: p.created_at
+        slug: p.slug,
+        aggregatorId: p.aggregatorId,
+        aggregatorName: p.aggregator?.name,
+        logo: p.logoUrl,
+        status: p.isActive ? 'active' : 'inactive',
+        gameCount: p._count.games,
+        createdAt: p.createdAt
       }))
     });
   } catch (error) {
@@ -234,26 +240,26 @@ const getProviders = async (req, res) => {
 const updateProvider = async (req, res) => {
   try {
     const { providerId } = req.params;
-    const { name, commissionRate, status } = req.body;
-    const db = getDb();
+    const { name, status } = req.body;
 
-    const provider = db.prepare('SELECT id FROM providers WHERE id = ?').get(providerId);
-    if (!provider) {
-      return res.status(404).json({ error: 'Provider not found' });
-    }
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (status !== undefined) data.isActive = status === 'active';
 
-    db.prepare(`
-      UPDATE providers
-      SET name = COALESCE(?, name),
-          commission_rate = COALESCE(?, commission_rate),
-          status = COALESCE(?, status),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(name, commissionRate, status, providerId);
+    await prisma.gameProvider.update({
+      where: { id: providerId },
+      data
+    });
+
+    // Invalidate provider cache in player-backend
+    await invalidateProviderCache();
 
     res.json({ message: 'Provider updated' });
   } catch (error) {
     console.error('Update provider error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Provider not found' });
+    }
     res.status(500).json({ error: 'Failed to update provider' });
   }
 };
@@ -261,76 +267,62 @@ const updateProvider = async (req, res) => {
 // Games
 const getGames = async (req, res) => {
   try {
-    const db = getDb();
     const { search, providerId, categoryId, status, page = 1, limit = 50 } = req.query;
 
-    let query = `
-      SELECT DISTINCT g.*, p.name as provider_name, a.name as aggregator_name
-      FROM games g
-      JOIN providers p ON g.provider_id = p.id
-      JOIN aggregators a ON p.aggregator_id = a.id
-    `;
-    const params = [];
-
-    if (categoryId) {
-      query += ' JOIN game_categories gc ON g.id = gc.game_id AND gc.category_id = ?';
-      params.push(categoryId);
-    }
-
-    query += ' WHERE 1=1';
+    const where = {};
 
     if (search) {
-      query += ' AND (g.name LIKE ? OR p.name LIKE ?)';
-      params.push(`%${search}%`, `%${search}%`);
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { provider: { name: { contains: search, mode: 'insensitive' } } }
+      ];
     }
 
-    if (providerId) {
-      query += ' AND g.provider_id = ?';
-      params.push(providerId);
+    if (providerId) where.providerId = providerId;
+    if (categoryId) where.categoryId = categoryId;
+
+    if (status === 'active') {
+      where.isActive = true;
+    } else if (status === 'inactive') {
+      where.isActive = false;
+    } else if (status === 'maintenance') {
+      // Add maintenance flag if needed in schema
     }
 
-    if (status) {
-      query += ' AND g.status = ?';
-      params.push(status);
-    }
+    const total = await prisma.game.count({ where });
 
-    const countQuery = query.replace(/SELECT DISTINCT g\.\*, p\.name.*/, 'SELECT COUNT(DISTINCT g.id) as total');
-    const { total } = db.prepare(countQuery).get(...params);
-
-    query += ' ORDER BY g.name ASC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
-
-    const games = db.prepare(query).all(...params);
-
-    // Get categories for each game
-    const getGameCategories = db.prepare(`
-      SELECT c.id, c.name FROM categories c
-      JOIN game_categories gc ON c.id = gc.category_id
-      WHERE gc.game_id = ?
-    `);
-
-    const gamesWithCategories = games.map(g => {
-      const categories = getGameCategories.all(g.id);
-      return {
-        id: g.id,
-        name: g.name,
-        slug: g.slug,
-        providerId: g.provider_id,
-        providerName: g.provider_name,
-        aggregatorName: g.aggregator_name,
-        thumbnail: g.thumbnail,
-        rtp: g.rtp,
-        volatility: g.volatility,
-        minBet: g.min_bet,
-        maxBet: g.max_bet,
-        status: g.status,
-        categories,
-        createdAt: g.created_at
-      };
+    const games = await prisma.game.findMany({
+      where,
+      include: {
+        provider: {
+          include: {
+            aggregator: true
+          }
+        },
+        category: true
+      },
+      orderBy: { name: 'asc' },
+      skip: (parseInt(page) - 1) * parseInt(limit),
+      take: parseInt(limit)
     });
 
     res.json({
-      games: gamesWithCategories,
+      games: games.map(g => ({
+        id: g.id,
+        name: g.name,
+        slug: g.slug,
+        providerId: g.providerId,
+        providerName: g.provider.name,
+        aggregatorName: g.provider.aggregator?.name,
+        thumbnail: g.thumbnailUrl,
+        rtp: Number(g.rtp || 0),
+        volatility: g.volatility,
+        minBet: Number(g.minBet || 0),
+        maxBet: Number(g.maxBet || 0),
+        status: g.isActive ? 'active' : 'inactive',
+        categories: g.category ? [{ id: g.category.id, name: g.category.name }] : [],
+        createdAt: g.createdAt
+      })),
       pagination: {
         page: parseInt(page),
         limit: parseInt(limit),
@@ -347,44 +339,43 @@ const getGames = async (req, res) => {
 const getGame = async (req, res) => {
   try {
     const { gameId } = req.params;
-    const db = getDb();
 
-    const game = db.prepare(`
-      SELECT g.*, p.name as provider_name, a.name as aggregator_name
-      FROM games g
-      JOIN providers p ON g.provider_id = p.id
-      JOIN aggregators a ON p.aggregator_id = a.id
-      WHERE g.id = ?
-    `).get(gameId);
+    const game = await prisma.game.findUnique({
+      where: { id: gameId },
+      include: {
+        provider: {
+          include: {
+            aggregator: true
+          }
+        },
+        category: true
+      }
+    });
 
     if (!game) {
       return res.status(404).json({ error: 'Game not found' });
     }
-
-    const categories = db.prepare(`
-      SELECT c.id, c.name FROM categories c
-      JOIN game_categories gc ON c.id = gc.category_id
-      WHERE gc.game_id = ?
-    `).all(gameId);
 
     res.json({
       game: {
         id: game.id,
         name: game.name,
         slug: game.slug,
-        providerId: game.provider_id,
-        providerName: game.provider_name,
-        aggregatorName: game.aggregator_name,
-        thumbnail: game.thumbnail,
+        providerId: game.providerId,
+        providerName: game.provider.name,
+        aggregatorName: game.provider.aggregator?.name,
+        thumbnail: game.thumbnailUrl,
         description: game.description,
-        gameUrl: game.game_url,
-        rtp: game.rtp,
+        rtp: Number(game.rtp || 0),
         volatility: game.volatility,
-        minBet: game.min_bet,
-        maxBet: game.max_bet,
-        status: game.status,
-        categories,
-        createdAt: game.created_at
+        minBet: Number(game.minBet || 0),
+        maxBet: Number(game.maxBet || 0),
+        status: game.isActive ? 'active' : 'inactive',
+        isFeatured: game.isFeatured,
+        isNew: game.isNew,
+        isHot: game.isHot,
+        categories: game.category ? [{ id: game.category.id, name: game.category.name }] : [],
+        createdAt: game.createdAt
       }
     });
   } catch (error) {
@@ -396,63 +387,60 @@ const getGame = async (req, res) => {
 const updateGame = async (req, res) => {
   try {
     const { gameId } = req.params;
-    const { name, description, thumbnail, rtp, volatility, minBet, maxBet, status, categoryIds } = req.body;
-    const db = getDb();
+    const { name, description, thumbnail, rtp, volatility, minBet, maxBet, status, categoryId, isFeatured, isNew, isHot } = req.body;
 
-    const game = db.prepare('SELECT id FROM games WHERE id = ?').get(gameId);
-    if (!game) {
-      return res.status(404).json({ error: 'Game not found' });
-    }
+    const data = {};
+    if (name !== undefined) data.name = name;
+    if (description !== undefined) data.description = description;
+    if (thumbnail !== undefined) data.thumbnailUrl = thumbnail;
+    if (rtp !== undefined) data.rtp = parseFloat(rtp);
+    if (volatility !== undefined) data.volatility = volatility;
+    if (minBet !== undefined) data.minBet = parseFloat(minBet);
+    if (maxBet !== undefined) data.maxBet = parseFloat(maxBet);
+    if (status !== undefined) data.isActive = status === 'active';
+    if (categoryId !== undefined) data.categoryId = categoryId;
+    if (isFeatured !== undefined) data.isFeatured = isFeatured;
+    if (isNew !== undefined) data.isNew = isNew;
+    if (isHot !== undefined) data.isHot = isHot;
 
-    db.prepare(`
-      UPDATE games
-      SET name = COALESCE(?, name),
-          description = COALESCE(?, description),
-          thumbnail = COALESCE(?, thumbnail),
-          rtp = COALESCE(?, rtp),
-          volatility = COALESCE(?, volatility),
-          min_bet = COALESCE(?, min_bet),
-          max_bet = COALESCE(?, max_bet),
-          status = COALESCE(?, status),
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `).run(name, description, thumbnail, rtp, volatility, minBet, maxBet, status, gameId);
+    const game = await prisma.game.update({
+      where: { id: gameId },
+      data
+    });
 
-    // Update categories if provided
-    if (categoryIds && Array.isArray(categoryIds)) {
-      db.prepare('DELETE FROM game_categories WHERE game_id = ?').run(gameId);
-      const insertCategory = db.prepare('INSERT INTO game_categories (game_id, category_id) VALUES (?, ?)');
-      categoryIds.forEach(catId => {
-        insertCategory.run(gameId, catId);
-      });
-    }
+    // Invalidate game cache in player-backend
+    await invalidateGameCache(game.id, game.slug);
 
     res.json({ message: 'Game updated' });
   } catch (error) {
     console.error('Update game error:', error);
+    if (error.code === 'P2025') {
+      return res.status(404).json({ error: 'Game not found' });
+    }
     res.status(500).json({ error: 'Failed to update game' });
   }
 };
 
 const bulkUpdateGames = async (req, res) => {
   try {
-    const { gameIds, status, categoryId, action } = req.body;
-    const db = getDb();
+    const { gameIds, status, categoryId, isFeatured, isNew, isHot } = req.body;
 
-    if (status) {
-      const updateStmt = db.prepare('UPDATE games SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
-      gameIds.forEach(id => updateStmt.run(status, id));
-    }
+    const data = {};
+    if (status !== undefined) data.isActive = status === 'active';
+    if (categoryId !== undefined) data.categoryId = categoryId;
+    if (isFeatured !== undefined) data.isFeatured = isFeatured;
+    if (isNew !== undefined) data.isNew = isNew;
+    if (isHot !== undefined) data.isHot = isHot;
 
-    if (categoryId && action) {
-      if (action === 'add') {
-        const insertStmt = db.prepare('INSERT OR IGNORE INTO game_categories (game_id, category_id) VALUES (?, ?)');
-        gameIds.forEach(id => insertStmt.run(id, categoryId));
-      } else if (action === 'remove') {
-        const deleteStmt = db.prepare('DELETE FROM game_categories WHERE game_id = ? AND category_id = ?');
-        gameIds.forEach(id => deleteStmt.run(id, categoryId));
-      }
-    }
+    await prisma.game.updateMany({
+      where: {
+        id: { in: gameIds }
+      },
+      data
+    });
+
+    // Invalidate game cache in player-backend (bulk update affects featured/hot/new lists)
+    await invalidateGameCache();
 
     res.json({ message: `${gameIds.length} games updated` });
   } catch (error) {

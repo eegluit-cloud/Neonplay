@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  getPlayerById, getTransactionsByPlayerId, getPlayerBonusesByPlayerId,
-  getNotesByPlayerId, getGameHistoryByPlayerId, bonuses
-} from '../data/staticData';
+  getPlayer, getPlayerTransactions, adjustBalance,
+  addPlayerNote, updatePlayerStatus, getBonuses, awardBonus
+} from '../services/api';
 
 const PlayerDetail = () => {
   const { playerId } = useParams();
@@ -13,6 +13,7 @@ const PlayerDetail = () => {
   const [playerBonuses, setPlayerBonuses] = useState([]);
   const [notes, setNotes] = useState([]);
   const [gameHistory, setGameHistory] = useState([]);
+  const [bonusesList, setBonusesList] = useState([]);
   const [stats, setStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('transactions');
@@ -55,68 +56,121 @@ const PlayerDetail = () => {
     loadPlayerData();
   }, [playerId]);
 
-  const loadPlayerData = () => {
-    const foundPlayer = getPlayerById(playerId);
-    if (!foundPlayer) {
-      setError('Player not found');
+  const loadPlayerData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+
+      // Load player details
+      const playerData = await getPlayer(playerId);
+      setPlayer(playerData.player);
+
+      // Load transactions
+      const transactionsData = await getPlayerTransactions(playerId, { limit: 50 });
+      setPlayerTransactions(transactionsData.transactions || []);
+
+      // Load bonuses list
+      const bonusesData = await getBonuses({ status: 'active' });
+      setBonusesList(bonusesData.bonuses || []);
+
+      // Set player bonuses, notes, and game history from player data if available
+      setPlayerBonuses(playerData.player.bonuses || []);
+      setNotes(playerData.player.notes || []);
+      setGameHistory(playerData.player.gameHistory || []);
+
+      // Calculate stats from actual data
+      const balance = playerData.player.balance || 0;
+      const bonusBalance = playerData.player.bonusBalance || 0;
+      const deposits = balance * 2; // TODO: Get from actual transaction data
+      const withdrawals = balance * 0.5;
+      const wagered = balance * 3;
+      const ggr = wagered * 0.03;
+      const bonusTotal = bonusBalance + (balance * 0.1);
+      const rebates = wagered * 0.005;
+      const ngr = ggr - bonusTotal - rebates;
+
+      setStats({ deposits, withdrawals, wagered, ggr, bonusTotal, rebates, ngr });
       setLoading(false);
-      return;
+    } catch (err) {
+      console.error('Failed to load player data:', err);
+      setError(err.message || 'Failed to load player data');
+      setLoading(false);
     }
-    setPlayer(foundPlayer);
-    setPlayerTransactions(getTransactionsByPlayerId(playerId));
-    setPlayerBonuses(getPlayerBonusesByPlayerId(playerId));
-    setNotes(getNotesByPlayerId(playerId));
-    setGameHistory(getGameHistoryByPlayerId(playerId));
-
-    const deposits = foundPlayer.balance * 2;
-    const withdrawals = foundPlayer.balance * 0.5;
-    const wagered = foundPlayer.balance * 3;
-    const ggr = wagered * 0.03;
-    const bonusTotal = foundPlayer.bonusBalance + (foundPlayer.balance * 0.1);
-    const rebates = wagered * 0.005;
-    const ngr = ggr - bonusTotal - rebates;
-
-    setStats({ deposits, withdrawals, wagered, ggr, bonusTotal, rebates, ngr });
-    setLoading(false);
   };
 
   const addActivity = (action, details) => {
     setActivityLog([{ id: Date.now(), action, details, ip: '192.168.1.1', timestamp: new Date().toISOString() }, ...activityLog]);
   };
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = async (newStatus) => {
     const reason = window.prompt(`Reason for ${newStatus === 'suspended' ? 'suspending' : newStatus === 'blocked' ? 'blocking' : 'activating'}:`);
     if (!reason) return;
-    setPlayer({ ...player, status: newStatus });
-    addActivity('Status Change', `Status changed to ${newStatus}. Reason: ${reason}`);
-    setSuccess(`Player ${newStatus}`);
-    setTimeout(() => setSuccess(''), 3000);
+
+    try {
+      await updatePlayerStatus(playerId, newStatus, reason);
+      setPlayer({ ...player, status: newStatus });
+      addActivity('Status Change', `Status changed to ${newStatus}. Reason: ${reason}`);
+      setSuccess(`Player ${newStatus}`);
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Failed to update player status:', err);
+      setError(err.message || 'Failed to update player status');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
-  const handleBalanceAdjust = (e) => {
+  const handleBalanceAdjust = async (e) => {
     e.preventDefault();
     const amount = parseFloat(balanceAmount);
     const adjustedAmount = balanceAction === 'deduct' ? -amount : amount;
-    setPlayer({ ...player, balance: player.balance + adjustedAmount });
-    addActivity('Balance Adjustment', `${balanceAction === 'add' ? 'Added' : 'Deducted'} ${formatCurrency(amount)}. Reason: ${balanceReason}`);
-    setSuccess(`Balance ${balanceAction === 'add' ? 'added' : 'deducted'} successfully`);
-    setShowBalanceModal(false);
-    setBalanceAmount('');
-    setBalanceReason('');
-    setTimeout(() => setSuccess(''), 3000);
+
+    try {
+      await adjustBalance(playerId, {
+        amount: adjustedAmount,
+        reason: balanceReason,
+        type: balanceAction
+      });
+
+      setPlayer({ ...player, balance: player.balance + adjustedAmount });
+      addActivity('Balance Adjustment', `${balanceAction === 'add' ? 'Added' : 'Deducted'} ${formatCurrency(amount)}. Reason: ${balanceReason}`);
+      setSuccess(`Balance ${balanceAction === 'add' ? 'added' : 'deducted'} successfully`);
+      setShowBalanceModal(false);
+      setBalanceAmount('');
+      setBalanceReason('');
+      setTimeout(() => setSuccess(''), 3000);
+      loadPlayerData(); // Reload player data
+    } catch (err) {
+      console.error('Failed to adjust balance:', err);
+      setError(err.message || 'Failed to adjust balance');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
-  const handleGrantBonus = (e) => {
+  const handleGrantBonus = async (e) => {
     e.preventDefault();
-    const bonus = bonuses.find(b => b.id === parseInt(selectedBonus));
+    const bonus = bonusesList.find(b => b.id === parseInt(selectedBonus));
     const amount = parseFloat(bonusAmount) || bonus?.amount || 0;
-    setPlayer({ ...player, bonusBalance: player.bonusBalance + amount });
-    addActivity('Bonus Grant', `Granted ${bonus?.name || 'Manual Bonus'} worth ${formatCurrency(amount)}`);
-    setSuccess(`Bonus granted successfully`);
-    setShowBonusModal(false);
-    setSelectedBonus('');
-    setBonusAmount('');
-    setTimeout(() => setSuccess(''), 3000);
+
+    try {
+      await awardBonus({
+        playerId: parseInt(playerId),
+        promotionId: parseInt(selectedBonus),
+        amount: amount
+      });
+
+      setPlayer({ ...player, bonusBalance: player.bonusBalance + amount });
+      addActivity('Bonus Grant', `Granted ${bonus?.name || 'Manual Bonus'} worth ${formatCurrency(amount)}`);
+      setSuccess(`Bonus granted successfully`);
+      setShowBonusModal(false);
+      setSelectedBonus('');
+      setBonusAmount('');
+      setTimeout(() => setSuccess(''), 3000);
+      loadPlayerData(); // Reload player data
+    } catch (err) {
+      console.error('Failed to grant bonus:', err);
+      setError(err.message || 'Failed to grant bonus');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   const handleUpdateLimits = (e) => {
@@ -173,17 +227,27 @@ const PlayerDetail = () => {
     }
   };
 
-  const handleAddNote = (e) => {
+  const handleAddNote = async (e) => {
     e.preventDefault();
     if (!newNote.trim()) return;
-    const note = {
-      id: notes.length + 1, playerId: parseInt(playerId), adminName: 'Current Admin',
-      note: newNote, type: noteType, createdAt: new Date().toISOString()
-    };
-    setNotes([note, ...notes]);
-    addActivity('Note Added', `Added ${noteType} note`);
-    setNewNote('');
-    setNoteType('general');
+
+    try {
+      await addPlayerNote(playerId, newNote);
+      const note = {
+        id: notes.length + 1, playerId: parseInt(playerId), adminName: 'Current Admin',
+        note: newNote, type: noteType, createdAt: new Date().toISOString()
+      };
+      setNotes([note, ...notes]);
+      addActivity('Note Added', `Added ${noteType} note`);
+      setNewNote('');
+      setNoteType('general');
+      setSuccess('Note added successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Failed to add note:', err);
+      setError(err.message || 'Failed to add note');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);

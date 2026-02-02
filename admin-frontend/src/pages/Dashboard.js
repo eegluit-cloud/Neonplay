@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { dashboardStats, players, transactions, kycDocuments, games, providers, playerBonuses, bonuses } from '../data/staticData';
+import { getDashboardSummary } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
   const { admin } = useAuth();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [chartPeriod, setChartPeriod] = useState('7');
   const [recentActivity, setRecentActivity] = useState([]);
 
@@ -14,7 +15,23 @@ const Dashboard = () => {
     loadDashboard();
   }, []);
 
-  const loadDashboard = () => {
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getDashboardSummary();
+      const summary = response.summary;
+
+      setData(summary);
+      setLoading(false);
+    } catch (err) {
+      console.error('Dashboard load error:', err);
+      setError(err.message || 'Failed to load dashboard');
+      setLoading(false);
+    }
+  };
+
+  const loadDashboardOld = () => {
     const totalBalance = players.reduce((sum, p) => sum + p.balance, 0);
     const totalBonusBalance = players.reduce((sum, p) => sum + p.bonusBalance, 0);
     const pendingWithdrawals = transactions.filter(t => t.type === 'withdrawal' && t.status === 'pending');

@@ -133,7 +133,7 @@ export const gamesApi = {
 
 // Wallet API
 export const walletApi = {
-  getBalance: () => api.get('/wallet/balance'),
+  getBalance: () => api.get('/wallet'),
 
   getTransactions: (params?: { page?: number; limit?: number; type?: string }) =>
     api.get('/wallet/transactions', { params }),
@@ -146,6 +146,30 @@ export const walletApi = {
   getPaymentMethods: () => api.get('/wallet/payment-methods'),
 
   getCryptoOptions: () => api.get('/wallet/crypto-options'),
+};
+
+// Pay247 Payment Gateway API
+export const pay247Api = {
+  createDeposit: (data: {
+    amount: number;
+    currency: string;
+    paymentMethod: string;
+    returnUrl?: string;
+    theme?: 'link' | 'custom';
+  }) => api.post('/payment/pay247/deposit/create', data),
+
+  createWithdrawal: (data: {
+    amount: number;
+    currency: string;
+    paymentMethod: string;
+    accountDetails: any;
+  }) => api.post('/payment/pay247/withdrawal/create', data),
+
+  getDepositStatus: (orderId: string) =>
+    api.get(`/payment/pay247/deposit/${orderId}/status`),
+
+  getWithdrawalStatus: (orderId: string) =>
+    api.get(`/payment/pay247/withdrawal/${orderId}/status`),
 };
 
 // Leaderboard API

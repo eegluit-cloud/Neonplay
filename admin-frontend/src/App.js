@@ -16,6 +16,7 @@ import Bonuses from './pages/Bonuses';
 import Reports from './pages/Reports';
 import Admins from './pages/Admins';
 import CasinoManagement from './pages/CasinoManagement';
+import VIP from './pages/VIP';
 
 const ProtectedRoute = ({ children, requiredRoles }) => {
   const { isAuthenticated, loading, hasPermission } = useAuth();
@@ -80,6 +81,7 @@ function App() {
         <Route path="kyc" element={<KYC />} />
         <Route path="games" element={<Games />} />
         <Route path="bonuses" element={<Bonuses />} />
+        <Route path="vip" element={<VIP />} />
         <Route path="reports" element={<Reports />} />
         <Route path="casino-management" element={<CasinoManagement />} />
         <Route path="admins" element={

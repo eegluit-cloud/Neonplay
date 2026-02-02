@@ -21,6 +21,11 @@ export interface WalletBalances {
   GBP: number;
   CAD: number;
   AUD: number;
+  PHP: number;
+  INR: number;
+  THB: number;
+  CNY: number;
+  JPY: number;
   USDC: number;
   USDT: number;
   BTC: number;

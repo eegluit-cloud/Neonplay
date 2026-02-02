@@ -155,5 +155,49 @@ export const updateAdminStatus = (adminId, status) => api.patch(`/admins/${admin
 export const resetAdminPassword = (adminId, newPassword) => api.post(`/admins/${adminId}/reset-password`, { newPassword });
 export const deleteAdmin = (adminId) => api.delete(`/admins/${adminId}`);
 
+// VIP Management
+export const getVipTiers = () => api.get('/vip/tiers');
+export const getVipTier = (tierId) => api.get(`/vip/tiers/${tierId}`);
+export const createVipTier = (data) => {
+  if (data.iconFile) {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'iconFile') {
+        formData.append('iconFile', data[key]);
+      } else if (key === 'benefits') {
+        formData.append('benefits', JSON.stringify(data[key]));
+      } else {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.post('/vip/tiers', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
+  return api.post('/vip/tiers', data);
+};
+export const updateVipTier = (tierId, data) => {
+  if (data.iconFile) {
+    const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      if (key === 'iconFile') {
+        formData.append('iconFile', data[key]);
+      } else if (key === 'benefits') {
+        formData.append('benefits', JSON.stringify(data[key]));
+      } else {
+        formData.append(key, data[key]);
+      }
+    });
+    return api.put(`/vip/tiers/${tierId}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  }
+  return api.put(`/vip/tiers/${tierId}`, data);
+};
+export const deleteVipTier = (tierId) => api.delete(`/vip/tiers/${tierId}`);
+export const getVipStats = () => api.get('/vip/stats');
+export const getVipPageContent = () => api.get('/vip/page-content');
+export const updateVipPageContent = (content) => api.put('/vip/page-content', { content });
+
 export { api };
 export default api;

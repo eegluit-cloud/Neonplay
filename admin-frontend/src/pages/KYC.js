@@ -1,59 +1,79 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { kycDocuments as staticKycDocs, players } from '../data/staticData';
+import { getKycStats, getKycQueue, reviewDocument } from '../services/api';
 
 const KYC = () => {
   const [stats, setStats] = useState({});
   const [documents, setDocuments] = useState([]);
-  const [allDocuments, setAllDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1 });
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [status, setStatus] = useState('pending');
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [reviewNotes, setReviewNotes] = useState('');
 
   useEffect(() => {
-    setAllDocuments([...staticKycDocs]);
     loadStats();
   }, []);
 
   useEffect(() => {
     loadDocuments();
-  }, [status, pagination.page, allDocuments]);
+  }, [status, pagination.page]);
 
-  const loadStats = () => {
-    const pending = staticKycDocs.filter(d => d.status === 'pending').length;
-    const verified = players.filter(p => p.kycStatus === 'verified').length;
-    const underReview = players.filter(p => p.kycStatus === 'under_review').length;
-    const rejected = players.filter(p => p.kycStatus === 'rejected').length;
-    setStats({
-      pending_documents: pending,
-      verified_players: verified,
-      under_review_players: underReview,
-      rejected_players: rejected
-    });
+  const loadStats = async () => {
+    try {
+      const response = await getKycStats();
+      setStats(response.stats || {});
+    } catch (err) {
+      console.error('Failed to load KYC stats:', err);
+      setError('Failed to load KYC stats');
+    }
   };
 
-  const loadDocuments = () => {
-    setLoading(true);
-    const filtered = allDocuments.filter(d => d.status === status);
-    const total = filtered.length;
-    const pages = Math.ceil(total / 20) || 1;
-    const start = (pagination.page - 1) * 20;
-    setDocuments(filtered.slice(start, start + 20));
-    setPagination(prev => ({ ...prev, pages }));
-    setLoading(false);
+  const loadDocuments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = {
+        status,
+        page: pagination.page,
+        limit: 20
+      };
+
+      const response = await getKycQueue(params);
+      setDocuments(response.documents || []);
+
+      // Backend returns pagination nested in response.pagination
+      const paginationData = response.pagination || {};
+      setPagination({
+        page: paginationData.page || 1,
+        pages: paginationData.pages || 1,
+        total: paginationData.total || 0
+      });
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load KYC documents:', err);
+      setError('Failed to load KYC documents');
+      setDocuments([]);
+      setLoading(false);
+    }
   };
 
-  const handleReview = (action) => {
+  const handleReview = async (action) => {
     if (!selectedDoc) return;
-    const newStatus = action === 'approve' ? 'approved' : 'rejected';
-    setAllDocuments(allDocuments.map(d =>
-      d.id === selectedDoc.id ? { ...d, status: newStatus, notes: reviewNotes } : d
-    ));
-    setSelectedDoc(null);
-    setReviewNotes('');
-    alert(`Document ${action}d successfully`);
+
+    try {
+      await reviewDocument(selectedDoc.id, action, reviewNotes);
+      setSelectedDoc(null);
+      setReviewNotes('');
+      alert(`Document ${action}d successfully`);
+      loadDocuments(); // Reload documents
+      loadStats(); // Reload stats
+    } catch (err) {
+      console.error('Failed to review document:', err);
+      alert('Failed to review document: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const formatDate = (dateStr) => {
@@ -61,6 +81,7 @@ const KYC = () => {
   };
 
   const getDocTypeLabel = (type) => {
+    if (!type) return 'Unknown';
     return type.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
   };
 
@@ -95,10 +116,10 @@ const KYC = () => {
           Pending ({stats.pending_documents || 0})
         </button>
         <button
-          className={`quick-filter ${status === 'approved' ? 'active' : ''}`}
-          onClick={() => { setStatus('approved'); setPagination({ ...pagination, page: 1 }); }}
+          className={`quick-filter ${status === 'verified' ? 'active' : ''}`}
+          onClick={() => { setStatus('verified'); setPagination({ ...pagination, page: 1 }); }}
         >
-          Approved
+          Verified
         </button>
         <button
           className={`quick-filter ${status === 'rejected' ? 'active' : ''}`}
@@ -139,13 +160,13 @@ const KYC = () => {
                       </Link>
                       <div style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>{doc.playerEmail}</div>
                     </td>
-                    <td>{getDocTypeLabel(doc.documentType)}</td>
+                    <td>{getDocTypeLabel(doc.docType)}</td>
                     <td>
-                      <span className={`badge badge-${doc.status === 'approved' ? 'success' : doc.status === 'rejected' ? 'danger' : 'warning'}`}>
+                      <span className={`badge badge-${doc.status === 'verified' ? 'success' : doc.status === 'rejected' ? 'danger' : 'warning'}`}>
                         {doc.status}
                       </span>
                     </td>
-                    <td>{formatDate(doc.submittedAt)}</td>
+                    <td>{formatDate(doc.createdAt)}</td>
                     <td>
                       <div className="table-actions">
                         <button onClick={() => setSelectedDoc(doc)} className="btn btn-sm btn-primary">

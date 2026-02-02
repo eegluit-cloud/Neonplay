@@ -1,29 +1,73 @@
 import React, { useState, useEffect } from 'react';
 import {
-  transactions,
-  players,
-  bonuses,
-  playerBonuses,
-  games,
-  providers,
-  kycDocuments,
-  kycReportStats,
-  ngrData,
-  bankingReportData
-} from '../data/staticData';
+  getPlayerReport, getTransactionReport, getBankingReport,
+  getBonusReport, getGameReport, exportReport
+} from '../services/api';
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState('players');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [dateRange, setDateRange] = useState({
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
   });
+  const [playerStats, setPlayerStats] = useState({});
+  const [casinoStats, setCasinoStats] = useState({});
+  const [bankingStats, setBankingStats] = useState({});
+  const [bonusStats, setBonusStats] = useState({});
+  const [gameStats, setGameStats] = useState({});
+
+  useEffect(() => {
+    loadReports();
+  }, [activeTab, dateRange]);
+
+  const loadReports = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      };
+
+      // Load all reports in parallel
+      const [playerReport, bankingReport, bonusReport, gameReport] = await Promise.all([
+        getPlayerReport(params),
+        getBankingReport(params),
+        getBonusReport(params),
+        getGameReport(params)
+      ]);
+
+      setPlayerStats(playerReport.stats || {});
+      setBankingStats(bankingReport.stats || {});
+      setBonusStats(bonusReport.stats || {});
+      setGameStats(gameReport.stats || {});
+
+      // Calculate casino stats from transaction data
+      setCasinoStats({
+        totalBets: gameReport.stats?.totalBets || 0,
+        totalWins: gameReport.stats?.totalWins || 0,
+        ggr: gameReport.stats?.ggr || 0,
+        ngr: gameReport.stats?.ngr || 0,
+        uniquePlayers: gameReport.stats?.uniquePlayers || 0,
+        totalRounds: gameReport.stats?.totalRounds || 0
+      });
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load reports:', err);
+      setError('Failed to load reports');
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
   const formatPercent = (value) => `${(value || 0).toFixed(1)}%`;
 
-  // Player Management calculations
-  const playerStats = {
+  // Remove static calculations - data now comes from API
+  /* const playerStats = {
     total: players.length,
     active: players.filter(p => p.status === 'active').length,
     blocked: players.filter(p => p.status === 'blocked').length,
@@ -39,53 +83,21 @@ const Reports = () => {
     newThisMonth: 8
   };
 
-  // Casino Transactions calculations
-  const casinoStats = {
-    totalBets: transactions.filter(t => t.type === 'bet').reduce((sum, t) => sum + t.amount, 0),
-    totalWins: transactions.filter(t => t.type === 'win').reduce((sum, t) => sum + t.amount, 0),
-    ggr: 0,
-    ngr: 0,
-    uniquePlayers: new Set(transactions.map(t => t.playerId)).size,
-    totalRounds: transactions.filter(t => t.type === 'bet').length
-  };
-  casinoStats.ggr = casinoStats.totalBets - casinoStats.totalWins;
-  casinoStats.ngr = casinoStats.ggr * 0.9; // NGR = GGR - bonus cost (simplified)
+  */
 
-  // Banking calculations
-  const bankingStats = {
-    totalDeposits: transactions.filter(t => t.type === 'deposit' && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0),
-    totalWithdrawals: transactions.filter(t => t.type === 'withdrawal' && t.status === 'completed').reduce((sum, t) => sum + t.amount, 0),
-    pendingWithdrawals: transactions.filter(t => t.type === 'withdrawal' && t.status === 'pending'),
-    depositCount: transactions.filter(t => t.type === 'deposit').length,
-    withdrawalCount: transactions.filter(t => t.type === 'withdrawal').length
-  };
-  bankingStats.netCashflow = bankingStats.totalDeposits - bankingStats.totalWithdrawals;
-  bankingStats.pendingAmount = bankingStats.pendingWithdrawals.reduce((sum, t) => sum + t.amount, 0);
+  const handleExport = async (reportType) => {
+    try {
+      const params = {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      };
 
-  // Bonus calculations
-  const bonusStats = {
-    totalCost: playerBonuses.reduce((sum, pb) => sum + pb.amount, 0),
-    totalWagered: playerBonuses.reduce((sum, pb) => sum + pb.wagered, 0),
-    activeBonuses: playerBonuses.filter(pb => pb.status === 'active').length,
-    completedBonuses: playerBonuses.filter(pb => pb.status === 'completed').length,
-    conversionRate: 0,
-    totalClaims: bonuses.reduce((sum, b) => sum + b.currentClaims, 0)
-  };
-  bonusStats.conversionRate = bonusStats.totalClaims > 0
-    ? (bonusStats.completedBonuses / bonusStats.totalClaims * 100)
-    : 0;
-
-  // KYC calculations
-  const kycStats = {
-    totalSubmissions: kycDocuments.length,
-    pending: kycDocuments.filter(d => d.status === 'pending').length,
-    approved: kycDocuments.filter(d => d.status === 'approved').length,
-    rejected: kycDocuments.filter(d => d.status === 'rejected').length,
-    avgProcessingTime: kycReportStats?.summary?.avgProcessingHours || 4.2
-  };
-
-  const handleExport = (reportType) => {
-    alert(`Exporting ${reportType} report as CSV...`);
+      await exportReport(reportType, params);
+      alert(`Exporting ${reportType} report as CSV...`);
+    } catch (err) {
+      console.error('Failed to export report:', err);
+      alert('Failed to export report: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const registrationTrend = [

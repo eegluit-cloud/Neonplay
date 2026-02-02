@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { admins as staticAdmins } from '../data/staticData';
 import { useAuth } from '../context/AuthContext';
+import {
+  getAdmins, createAdmin, updateAdmin,
+  updateAdminStatus, resetAdminPassword
+} from '../services/api';
 
 const Admins = () => {
   const { admin: currentAdmin } = useAuth();
@@ -17,57 +20,94 @@ const Admins = () => {
     loadAdmins();
   }, []);
 
-  const loadAdmins = () => {
-    setLoading(true);
-    setAdmins([...staticAdmins]);
-    setLoading(false);
+  const loadAdmins = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const response = await getAdmins();
+      setAdmins(response.admins || []);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load admins:', err);
+      setError('Failed to load admins');
+      setAdmins([]);
+      setLoading(false);
+    }
   };
 
-  const handleCreateAdmin = (e) => {
+  const handleCreateAdmin = async (e) => {
     e.preventDefault();
     setError('');
-    const newAdmin = {
-      id: admins.length + 1,
-      email: formData.email,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      role: formData.role,
-      status: 'active',
-      createdAt: new Date().toISOString()
-    };
-    setAdmins([...admins, newAdmin]);
-    setShowModal(null);
-    resetForm();
-    alert('Admin created successfully');
+
+    try {
+      const adminData = {
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role
+      };
+
+      const response = await createAdmin(adminData);
+      setAdmins([...admins, response.admin]);
+      setShowModal(null);
+      resetForm();
+      alert('Admin created successfully');
+    } catch (err) {
+      console.error('Failed to create admin:', err);
+      setError(err.message || 'Failed to create admin');
+    }
   };
 
-  const handleUpdateAdmin = (e) => {
+  const handleUpdateAdmin = async (e) => {
     e.preventDefault();
     setError('');
-    setAdmins(admins.map(a => a.id === editAdmin.id ? {
-      ...a,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      role: formData.role,
-    } : a));
-    setShowModal(null);
-    setEditAdmin(null);
-    resetForm();
-    alert('Admin updated successfully');
+
+    try {
+      const adminData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        role: formData.role
+      };
+
+      await updateAdmin(editAdmin.id, adminData);
+      setAdmins(admins.map(a => a.id === editAdmin.id ? { ...a, ...adminData } : a));
+      setShowModal(null);
+      setEditAdmin(null);
+      resetForm();
+      alert('Admin updated successfully');
+    } catch (err) {
+      console.error('Failed to update admin:', err);
+      setError(err.message || 'Failed to update admin');
+    }
   };
 
-  const handleStatusChange = (adminId, status) => {
+  const handleStatusChange = async (adminId, status) => {
     if (!window.confirm(`Are you sure you want to ${status === 'disabled' ? 'disable' : 'enable'} this admin?`)) return;
-    setAdmins(admins.map(a => a.id === adminId ? { ...a, status } : a));
+
+    try {
+      await updateAdminStatus(adminId, status);
+      setAdmins(admins.map(a => a.id === adminId ? { ...a, status } : a));
+    } catch (err) {
+      console.error('Failed to update admin status:', err);
+      alert('Failed to update admin status: ' + (err.message || 'Unknown error'));
+    }
   };
 
-  const handleResetPassword = (adminId) => {
+  const handleResetPassword = async (adminId) => {
     const newPassword = window.prompt('Enter new password (min 8 characters):');
     if (!newPassword || newPassword.length < 8) {
       alert('Password must be at least 8 characters');
       return;
     }
-    alert('Password reset successfully');
+
+    try {
+      await resetAdminPassword(adminId, newPassword);
+      alert('Password reset successfully');
+    } catch (err) {
+      console.error('Failed to reset password:', err);
+      alert('Failed to reset password: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const resetForm = () => {

@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { players as staticPlayers } from '../data/staticData';
+import { getPlayers, updatePlayerStatus } from '../services/api';
 
 const Players = () => {
   const [players, setPlayers] = useState([]);
-  const [allFiltered, setAllFiltered] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [filters, setFilters] = useState({
     search: '',
@@ -27,73 +27,45 @@ const Players = () => {
     loadPlayers();
   }, [pagination.page, filters]);
 
-  const loadPlayers = () => {
-    setLoading(true);
-    let filtered = [...staticPlayers];
+  const loadPlayers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-    if (filters.search) {
-      const search = filters.search.toLowerCase();
-      filtered = filtered.filter(p =>
-        p.email.toLowerCase().includes(search) ||
-        p.firstName?.toLowerCase().includes(search) ||
-        p.lastName?.toLowerCase().includes(search) ||
-        p.phone?.includes(search) ||
-        p.id?.toString().includes(search)
-      );
+      const params = {
+        page: pagination.page,
+        limit: 20,
+      };
+
+      if (filters.search) params.search = filters.search;
+      if (filters.status) params.status = filters.status;
+      if (filters.kycStatus) params.kycStatus = filters.kycStatus;
+      if (filters.minBalance) params.minBalance = filters.minBalance;
+      if (filters.maxBalance) params.maxBalance = filters.maxBalance;
+      if (filters.dateFrom) params.dateFrom = filters.dateFrom;
+      if (filters.dateTo) params.dateTo = filters.dateTo;
+      if (filters.sortBy) params.sortBy = filters.sortBy;
+      if (filters.sortOrder) params.sortOrder = filters.sortOrder;
+
+      const response = await getPlayers(params);
+
+      setPlayers(response.players || []);
+
+      // Backend returns pagination nested in response.pagination
+      const paginationData = response.pagination || {};
+      setPagination({
+        page: paginationData.page || 1,
+        pages: paginationData.pages || 1,
+        total: paginationData.total || 0,
+      });
+      setSelectedPlayers([]);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load players:', err);
+      setError(err.message || 'Failed to load players');
+      setPlayers([]);
+      setLoading(false);
     }
-
-    if (filters.status) {
-      filtered = filtered.filter(p => p.status === filters.status);
-    }
-
-    if (filters.kycStatus) {
-      filtered = filtered.filter(p => p.kycStatus === filters.kycStatus);
-    }
-
-    if (filters.minBalance) {
-      filtered = filtered.filter(p => (p.balance || 0) >= parseFloat(filters.minBalance));
-    }
-
-    if (filters.maxBalance) {
-      filtered = filtered.filter(p => (p.balance || 0) <= parseFloat(filters.maxBalance));
-    }
-
-    if (filters.dateFrom) {
-      filtered = filtered.filter(p => new Date(p.createdAt) >= new Date(filters.dateFrom));
-    }
-
-    if (filters.dateTo) {
-      filtered = filtered.filter(p => new Date(p.createdAt) <= new Date(filters.dateTo));
-    }
-
-    // Sort
-    filtered.sort((a, b) => {
-      let aVal = a[filters.sortBy];
-      let bVal = b[filters.sortBy];
-      if (filters.sortBy === 'balance' || filters.sortBy === 'bonusBalance') {
-        aVal = aVal || 0;
-        bVal = bVal || 0;
-      }
-      if (filters.sortBy === 'createdAt' || filters.sortBy === 'lastLogin') {
-        aVal = new Date(aVal || 0);
-        bVal = new Date(bVal || 0);
-      }
-      if (filters.sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      }
-      return aVal < bVal ? 1 : -1;
-    });
-
-    setAllFiltered(filtered);
-    const total = filtered.length;
-    const pages = Math.ceil(total / 20) || 1;
-    const start = (pagination.page - 1) * 20;
-    const paginatedPlayers = filtered.slice(start, start + 20);
-
-    setPlayers(paginatedPlayers);
-    setPagination(prev => ({ ...prev, pages, total }));
-    setLoading(false);
-    setSelectedPlayers([]);
   };
 
   const handleFilterChange = (key, value) => {
@@ -101,13 +73,18 @@ const Players = () => {
     setPagination({ ...pagination, page: 1 });
   };
 
-  const handleStatusChange = (playerId, newStatus) => {
+  const handleStatusChange = async (playerId, newStatus) => {
     const reason = window.prompt(`Please provide a reason for ${newStatus === 'blocked' ? 'blocking' : 'changing status of'} this player:`);
     if (!reason) return;
-    setPlayers(players.map(p =>
-      p.id === playerId ? { ...p, status: newStatus } : p
-    ));
-    alert(`Player status updated to ${newStatus}`);
+
+    try {
+      await updatePlayerStatus(playerId, newStatus, reason);
+      alert(`Player status updated to ${newStatus}`);
+      loadPlayers(); // Reload the players list
+    } catch (err) {
+      console.error('Failed to update player status:', err);
+      alert('Failed to update player status: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const handleSelectPlayer = (playerId) => {
@@ -124,28 +101,42 @@ const Players = () => {
     }
   };
 
-  const handleBulkAction = () => {
+  const handleBulkAction = async () => {
     if (!bulkAction || selectedPlayers.length === 0) return;
 
     if (bulkAction === 'block') {
       const reason = window.prompt('Reason for blocking selected players:');
       if (!reason) return;
-      setPlayers(players.map(p =>
-        selectedPlayers.includes(p.id) ? { ...p, status: 'blocked' } : p
-      ));
-      alert(`${selectedPlayers.length} player(s) blocked`);
+
+      try {
+        await Promise.all(selectedPlayers.map(id => updatePlayerStatus(id, 'blocked', reason)));
+        alert(`${selectedPlayers.length} player(s) blocked`);
+        loadPlayers();
+      } catch (err) {
+        console.error('Bulk block failed:', err);
+        alert('Failed to block some players: ' + (err.message || 'Unknown error'));
+      }
     } else if (bulkAction === 'activate') {
-      setPlayers(players.map(p =>
-        selectedPlayers.includes(p.id) ? { ...p, status: 'active' } : p
-      ));
-      alert(`${selectedPlayers.length} player(s) activated`);
+      try {
+        await Promise.all(selectedPlayers.map(id => updatePlayerStatus(id, 'active', 'Bulk activation')));
+        alert(`${selectedPlayers.length} player(s) activated`);
+        loadPlayers();
+      } catch (err) {
+        console.error('Bulk activate failed:', err);
+        alert('Failed to activate some players: ' + (err.message || 'Unknown error'));
+      }
     } else if (bulkAction === 'suspend') {
       const reason = window.prompt('Reason for suspending selected players:');
       if (!reason) return;
-      setPlayers(players.map(p =>
-        selectedPlayers.includes(p.id) ? { ...p, status: 'suspended' } : p
-      ));
-      alert(`${selectedPlayers.length} player(s) suspended`);
+
+      try {
+        await Promise.all(selectedPlayers.map(id => updatePlayerStatus(id, 'suspended', reason)));
+        alert(`${selectedPlayers.length} player(s) suspended`);
+        loadPlayers();
+      } catch (err) {
+        console.error('Bulk suspend failed:', err);
+        alert('Failed to suspend some players: ' + (err.message || 'Unknown error'));
+      }
     } else if (bulkAction === 'export') {
       handleExport();
     }
@@ -157,8 +148,8 @@ const Players = () => {
 
   const handleExport = () => {
     const dataToExport = selectedPlayers.length > 0
-      ? allFiltered.filter(p => selectedPlayers.includes(p.id))
-      : allFiltered;
+      ? players.filter(p => selectedPlayers.includes(p.id))
+      : players;
 
     const csv = [
       ['ID', 'Email', 'First Name', 'Last Name', 'Balance', 'Bonus', 'Status', 'KYC', 'Registered'].join(','),
@@ -176,7 +167,7 @@ const Players = () => {
     a.download = `players-export-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    alert(`Exported ${dataToExport.length} player(s)`);
+    alert(`Exported ${dataToExport.length} player(s) from current page`);
   };
 
   const clearFilters = () => {
@@ -209,6 +200,18 @@ const Players = () => {
 
   return (
     <div>
+      {/* Error Message */}
+      {error && (
+        <div className="alert alert-danger" style={{ marginBottom: '20px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {error}
+        </div>
+      )}
+
       {/* Quick Filters */}
       <div className="quick-filters">
         <button

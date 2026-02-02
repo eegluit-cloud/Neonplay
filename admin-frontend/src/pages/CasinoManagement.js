@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-  aggregators as staticAggregators,
-  customCategories as staticCategories,
-  gameCategoryAssignments as staticAssignments,
-  providerAggregatorMap,
-  games as staticGames,
-  providers as staticProviders
-} from '../data/staticData';
+  getCategories, getAggregators, getProviders, getGames,
+  createCategory, updateCategory, deleteCategory,
+  updateAggregator, updateProvider, updateGame
+} from '../services/api';
 
 const CasinoManagement = () => {
   const [activeTab, setActiveTab] = useState('categories');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // Categories state
   const [categories, setCategories] = useState([]);
@@ -35,34 +34,57 @@ const CasinoManagement = () => {
   const [assignments, setAssignments] = useState([]);
 
   useEffect(() => {
-    setCategories([...staticCategories]);
-    setAggregators([...staticAggregators]);
-    setProviders(staticProviders.map(p => {
-      const mapping = providerAggregatorMap.find(m => m.providerId === p.id);
-      const agg = staticAggregators.find(a => a.id === mapping?.aggregatorId);
-      return { ...p, aggregatorId: mapping?.aggregatorId, aggregatorName: agg?.name || 'Unknown' };
-    }));
-    setGames([...staticGames].slice(0, 100)); // Load first 100 for performance
-    setAssignments([...staticAssignments]);
+    loadData();
   }, []);
 
-  // Category functions
-  const handleCategorySubmit = (e) => {
-    e.preventDefault();
-    if (editCategory) {
-      setCategories(categories.map(c => c.id === editCategory.id ? { ...c, ...categoryForm } : c));
-      alert('Category updated successfully');
-    } else {
-      const newCategory = {
-        ...categoryForm,
-        id: Math.max(...categories.map(c => c.id)) + 1,
-        slug: categoryForm.name.toLowerCase().replace(/\s+/g, '-'),
-        createdAt: new Date().toISOString()
-      };
-      setCategories([...categories, newCategory]);
-      alert('Category created successfully');
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Load all data in parallel
+      const [categoriesRes, aggregatorsRes, providersRes, gamesRes] = await Promise.all([
+        getCategories(),
+        getAggregators(),
+        getProviders(),
+        getGames({ limit: 100 })
+      ]);
+
+      setCategories(categoriesRes.categories || []);
+      setAggregators(aggregatorsRes.aggregators || []);
+      setProviders(providersRes.providers || []);
+      setGames(gamesRes.games || []);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load casino management data:', err);
+      setError('Failed to load data');
+      setLoading(false);
     }
-    closeCategoryModal();
+  };
+
+  // Category functions
+  const handleCategorySubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      if (editCategory) {
+        await updateCategory(editCategory.id, categoryForm);
+        setCategories(categories.map(c => c.id === editCategory.id ? { ...c, ...categoryForm } : c));
+        alert('Category updated successfully');
+      } else {
+        const categoryData = {
+          ...categoryForm,
+          slug: categoryForm.name.toLowerCase().replace(/\s+/g, '-')
+        };
+        const response = await createCategory(categoryData);
+        setCategories([...categories, response.category]);
+        alert('Category created successfully');
+      }
+      closeCategoryModal();
+    } catch (err) {
+      console.error('Failed to save category:', err);
+      alert('Failed to save category: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const openEditCategory = (category) => {
@@ -85,17 +107,32 @@ const CasinoManagement = () => {
     setCategoryForm({ name: '', slug: '', description: '', icon: 'star', displayOrder: 1, status: 'active', showOnHomepage: true });
   };
 
-  const toggleCategoryStatus = (categoryId) => {
-    setCategories(categories.map(c =>
-      c.id === categoryId ? { ...c, status: c.status === 'active' ? 'inactive' : 'active' } : c
-    ));
+  const toggleCategoryStatus = async (categoryId) => {
+    const category = categories.find(c => c.id === categoryId);
+    const newStatus = category.status === 'active' ? 'inactive' : 'active';
+
+    try {
+      await updateCategory(categoryId, { status: newStatus });
+      setCategories(categories.map(c =>
+        c.id === categoryId ? { ...c, status: newStatus } : c
+      ));
+    } catch (err) {
+      console.error('Failed to toggle category status:', err);
+      alert('Failed to toggle category status: ' + (err.message || 'Unknown error'));
+    }
   };
 
-  const deleteCategory = (categoryId) => {
+  const deleteCategoryFunc = async (categoryId) => {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
-    setCategories(categories.filter(c => c.id !== categoryId));
-    setAssignments(assignments.filter(a => a.categoryId !== categoryId));
-    alert('Category deleted successfully');
+
+    try {
+      await deleteCategory(categoryId);
+      setCategories(categories.filter(c => c.id !== categoryId));
+      alert('Category deleted successfully');
+    } catch (err) {
+      console.error('Failed to delete category:', err);
+      alert('Failed to delete category: ' + (err.message || 'Unknown error'));
+    }
   };
 
   // Aggregator functions
@@ -190,6 +227,26 @@ const CasinoManagement = () => {
 
   return (
     <div>
+      {/* Error Message */}
+      {error && (
+        <div className="alert alert-danger" style={{ marginBottom: '20px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {error}
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="loading" style={{ marginBottom: '20px' }}>
+          <div className="spinner"></div>
+          <p>Loading casino management data...</p>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="tabs-container">
         <div className="tabs">
@@ -315,10 +372,10 @@ const CasinoManagement = () => {
                       <div style={{ fontWeight: '500' }}>{agg.name}</div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--gray)' }}>{agg.slug}</div>
                     </td>
-                    <td style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{agg.apiEndpoint}</td>
-                    <td>{agg.providerCount}</td>
-                    <td>{agg.gameCount.toLocaleString()}</td>
-                    <td style={{ fontSize: '0.85rem' }}>{formatDate(agg.lastSync)}</td>
+                    <td style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{agg.apiUrl || 'N/A'}</td>
+                    <td>{agg.providerCount || 0}</td>
+                    <td>{(agg.gameCount || 0).toLocaleString()}</td>
+                    <td style={{ fontSize: '0.85rem' }}>{agg.createdAt ? formatDate(agg.createdAt) : 'N/A'}</td>
                     <td>
                       <span className={`badge badge-${agg.status === 'active' ? 'success' : 'danger'}`}>
                         {agg.status}

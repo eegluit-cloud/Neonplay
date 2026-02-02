@@ -46,15 +46,17 @@ services:
   # DATABASE MIGRATIONS
   # ============================================
 
-  # Run Prisma migrations and seed (runs once then exits)
+  # Run Prisma migrations and seed for Player Backend (runs once then exits)
   migrations:
     build:
-      context: ./player-backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./player-backend/Dockerfile
       target: development
     container_name: neonplay-migrations
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
+    volumes:
+      - ./shared:/app/shared:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,11 +64,42 @@ services:
       - neonplay-network
     command: >
       sh -c "
-        echo 'Running Prisma db push...' &&
+        echo 'Running Player Backend Prisma db push...' &&
         npx prisma db push --skip-generate &&
-        echo 'Running database seed...' &&
-        npx prisma db seed || echo 'Seeding skipped or failed' &&
-        echo 'Setup complete!'
+        echo 'Running Player Backend database seed...' &&
+        npx prisma db seed || echo 'Player Backend seeding skipped or failed' &&
+        echo 'Player Backend setup complete!'
+      "
+    restart: "no"
+
+  # Run Prisma migrations and seed for Admin Backend (runs once then exits)
+  admin-migrations:
+    build:
+      context: .
+      dockerfile: ./admin-backend/Dockerfile
+    container_name: neonplay-admin-migrations
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
+    volumes:
+      - ./shared:/app/shared:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    networks:
+      - neonplay-network
+    command: >
+      sh -c "
+        echo 'Installing dependencies...' &&
+        npm install &&
+        echo 'Generating Prisma client...' &&
+        npx prisma generate &&
+        echo 'Running Admin Backend Prisma db push...' &&
+        npx prisma db push --skip-generate &&
+        echo 'Running Admin Backend database seed...' &&
+        npx prisma db seed || echo 'Admin Backend seeding skipped or failed' &&
+        echo 'Admin Backend setup complete!'
       "
     restart: "no"
 
@@ -77,8 +110,8 @@ services:
   # Player Backend - NestJS + Prisma + PostgreSQL
   player-backend:
     build:
-      context: ./player-backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./player-backend/Dockerfile
       target: development
     container_name: neonplay-player-backend
     restart: unless-stopped
@@ -97,6 +130,8 @@ services:
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-32-character-encryption-key-here}
     ports:
       - "4000:4000"
+    volumes:
+      - ./shared:/app/shared:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -144,21 +179,32 @@ services:
   # Admin Backend - Express.js
   admin-backend:
     build:
-      context: ./admin-backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./admin-backend/Dockerfile
     container_name: neonplay-admin-backend
     restart: unless-stopped
     ports:
       - "8002:8002"
     volumes:
       - ./admin-backend:/app
+      - ./shared:/app/shared:ro
       - /app/node_modules
-      - admin-data:/app/data
     environment:
       - NODE_ENV=development
       - PORT=8002
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - JWT_SECRET=docker-jwt-secret-change-in-production
       - JWT_EXPIRES_IN=24h
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      admin-migrations:
+        condition: service_completed_successfully
     networks:
       - neonplay-network
 
@@ -223,7 +269,6 @@ services:
 volumes:
   postgres_data:
   redis_data:
-  admin-data:
 
 networks:
   neonplay-network:

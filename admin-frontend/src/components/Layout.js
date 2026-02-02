@@ -34,6 +34,7 @@ const Layout = () => {
     if (path === '/kyc') return 'KYC Management';
     if (path === '/games') return 'Games Management';
     if (path === '/bonuses') return 'Bonus Management';
+    if (path === '/vip') return 'VIP Management';
     if (path === '/reports') return 'Reports';
     if (path === '/admins') return 'Admin Users';
     if (path === '/casino-management') return 'Casino Management';
@@ -134,6 +135,14 @@ const Layout = () => {
                   </svg>
                 </span>
                 Bonuses
+              </NavLink>
+              <NavLink to="/vip" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                <span className="sidebar-link-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L15 8L22 9L17 14L18 21L12 18L6 21L7 14L2 9L9 8L12 2Z"/>
+                  </svg>
+                </span>
+                VIP
               </NavLink>
               <NavLink to="/casino-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
                 <span className="sidebar-link-icon">

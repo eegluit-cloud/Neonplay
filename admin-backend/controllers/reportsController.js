@@ -1,75 +1,133 @@
-const { getDb } = require('../database/init');
+const prisma = require('../lib/prisma');
 const { Parser } = require('json2csv');
+
+// Helper function to format dates for grouping
+const groupByPeriod = (data, dateField, groupBy = 'day') => {
+  const grouped = {};
+
+  data.forEach(item => {
+    const date = new Date(item[dateField]);
+    let key;
+
+    switch (groupBy) {
+      case 'hour':
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:00`;
+        break;
+      case 'week':
+        const weekNum = Math.ceil(((date - new Date(date.getFullYear(), 0, 1)) / 86400000 + 1) / 7);
+        key = `${date.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+        break;
+      case 'month':
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+        break;
+      default: // day
+        key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    if (!grouped[key]) {
+      grouped[key] = [];
+    }
+    grouped[key].push(item);
+  });
+
+  return grouped;
+};
 
 // Transaction Reports
 const getTransactionReport = async (req, res) => {
   try {
-    const db = getDb();
     const { startDate, endDate, type, status, groupBy = 'day' } = req.query;
 
-    let dateFormat;
-    switch (groupBy) {
-      case 'hour': dateFormat = '%Y-%m-%d %H:00'; break;
-      case 'day': dateFormat = '%Y-%m-%d'; break;
-      case 'week': dateFormat = '%Y-W%W'; break;
-      case 'month': dateFormat = '%Y-%m'; break;
-      default: dateFormat = '%Y-%m-%d';
-    }
-
-    let query = `
-      SELECT
-        strftime('${dateFormat}', created_at) as period,
-        type,
-        COUNT(*) as count,
-        SUM(amount) as total_amount,
-        SUM(CASE WHEN status = 'completed' OR status = 'approved' THEN amount ELSE 0 END) as completed_amount,
-        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending_amount
-      FROM transactions
-      WHERE 1=1
-    `;
-    const params = [];
+    const where = {};
 
     if (startDate) {
-      query += ' AND created_at >= ?';
-      params.push(startDate);
+      where.createdAt = { ...where.createdAt, gte: new Date(startDate) };
     }
 
     if (endDate) {
-      query += ' AND created_at <= ?';
-      params.push(endDate);
+      where.createdAt = { ...where.createdAt, lte: new Date(endDate) };
     }
 
     if (type) {
-      query += ' AND type = ?';
-      params.push(type);
+      where.type = type;
     }
 
     if (status) {
-      query += ' AND status = ?';
-      params.push(status);
+      where.status = status;
     }
 
-    query += ' GROUP BY period, type ORDER BY period DESC, type';
+    const transactions = await prisma.transaction.findMany({
+      where,
+      select: {
+        type: true,
+        amount: true,
+        status: true,
+        createdAt: true
+      }
+    });
 
-    const data = db.prepare(query).all(...params);
+    // Group by period and type
+    const periodGroups = groupByPeriod(transactions, 'createdAt', groupBy);
+    const data = [];
+
+    Object.entries(periodGroups).forEach(([period, txs]) => {
+      const typeGroups = {};
+
+      txs.forEach(tx => {
+        if (!typeGroups[tx.type]) {
+          typeGroups[tx.type] = {
+            period,
+            type: tx.type,
+            count: 0,
+            total_amount: 0,
+            completed_amount: 0,
+            pending_amount: 0
+          };
+        }
+
+        typeGroups[tx.type].count++;
+        typeGroups[tx.type].total_amount += Number(tx.amount);
+
+        if (tx.status === 'completed' || tx.status === 'approved') {
+          typeGroups[tx.type].completed_amount += Number(tx.amount);
+        } else if (tx.status === 'pending') {
+          typeGroups[tx.type].pending_amount += Number(tx.amount);
+        }
+      });
+
+      data.push(...Object.values(typeGroups));
+    });
 
     // Summary
-    const summary = db.prepare(`
-      SELECT
-        type,
-        COUNT(*) as count,
-        SUM(amount) as total,
-        SUM(CASE WHEN status = 'completed' OR status = 'approved' THEN amount ELSE 0 END) as completed,
-        SUM(CASE WHEN status = 'pending' THEN amount ELSE 0 END) as pending,
-        SUM(CASE WHEN status = 'rejected' OR status = 'cancelled' THEN amount ELSE 0 END) as failed
-      FROM transactions
-      WHERE 1=1
-      ${startDate ? 'AND created_at >= ?' : ''}
-      ${endDate ? 'AND created_at <= ?' : ''}
-      GROUP BY type
-    `).all(...(startDate && endDate ? [startDate, endDate] : startDate ? [startDate] : endDate ? [endDate] : []));
+    const summaryData = {};
+    transactions.forEach(tx => {
+      if (!summaryData[tx.type]) {
+        summaryData[tx.type] = {
+          type: tx.type,
+          count: 0,
+          total: 0,
+          completed: 0,
+          pending: 0,
+          failed: 0
+        };
+      }
 
-    res.json({ data, summary });
+      summaryData[tx.type].count++;
+      summaryData[tx.type].total += Number(tx.amount);
+
+      if (tx.status === 'completed' || tx.status === 'approved') {
+        summaryData[tx.type].completed += Number(tx.amount);
+      } else if (tx.status === 'pending') {
+        summaryData[tx.type].pending += Number(tx.amount);
+      } else if (tx.status === 'rejected' || tx.status === 'cancelled') {
+        summaryData[tx.type].failed += Number(tx.amount);
+      }
+    });
+
+    res.json({
+      data: data.sort((a, b) => b.period.localeCompare(a.period)),
+      summary: Object.values(summaryData)
+    });
   } catch (error) {
     console.error('Transaction report error:', error);
     res.status(500).json({ error: 'Failed to generate report' });
@@ -79,60 +137,89 @@ const getTransactionReport = async (req, res) => {
 // Banking Reports
 const getBankingReport = async (req, res) => {
   try {
-    const db = getDb();
     const { startDate, endDate } = req.query;
 
-    let whereClause = 'WHERE type IN (\'deposit\', \'withdrawal\')';
-    const params = [];
+    const where = {
+      type: { in: ['deposit', 'withdrawal'] }
+    };
 
-    if (startDate) {
-      whereClause += ' AND created_at >= ?';
-      params.push(startDate);
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    if (endDate) {
-      whereClause += ' AND created_at <= ?';
-      params.push(endDate);
-    }
+    const transactions = await prisma.transaction.findMany({
+      where,
+      select: {
+        type: true,
+        status: true,
+        amount: true,
+        referenceType: true
+      }
+    });
 
-    // By payment method
-    const byPaymentMethod = db.prepare(`
-      SELECT
-        payment_method,
-        type,
-        COUNT(*) as count,
-        SUM(amount) as total,
-        SUM(CASE WHEN status = 'completed' OR status = 'approved' THEN 1 ELSE 0 END) as successful,
-        SUM(CASE WHEN status = 'failed' OR status = 'rejected' THEN 1 ELSE 0 END) as failed
-      FROM transactions
-      ${whereClause}
-      GROUP BY payment_method, type
-      ORDER BY payment_method, type
-    `).all(...params);
+    // By payment method (using referenceType as proxy)
+    const byPaymentMethod = {};
+    transactions.forEach(tx => {
+      const key = `${tx.referenceType || 'unknown'}-${tx.type}`;
+      if (!byPaymentMethod[key]) {
+        byPaymentMethod[key] = {
+          payment_method: tx.referenceType || 'unknown',
+          type: tx.type,
+          count: 0,
+          total: 0,
+          successful: 0,
+          failed: 0
+        };
+      }
+
+      byPaymentMethod[key].count++;
+      byPaymentMethod[key].total += Number(tx.amount);
+
+      if (tx.status === 'completed' || tx.status === 'approved') {
+        byPaymentMethod[key].successful++;
+      } else if (tx.status === 'failed' || tx.status === 'rejected') {
+        byPaymentMethod[key].failed++;
+      }
+    });
 
     // Success rate
-    const successRate = db.prepare(`
-      SELECT
-        type,
-        COUNT(*) as total,
-        SUM(CASE WHEN status = 'completed' OR status = 'approved' THEN 1 ELSE 0 END) as successful,
-        ROUND(SUM(CASE WHEN status = 'completed' OR status = 'approved' THEN 1 ELSE 0 END) * 100.0 / COUNT(*), 2) as rate
-      FROM transactions
-      ${whereClause}
-      GROUP BY type
-    `).all(...params);
+    const successRate = {};
+    transactions.forEach(tx => {
+      if (!successRate[tx.type]) {
+        successRate[tx.type] = {
+          type: tx.type,
+          total: 0,
+          successful: 0,
+          rate: 0
+        };
+      }
+
+      successRate[tx.type].total++;
+      if (tx.status === 'completed' || tx.status === 'approved') {
+        successRate[tx.type].successful++;
+      }
+    });
+
+    Object.values(successRate).forEach(sr => {
+      sr.rate = sr.total > 0 ? ((sr.successful / sr.total) * 100).toFixed(2) : 0;
+    });
 
     // Pending withdrawals
-    const pendingWithdrawals = db.prepare(`
-      SELECT COUNT(*) as count, SUM(amount) as total
-      FROM transactions
-      WHERE type = 'withdrawal' AND status = 'pending'
-    `).get();
+    const pendingWithdrawals = await prisma.withdrawal.aggregate({
+      where: { status: 'pending' },
+      _count: true,
+      _sum: { amount: true }
+    });
 
     res.json({
-      byPaymentMethod,
-      successRate,
-      pendingWithdrawals
+      byPaymentMethod: Object.values(byPaymentMethod),
+      successRate: Object.values(successRate),
+      pendingWithdrawals: {
+        count: pendingWithdrawals._count || 0,
+        total: Number(pendingWithdrawals._sum.amount || 0)
+      }
     });
   } catch (error) {
     console.error('Banking report error:', error);
@@ -143,65 +230,97 @@ const getBankingReport = async (req, res) => {
 // Bonus Reports
 const getBonusReport = async (req, res) => {
   try {
-    const db = getDb();
     const { startDate, endDate } = req.query;
 
-    let whereClause = 'WHERE 1=1';
-    const params = [];
+    const where = {};
 
-    if (startDate) {
-      whereClause += ' AND pb.claimed_at >= ?';
-      params.push(startDate);
+    if (startDate || endDate) {
+      where.claimedAt = {};
+      if (startDate) where.claimedAt.gte = new Date(startDate);
+      if (endDate) where.claimedAt.lte = new Date(endDate);
     }
 
-    if (endDate) {
-      whereClause += ' AND pb.claimed_at <= ?';
-      params.push(endDate);
-    }
+    const userPromotions = await prisma.userPromotion.findMany({
+      where,
+      include: {
+        promotion: true
+      }
+    });
 
-    // By bonus type
-    const byType = db.prepare(`
-      SELECT
-        b.type,
-        COUNT(pb.id) as claims,
-        SUM(pb.amount) as total_given,
-        SUM(pb.wagered) as total_wagered,
-        SUM(CASE WHEN pb.status = 'completed' THEN 1 ELSE 0 END) as completed,
-        SUM(CASE WHEN pb.status = 'forfeited' THEN 1 ELSE 0 END) as forfeited
-      FROM player_bonuses pb
-      JOIN bonuses b ON pb.bonus_id = b.id
-      ${whereClause}
-      GROUP BY b.type
-    `).all(...params);
+    // By type
+    const byType = {};
+    userPromotions.forEach(up => {
+      const type = up.promotion.type;
+      if (!byType[type]) {
+        byType[type] = {
+          type,
+          claims: 0,
+          total_given: 0,
+          total_wagered: 0,
+          completed: 0,
+          forfeited: 0
+        };
+      }
+
+      byType[type].claims++;
+      byType[type].total_given += Number(up.bonusAmount || 0);
+      byType[type].total_wagered += Number(up.wageredAmount || 0);
+
+      if (up.status === 'completed') byType[type].completed++;
+      if (up.status === 'expired') byType[type].forfeited++;
+    });
 
     // By individual bonus
-    const byBonus = db.prepare(`
-      SELECT
-        b.name,
-        b.type,
-        COUNT(pb.id) as claims,
-        SUM(pb.amount) as total_given,
-        AVG(pb.wagered / pb.wagering_target * 100) as avg_completion
-      FROM player_bonuses pb
-      JOIN bonuses b ON pb.bonus_id = b.id
-      ${whereClause}
-      GROUP BY b.id
-      ORDER BY claims DESC
-    `).all(...params);
+    const byBonus = {};
+    userPromotions.forEach(up => {
+      const bonusId = up.promotionId;
+      if (!byBonus[bonusId]) {
+        byBonus[bonusId] = {
+          name: up.promotion.name,
+          type: up.promotion.type,
+          claims: 0,
+          total_given: 0,
+          completion_sum: 0,
+          count_for_avg: 0
+        };
+      }
+
+      byBonus[bonusId].claims++;
+      byBonus[bonusId].total_given += Number(up.bonusAmount || 0);
+
+      if (up.wageringTarget && Number(up.wageringTarget) > 0) {
+        byBonus[bonusId].completion_sum += (Number(up.wageredAmount) / Number(up.wageringTarget)) * 100;
+        byBonus[bonusId].count_for_avg++;
+      }
+    });
+
+    const byBonusArray = Object.values(byBonus).map(b => ({
+      name: b.name,
+      type: b.type,
+      claims: b.claims,
+      total_given: b.total_given,
+      avg_completion: b.count_for_avg > 0 ? (b.completion_sum / b.count_for_avg).toFixed(2) : 0
+    })).sort((a, b) => b.claims - a.claims);
 
     // Cost summary
-    const costSummary = db.prepare(`
-      SELECT
-        SUM(pb.amount) as total_bonus_cost,
-        SUM(pb.wagered) as total_wagered,
-        SUM(CASE WHEN pb.status = 'completed' THEN pb.amount ELSE 0 END) as completed_bonus_cost
-      FROM player_bonuses pb
-      ${whereClause.replace('WHERE 1=1', 'WHERE 1=1')}
-    `).get(...params);
+    const costSummary = {
+      total_bonus_cost: 0,
+      total_wagered: 0,
+      completed_bonus_cost: 0
+    };
+
+    userPromotions.forEach(up => {
+      costSummary.total_bonus_cost += Number(up.bonusAmount || 0);
+      costSummary.total_wagered += Number(up.wageredAmount || 0);
+
+      if (up.status === 'completed') {
+        costSummary.completed_bonus_cost += Number(up.bonusAmount || 0);
+      }
+    });
 
     res.json({
-      byType,
-      byBonus,
+      byType: Object.values(byType),
+      byBonus: byBonusArray,
       costSummary
     });
   } catch (error) {
@@ -213,91 +332,112 @@ const getBonusReport = async (req, res) => {
 // Player Reports
 const getPlayerReport = async (req, res) => {
   try {
-    const db = getDb();
     const { startDate, endDate, groupBy = 'day' } = req.query;
 
-    let dateFormat;
-    switch (groupBy) {
-      case 'day': dateFormat = '%Y-%m-%d'; break;
-      case 'week': dateFormat = '%Y-W%W'; break;
-      case 'month': dateFormat = '%Y-%m'; break;
-      default: dateFormat = '%Y-%m-%d';
+    const where = {};
+
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    let whereClause = 'WHERE 1=1';
-    const params = [];
-
-    if (startDate) {
-      whereClause += ' AND created_at >= ?';
-      params.push(startDate);
-    }
-
-    if (endDate) {
-      whereClause += ' AND created_at <= ?';
-      params.push(endDate);
-    }
+    const users = await prisma.user.findMany({
+      where,
+      select: {
+        createdAt: true,
+        isActive: true,
+        isSuspended: true,
+        identityVerifiedAt: true
+      }
+    });
 
     // New registrations over time
-    const registrations = db.prepare(`
-      SELECT
-        strftime('${dateFormat}', created_at) as period,
-        COUNT(*) as new_players
-      FROM players
-      ${whereClause}
-      GROUP BY period
-      ORDER BY period DESC
-    `).all(...params);
+    const periodGroups = groupByPeriod(users, 'createdAt', groupBy);
+    const registrations = Object.entries(periodGroups).map(([period, users]) => ({
+      period,
+      new_players: users.length
+    })).sort((a, b) => b.period.localeCompare(a.period));
 
-    // Player status breakdown
-    const statusBreakdown = db.prepare(`
-      SELECT status, COUNT(*) as count
-      FROM players
-      GROUP BY status
-    `).all();
+    // Status breakdown
+    const allUsers = await prisma.user.findMany({
+      select: {
+        isActive: true,
+        isSuspended: true
+      }
+    });
+
+    const statusBreakdown = [
+      { status: 'active', count: allUsers.filter(u => u.isActive && !u.isSuspended).length },
+      { status: 'suspended', count: allUsers.filter(u => u.isSuspended).length },
+      { status: 'inactive', count: allUsers.filter(u => !u.isActive).length }
+    ];
 
     // KYC status breakdown
-    const kycBreakdown = db.prepare(`
-      SELECT kyc_status, COUNT(*) as count
-      FROM players
-      GROUP BY kyc_status
-    `).all();
+    const kycBreakdown = [
+      { kyc_status: 'verified', count: allUsers.filter(u => u.identityVerifiedAt).length },
+      { kyc_status: 'pending', count: allUsers.filter(u => !u.identityVerifiedAt).length }
+    ];
 
-    // Top players by lifetime value (deposits - withdrawals)
-    const topPlayers = db.prepare(`
-      SELECT
-        p.id, p.email, p.first_name, p.last_name,
-        COALESCE(SUM(CASE WHEN t.type = 'deposit' AND t.status = 'completed' THEN t.amount ELSE 0 END), 0) as total_deposits,
-        COALESCE(SUM(CASE WHEN t.type = 'withdrawal' AND t.status IN ('completed', 'approved') THEN t.amount ELSE 0 END), 0) as total_withdrawals,
-        COALESCE(SUM(CASE WHEN t.type = 'deposit' AND t.status = 'completed' THEN t.amount ELSE 0 END), 0) -
-        COALESCE(SUM(CASE WHEN t.type = 'withdrawal' AND t.status IN ('completed', 'approved') THEN t.amount ELSE 0 END), 0) as lifetime_value
-      FROM players p
-      LEFT JOIN transactions t ON p.id = t.player_id
-      GROUP BY p.id
-      ORDER BY lifetime_value DESC
-      LIMIT 20
-    `).all();
+    // Top players by lifetime value
+    const topPlayers = await prisma.user.findMany({
+      include: {
+        wallet: true,
+        transactions: {
+          where: {
+            OR: [
+              { type: 'deposit', status: 'completed' },
+              { type: 'withdrawal', status: { in: ['completed', 'approved'] } }
+            ]
+          },
+          select: {
+            type: true,
+            amount: true
+          }
+        }
+      },
+      take: 20
+    });
 
-    // Active players (played in last 30 days)
-    const activePlayersCount = db.prepare(`
-      SELECT COUNT(DISTINCT player_id) as count
-      FROM game_history
-      WHERE created_at >= datetime('now', '-30 days')
-    `).get();
+    const topPlayersData = topPlayers.map(p => {
+      const totalDeposits = p.transactions
+        .filter(t => t.type === 'deposit')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      const totalWithdrawals = p.transactions
+        .filter(t => t.type === 'withdrawal')
+        .reduce((sum, t) => sum + Number(t.amount), 0);
+
+      return {
+        id: p.id,
+        email: p.email,
+        name: `${p.firstName || ''} ${p.lastName || ''}`.trim(),
+        totalDeposits,
+        totalWithdrawals,
+        lifetimeValue: totalDeposits - totalWithdrawals
+      };
+    }).sort((a, b) => b.lifetimeValue - a.lifetimeValue).slice(0, 20);
+
+    // Active players (simplified - based on recent transactions)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const activePlayersCount = await prisma.gameRound.findMany({
+      where: {
+        createdAt: { gte: thirtyDaysAgo }
+      },
+      distinct: ['userId']
+    });
+
+    const totalPlayers = await prisma.user.count();
 
     res.json({
       registrations,
       statusBreakdown,
       kycBreakdown,
-      topPlayers: topPlayers.map(p => ({
-        id: p.id,
-        email: p.email,
-        name: `${p.first_name || ''} ${p.last_name || ''}`.trim(),
-        totalDeposits: p.total_deposits,
-        totalWithdrawals: p.total_withdrawals,
-        lifetimeValue: p.lifetime_value
-      })),
-      activePlayersCount: activePlayersCount.count,
-      totalPlayers: db.prepare('SELECT COUNT(*) as count FROM players').get().count
+      topPlayers: topPlayersData,
+      activePlayersCount: activePlayersCount.length,
+      totalPlayers
     });
   } catch (error) {
     console.error('Player report error:', error);
@@ -308,83 +448,111 @@ const getPlayerReport = async (req, res) => {
 // Game Reports
 const getGameReport = async (req, res) => {
   try {
-    const db = getDb();
     const { startDate, endDate } = req.query;
 
-    let whereClause = 'WHERE 1=1';
-    const params = [];
+    const where = {};
 
-    if (startDate) {
-      whereClause += ' AND gh.created_at >= ?';
-      params.push(startDate);
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) where.createdAt.gte = new Date(startDate);
+      if (endDate) where.createdAt.lte = new Date(endDate);
     }
 
-    if (endDate) {
-      whereClause += ' AND gh.created_at <= ?';
-      params.push(endDate);
-    }
+    const gameRounds = await prisma.gameRound.findMany({
+      where,
+      include: {
+        game: {
+          include: {
+            provider: {
+              include: {
+                aggregator: true
+              }
+            }
+          }
+        }
+      }
+    });
 
     // Most played games
-    const topGames = db.prepare(`
-      SELECT
-        g.id, g.name, p.name as provider_name,
-        COUNT(gh.id) as plays,
-        SUM(gh.bet_amount) as total_bets,
-        SUM(gh.win_amount) as total_wins,
-        SUM(gh.bet_amount) - SUM(gh.win_amount) as ggr,
-        COUNT(DISTINCT gh.player_id) as unique_players
-      FROM game_history gh
-      JOIN games g ON gh.game_id = g.id
-      JOIN providers p ON g.provider_id = p.id
-      ${whereClause}
-      GROUP BY g.id
-      ORDER BY plays DESC
-      LIMIT 20
-    `).all(...params);
+    const gameStats = {};
+    gameRounds.forEach(gr => {
+      const gameId = gr.gameId;
+      if (!gameStats[gameId]) {
+        gameStats[gameId] = {
+          id: gameId,
+          name: gr.game.name,
+          provider_name: gr.game.provider.name,
+          plays: 0,
+          total_bets: 0,
+          total_wins: 0,
+          unique_players: new Set()
+        };
+      }
+
+      gameStats[gameId].plays++;
+      gameStats[gameId].total_bets += Number(gr.betAmountUsdc || 0);
+      gameStats[gameId].total_wins += Number(gr.winAmountUsdc || 0);
+      gameStats[gameId].unique_players.add(gr.userId);
+    });
+
+    const topGames = Object.values(gameStats).map(g => ({
+      id: g.id,
+      name: g.name,
+      providerName: g.provider_name,
+      plays: g.plays,
+      totalBets: g.total_bets,
+      totalWins: g.total_wins,
+      ggr: g.total_bets - g.total_wins,
+      uniquePlayers: g.unique_players.size
+    })).sort((a, b) => b.plays - a.plays).slice(0, 20);
 
     // GGR by provider
-    const ggrByProvider = db.prepare(`
-      SELECT
-        p.name as provider_name,
-        a.name as aggregator_name,
-        COUNT(gh.id) as plays,
-        SUM(gh.bet_amount) as total_bets,
-        SUM(gh.win_amount) as total_wins,
-        SUM(gh.bet_amount) - SUM(gh.win_amount) as ggr
-      FROM game_history gh
-      JOIN games g ON gh.game_id = g.id
-      JOIN providers p ON g.provider_id = p.id
-      JOIN aggregators a ON p.aggregator_id = a.id
-      ${whereClause}
-      GROUP BY p.id
-      ORDER BY ggr DESC
-    `).all(...params);
+    const providerStats = {};
+    gameRounds.forEach(gr => {
+      const providerId = gr.game.providerId;
+      if (!providerStats[providerId]) {
+        providerStats[providerId] = {
+          provider_name: gr.game.provider.name,
+          aggregator_name: gr.game.provider.aggregator?.name || 'Unknown',
+          plays: 0,
+          total_bets: 0,
+          total_wins: 0
+        };
+      }
+
+      providerStats[providerId].plays++;
+      providerStats[providerId].total_bets += Number(gr.betAmountUsdc || 0);
+      providerStats[providerId].total_wins += Number(gr.winAmountUsdc || 0);
+    });
+
+    const ggrByProvider = Object.values(providerStats).map(p => ({
+      ...p,
+      ggr: p.total_bets - p.total_wins
+    })).sort((a, b) => b.ggr - a.ggr);
 
     // Overall GGR
-    const overallGgr = db.prepare(`
-      SELECT
-        SUM(bet_amount) as total_bets,
-        SUM(win_amount) as total_wins,
-        SUM(bet_amount) - SUM(win_amount) as ggr,
-        COUNT(*) as total_rounds,
-        COUNT(DISTINCT player_id) as unique_players
-      FROM game_history gh
-      ${whereClause.replace('gh.', '')}
-    `).get(...params);
+    const overallGgr = gameRounds.reduce((acc, gr) => ({
+      total_bets: acc.total_bets + Number(gr.betAmountUsdc || 0),
+      total_wins: acc.total_wins + Number(gr.winAmountUsdc || 0),
+      total_rounds: acc.total_rounds + 1,
+      unique_players: acc.unique_players.add(gr.userId)
+    }), {
+      total_bets: 0,
+      total_wins: 0,
+      total_rounds: 0,
+      unique_players: new Set()
+    });
 
     res.json({
-      topGames: topGames.map(g => ({
-        id: g.id,
-        name: g.name,
-        providerName: g.provider_name,
-        plays: g.plays,
-        totalBets: g.total_bets,
-        totalWins: g.total_wins,
-        ggr: g.ggr,
-        uniquePlayers: g.unique_players
-      })),
+      topGames,
       ggrByProvider,
-      overallGgr
+      overallGgr: {
+        total_bets: overallGgr.total_bets,
+        total_wins: overallGgr.total_wins,
+        ggr: overallGgr.total_bets - overallGgr.total_wins,
+        total_rounds: overallGgr.total_rounds,
+        unique_players: overallGgr.unique_players.size
+      }
     });
   } catch (error) {
     console.error('Game report error:', error);
@@ -395,70 +563,145 @@ const getGameReport = async (req, res) => {
 // Dashboard Summary
 const getDashboardSummary = async (req, res) => {
   try {
-    const db = getDb();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    const today = new Date().toISOString().split('T')[0];
+    const todayDeposits = await prisma.deposit.aggregate({
+      where: {
+        status: 'completed',
+        createdAt: { gte: today }
+      },
+      _count: true,
+      _sum: { usdcAmount: true }
+    });
 
-    const summary = {
-      // Today's stats
-      todayDeposits: db.prepare(`
-        SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total
-        FROM transactions
-        WHERE type = 'deposit' AND status = 'completed' AND date(created_at) = date('now')
-      `).get(),
+    const todayWithdrawals = await prisma.withdrawal.aggregate({
+      where: {
+        status: { in: ['completed', 'approved'] },
+        createdAt: { gte: today }
+      },
+      _count: true,
+      _sum: { usdcAmount: true }
+    });
 
-      todayWithdrawals: db.prepare(`
-        SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total
-        FROM transactions
-        WHERE type = 'withdrawal' AND status IN ('completed', 'approved') AND date(created_at) = date('now')
-      `).get(),
+    const todayNewPlayers = await prisma.user.count({
+      where: { createdAt: { gte: today } }
+    });
 
-      todayNewPlayers: db.prepare(`
-        SELECT COUNT(*) as count FROM players WHERE date(created_at) = date('now')
-      `).get(),
+    const todayGameRounds = await prisma.gameRound.aggregate({
+      where: { createdAt: { gte: today } },
+      _sum: {
+        betAmountUsdc: true,
+        winAmountUsdc: true
+      }
+    });
 
-      todayGgr: db.prepare(`
-        SELECT COALESCE(SUM(bet_amount) - SUM(win_amount), 0) as ggr
-        FROM game_history WHERE date(created_at) = date('now')
-      `).get(),
+    const pendingWithdrawals = await prisma.withdrawal.aggregate({
+      where: { status: 'pending' },
+      _count: true,
+      _sum: { usdcAmount: true }
+    });
 
-      // Pending items
-      pendingWithdrawals: db.prepare(`
-        SELECT COUNT(*) as count, COALESCE(SUM(amount), 0) as total
-        FROM transactions WHERE type = 'withdrawal' AND status = 'pending'
-      `).get(),
+    const pendingKyc = await prisma.user.count({
+      where: {
+        identityVerifiedAt: null,
+        isActive: true
+      }
+    });
 
-      pendingKyc: db.prepare(`
-        SELECT COUNT(*) as count FROM kyc_documents WHERE status = 'pending'
-      `).get(),
+    const totalPlayers = await prisma.user.count();
 
-      // Overall stats
-      totalPlayers: db.prepare('SELECT COUNT(*) as count FROM players').get(),
-      totalBalance: db.prepare('SELECT COALESCE(SUM(balance), 0) as total FROM players').get(),
-      totalBonusBalance: db.prepare('SELECT COALESCE(SUM(bonus_balance), 0) as total FROM players').get(),
+    const walletAggregates = await prisma.wallet.aggregate({
+      _sum: {
+        usdBalance: true,
+        lifetimeBonuses: true
+      }
+    });
 
-      // Last 7 days trend
-      last7DaysDeposits: db.prepare(`
-        SELECT date(created_at) as date, COALESCE(SUM(amount), 0) as total
-        FROM transactions
-        WHERE type = 'deposit' AND status = 'completed' AND created_at >= date('now', '-7 days')
-        GROUP BY date(created_at)
-        ORDER BY date
-      `).all(),
+    // Last 7 days deposits
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
-      last7DaysGgr: db.prepare(`
-        SELECT date(created_at) as date, COALESCE(SUM(bet_amount) - SUM(win_amount), 0) as ggr
-        FROM game_history
-        WHERE created_at >= date('now', '-7 days')
-        GROUP BY date(created_at)
-        ORDER BY date
-      `).all()
-    };
+    const last7DaysDepositsData = await prisma.deposit.findMany({
+      where: {
+        status: 'completed',
+        createdAt: { gte: sevenDaysAgo }
+      },
+      select: {
+        usdcAmount: true,
+        createdAt: true
+      }
+    });
 
-    res.json({ summary });
+    const depositsByDay = {};
+    last7DaysDepositsData.forEach(d => {
+      const date = new Date(d.createdAt);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      depositsByDay[key] = (depositsByDay[key] || 0) + Number(d.usdcAmount);
+    });
+
+    const last7DaysDeposits = Object.entries(depositsByDay).map(([date, total]) => ({
+      date,
+      total
+    })).sort((a, b) => a.date.localeCompare(b.date));
+
+    // Last 7 days GGR
+    const last7DaysGgrData = await prisma.gameRound.findMany({
+      where: { createdAt: { gte: sevenDaysAgo } },
+      select: {
+        betAmountUsdc: true,
+        winAmountUsdc: true,
+        createdAt: true
+      }
+    });
+
+    const ggrByDay = {};
+    last7DaysGgrData.forEach(gr => {
+      const date = new Date(gr.createdAt);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      if (!ggrByDay[key]) ggrByDay[key] = 0;
+      ggrByDay[key] += Number(gr.betAmountUsdc || 0) - Number(gr.winAmountUsdc || 0);
+    });
+
+    const last7DaysGgr = Object.entries(ggrByDay).map(([date, ggr]) => ({
+      date,
+      ggr
+    })).sort((a, b) => a.date.localeCompare(b.date));
+
+    res.json({
+      summary: {
+        todayDeposits: {
+          count: todayDeposits._count || 0,
+          total: Number(todayDeposits._sum.usdcAmount || 0)
+        },
+        todayWithdrawals: {
+          count: todayWithdrawals._count || 0,
+          total: Number(todayWithdrawals._sum.usdcAmount || 0)
+        },
+        todayNewPlayers: { count: todayNewPlayers },
+        todayGgr: {
+          ggr: Number(todayGameRounds._sum.betAmountUsdc || 0) - Number(todayGameRounds._sum.winAmountUsdc || 0)
+        },
+        pendingWithdrawals: {
+          count: pendingWithdrawals._count || 0,
+          total: Number(pendingWithdrawals._sum.usdcAmount || 0)
+        },
+        pendingKyc: { count: pendingKyc },
+        totalPlayers: { count: totalPlayers },
+        totalBalance: { total: Number(walletAggregates._sum.usdBalance || 0) },
+        totalBonusBalance: { total: Number(walletAggregates._sum.lifetimeBonuses || 0) },
+        last7DaysDeposits,
+        last7DaysGgr
+      }
+    });
   } catch (error) {
     console.error('Dashboard summary error:', error);
-    res.status(500).json({ error: 'Failed to load dashboard summary' });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({
+      error: 'Failed to load dashboard summary',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -466,55 +709,101 @@ const getDashboardSummary = async (req, res) => {
 const exportToCsv = async (req, res) => {
   try {
     const { report, startDate, endDate } = req.query;
-    const db = getDb();
 
     let data;
     let filename;
 
+    const dateWhere = {};
+    if (startDate) dateWhere.gte = new Date(startDate);
+    if (endDate) dateWhere.lte = new Date(endDate);
+
     switch (report) {
       case 'transactions':
-        data = db.prepare(`
-          SELECT t.id, t.type, t.amount, t.status, t.payment_method, t.reference, t.created_at,
-                 p.email as player_email
-          FROM transactions t
-          JOIN players p ON t.player_id = p.id
-          WHERE t.created_at BETWEEN ? AND ?
-          ORDER BY t.created_at DESC
-        `).all(startDate || '1970-01-01', endDate || '2099-12-31');
+        const transactions = await prisma.transaction.findMany({
+          where: { createdAt: dateWhere },
+          include: {
+            user: { select: { email: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        data = transactions.map(t => ({
+          id: t.id,
+          type: t.type,
+          amount: Number(t.amount),
+          status: t.status,
+          payment_method: t.referenceType || '',
+          reference: t.referenceId || '',
+          created_at: t.createdAt,
+          player_email: t.user?.email || ''
+        }));
         filename = 'transactions';
         break;
 
       case 'players':
-        data = db.prepare(`
-          SELECT id, email, first_name, last_name, phone, balance, bonus_balance, status, kyc_status, created_at
-          FROM players
-          WHERE created_at BETWEEN ? AND ?
-          ORDER BY created_at DESC
-        `).all(startDate || '1970-01-01', endDate || '2099-12-31');
+        const players = await prisma.user.findMany({
+          where: { createdAt: dateWhere },
+          include: { wallet: true },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        data = players.map(p => ({
+          id: p.id,
+          email: p.email,
+          first_name: p.firstName || '',
+          last_name: p.lastName || '',
+          phone: p.phone || '',
+          balance: Number(p.wallet?.usdBalance || 0),
+          bonus_balance: Number(p.wallet?.bonusBalance || 0),
+          status: p.isSuspended ? 'suspended' : p.isActive ? 'active' : 'inactive',
+          kyc_status: p.identityVerifiedAt ? 'verified' : 'pending',
+          created_at: p.createdAt
+        }));
         filename = 'players';
         break;
 
       case 'game_history':
-        data = db.prepare(`
-          SELECT gh.id, p.email as player_email, g.name as game_name, gh.bet_amount, gh.win_amount, gh.created_at
-          FROM game_history gh
-          JOIN players p ON gh.player_id = p.id
-          JOIN games g ON gh.game_id = g.id
-          WHERE gh.created_at BETWEEN ? AND ?
-          ORDER BY gh.created_at DESC
-        `).all(startDate || '1970-01-01', endDate || '2099-12-31');
+        const gameRounds = await prisma.gameRound.findMany({
+          where: { createdAt: dateWhere },
+          include: {
+            user: { select: { email: true } },
+            game: { select: { name: true } }
+          },
+          orderBy: { createdAt: 'desc' }
+        });
+
+        data = gameRounds.map(gr => ({
+          id: gr.id,
+          player_email: gr.user.email,
+          game_name: gr.game.name,
+          bet_amount: Number(gr.betAmountUsdc || 0),
+          win_amount: Number(gr.winAmountUsdc || 0),
+          created_at: gr.createdAt
+        }));
         filename = 'game_history';
         break;
 
       case 'bonuses':
-        data = db.prepare(`
-          SELECT pb.id, p.email as player_email, b.name as bonus_name, b.type, pb.amount, pb.wagered, pb.wagering_target, pb.status, pb.claimed_at
-          FROM player_bonuses pb
-          JOIN players p ON pb.player_id = p.id
-          JOIN bonuses b ON pb.bonus_id = b.id
-          WHERE pb.claimed_at BETWEEN ? AND ?
-          ORDER BY pb.claimed_at DESC
-        `).all(startDate || '1970-01-01', endDate || '2099-12-31');
+        const userPromotions = await prisma.userPromotion.findMany({
+          where: { claimedAt: dateWhere },
+          include: {
+            user: { select: { email: true } },
+            promotion: { select: { name: true, type: true } }
+          },
+          orderBy: { claimedAt: 'desc' }
+        });
+
+        data = userPromotions.map(up => ({
+          id: up.id,
+          player_email: up.user.email,
+          bonus_name: up.promotion.name,
+          type: up.promotion.type,
+          amount: Number(up.bonusAmount || 0),
+          wagered: Number(up.wageredAmount || 0),
+          wagering_target: Number(up.wageringTarget || 0),
+          status: up.status,
+          claimed_at: up.claimedAt
+        }));
         filename = 'bonuses';
         break;
 

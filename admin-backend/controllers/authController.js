@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getDb } = require('../database/init');
+const prisma = require('../lib/prisma');
 
 const generateToken = (admin) => {
   return jwt.sign(
@@ -13,30 +13,51 @@ const generateToken = (admin) => {
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const db = getDb();
 
-    const admin = db.prepare('SELECT * FROM admins WHERE email = ?').get(email);
+    const admin = await prisma.adminUser.findUnique({
+      where: { email }
+    });
 
     if (!admin) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const isValid = await bcrypt.compare(password, admin.password_hash);
+    const isValid = await bcrypt.compare(password, admin.passwordHash);
     if (!isValid) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    if (admin.status !== 'active') {
+    if (!admin.isActive) {
       return res.status(403).json({ error: 'Account is disabled' });
     }
 
     const token = generateToken(admin);
 
+    // Update last login
+    await prisma.adminUser.update({
+      where: { id: admin.id },
+      data: {
+        lastLoginAt: new Date(),
+        lastLoginIp: req.ip
+      }
+    });
+
     // Log login
-    db.prepare(`
-      INSERT INTO admin_logs (admin_id, action, details, ip_address)
-      VALUES (?, 'login', ?, ?)
-    `).run(admin.id, JSON.stringify({ email }), req.ip);
+    await prisma.adminAuditLog.create({
+      data: {
+        adminId: admin.id,
+        action: 'login',
+        entityType: 'admin',
+        entityId: admin.id,
+        newValues: { email },
+        ipAddress: req.ip
+      }
+    });
+
+    // Parse name into firstName and lastName
+    const nameParts = admin.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
 
     res.json({
       message: 'Login successful',
@@ -44,8 +65,8 @@ const login = async (req, res) => {
       admin: {
         id: admin.id,
         email: admin.email,
-        firstName: admin.first_name,
-        lastName: admin.last_name,
+        firstName,
+        lastName,
         role: admin.role
       }
     });
@@ -57,21 +78,36 @@ const login = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    const db = getDb();
-    const admin = db.prepare(`
-      SELECT id, email, first_name, last_name, role, status, created_at
-      FROM admins WHERE id = ?
-    `).get(req.admin.id);
+    const admin = await prisma.adminUser.findUnique({
+      where: { id: req.admin.id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        isActive: true,
+        createdAt: true
+      }
+    });
+
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    // Parse name into firstName and lastName
+    const nameParts = admin.name.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
 
     res.json({
       admin: {
         id: admin.id,
         email: admin.email,
-        firstName: admin.first_name,
-        lastName: admin.last_name,
+        firstName,
+        lastName,
         role: admin.role,
-        status: admin.status,
-        createdAt: admin.created_at
+        status: admin.isActive ? 'active' : 'inactive',
+        createdAt: admin.createdAt
       }
     });
   } catch (error) {
@@ -83,18 +119,40 @@ const getProfile = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const db = getDb();
 
-    const admin = db.prepare('SELECT password_hash FROM admins WHERE id = ?').get(req.admin.id);
+    const admin = await prisma.adminUser.findUnique({
+      where: { id: req.admin.id },
+      select: {
+        passwordHash: true
+      }
+    });
 
-    const isValid = await bcrypt.compare(currentPassword, admin.password_hash);
+    if (!admin) {
+      return res.status(404).json({ error: 'Admin not found' });
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, admin.passwordHash);
     if (!isValid) {
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
-    db.prepare('UPDATE admins SET password_hash = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run(passwordHash, req.admin.id);
+
+    await prisma.adminUser.update({
+      where: { id: req.admin.id },
+      data: { passwordHash }
+    });
+
+    // Log password change
+    await prisma.adminAuditLog.create({
+      data: {
+        adminId: req.admin.id,
+        action: 'change_password',
+        entityType: 'admin',
+        entityId: req.admin.id,
+        ipAddress: req.ip
+      }
+    });
 
     res.json({ message: 'Password changed successfully' });
   } catch (error) {
@@ -105,59 +163,57 @@ const changePassword = async (req, res) => {
 
 const getActivityLogs = async (req, res) => {
   try {
-    const db = getDb();
     const { page = 1, limit = 50, adminId, action, startDate, endDate } = req.query;
 
-    let query = `
-      SELECT al.*, a.email as admin_email, a.first_name, a.last_name
-      FROM admin_logs al
-      JOIN admins a ON al.admin_id = a.id
-      WHERE 1=1
-    `;
-    const params = [];
+    const where = {};
 
     if (adminId) {
-      query += ' AND al.admin_id = ?';
-      params.push(adminId);
+      where.adminId = adminId;
     }
 
     if (action) {
-      query += ' AND al.action = ?';
-      params.push(action);
+      where.action = action;
     }
 
-    if (startDate) {
-      query += ' AND al.created_at >= ?';
-      params.push(startDate);
+    if (startDate || endDate) {
+      where.createdAt = {};
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate);
+      }
+      if (endDate) {
+        where.createdAt.lte = new Date(endDate);
+      }
     }
 
-    if (endDate) {
-      query += ' AND al.created_at <= ?';
-      params.push(endDate);
-    }
+    const total = await prisma.adminAuditLog.count({ where });
 
-    // Get total count
-    const countQuery = query.replace(/SELECT al\.\*, a\.email as admin_email, a\.first_name, a\.last_name/, 'SELECT COUNT(*) as total');
-    const { total } = db.prepare(countQuery).get(...params);
-
-    // Add pagination
-    query += ' ORDER BY al.created_at DESC LIMIT ? OFFSET ?';
-    params.push(parseInt(limit), (parseInt(page) - 1) * parseInt(limit));
-
-    const logs = db.prepare(query).all(...params);
+    const logs = await prisma.adminAuditLog.findMany({
+      where,
+      include: {
+        admin: {
+          select: {
+            email: true,
+            name: true
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      skip: (parseInt(page) - 1) * parseInt(limit),
+      take: parseInt(limit)
+    });
 
     res.json({
       logs: logs.map(l => ({
         id: l.id,
-        adminId: l.admin_id,
-        adminEmail: l.admin_email,
-        adminName: `${l.first_name || ''} ${l.last_name || ''}`.trim(),
+        adminId: l.adminId,
+        adminEmail: l.admin.email,
+        adminName: l.admin.name,
         action: l.action,
-        entityType: l.entity_type,
-        entityId: l.entity_id,
-        details: l.details ? JSON.parse(l.details) : null,
-        ipAddress: l.ip_address,
-        createdAt: l.created_at
+        entityType: l.entityType,
+        entityId: l.entityId,
+        details: l.newValues || null,
+        ipAddress: l.ipAddress,
+        createdAt: l.createdAt
       })),
       pagination: {
         page: parseInt(page),

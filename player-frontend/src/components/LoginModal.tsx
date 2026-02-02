@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useIsMobile } from '@/hooks/use-mobile';
 import registerDealer from '@/assets/register-dealer.png';
 import { NeonPlayLogo } from '@/components/NeonPlayLogo';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,18 +17,31 @@ interface LoginModalProps {
 
 export function LoginModal({ isOpen, onClose, onSwitchToRegister, onForgotPassword }: LoginModalProps) {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Navigate to lobby first, then close modal
-    navigate('/lobby');
-    onClose();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await login(email, password);
+      navigate('/lobby');
+      onClose();
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Mobile version - clean wallet-style design
@@ -60,25 +74,35 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister, onForgotPasswo
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+              {error && (
+                <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2">
+                  <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-400">{error}</p>
+                </div>
+              )}
+
               <Input
                 type="email"
                 placeholder="Email Address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
                 className="h-14 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
               />
-              
+
               <div className="relative">
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
                   className="h-14 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground pr-12"
                 />
-                <button 
+                <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -86,10 +110,11 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister, onForgotPasswo
               </div>
 
               <div className="text-right">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={onForgotPassword}
-                  className="text-sm text-primary hover:underline"
+                  disabled={isLoading}
+                  className="text-sm text-primary hover:underline disabled:opacity-50"
                 >
                   Forgot password?
                 </button>
@@ -100,16 +125,24 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister, onForgotPasswo
                   type="button"
                   variant="outline"
                   onClick={onClose}
-                  className="flex-1 h-14 bg-secondary/50 border-border hover:bg-secondary text-foreground font-semibold"
+                  disabled={isLoading}
+                  className="flex-1 h-14 bg-secondary/50 border-border hover:bg-secondary text-foreground font-semibold disabled:opacity-50"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  disabled={!email.trim() || !password}
+                  disabled={!email.trim() || !password || isLoading}
                   className="flex-1 h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
                 >
-                  Login
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Logging in...
+                    </span>
+                  ) : (
+                    'Login'
+                  )}
                 </Button>
               </div>
             </form>
@@ -197,46 +230,65 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister, onForgotPasswo
                   <p className="text-muted-foreground text-sm mb-5">Welcome back!</p>
 
                   <form onSubmit={handleSubmit} className="space-y-3">
+                    {error && (
+                      <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                        <p className="text-xs text-red-400">{error}</p>
+                      </div>
+                    )}
+
                     <Input
                       type="email"
                       placeholder="Email Address"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoading}
                       className="h-11 bg-[#2a3038] border-[#3a4048] text-white placeholder:text-muted-foreground focus:border-cyan-400 text-sm"
                     />
-                    
+
                     <div className="relative">
                       <Input
                         type={showPassword ? "text" : "password"}
                         placeholder="Password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
+                        disabled={isLoading}
                         className="h-11 bg-[#2a3038] border-[#3a4048] text-white placeholder:text-muted-foreground focus:border-cyan-400 text-sm pr-10"
                       />
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
+                        disabled={isLoading}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors disabled:opacity-50"
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
 
                     <div className="text-right">
-                      <button 
-                        type="button" 
+                      <button
+                        type="button"
                         onClick={onForgotPassword}
-                        className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                        disabled={isLoading}
+                        className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors disabled:opacity-50"
                       >
                         Forgot password?
                       </button>
                     </div>
 
-                    <Button 
+                    <Button
                       type="submit"
-                      className="w-full h-11 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm"
+                      disabled={!email.trim() || !password || isLoading}
+                      className="w-full h-11 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm disabled:opacity-50"
                     >
-                      Login
+                      {isLoading ? (
+                        <span className="flex items-center gap-2">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Logging in...
+                        </span>
+                      ) : (
+                        'Login'
+                      )}
                     </Button>
                   </form>
 

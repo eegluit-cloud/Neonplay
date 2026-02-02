@@ -50,7 +50,7 @@ setup:
 	@echo "🚀 Starting full setup..."
 	@echo ""
 	@echo "Step 1/4: Starting databases..."
-	@docker-compose up -d postgres redis
+	@docker compose up -d postgres redis
 	@echo "Waiting for PostgreSQL to be ready..."
 	@sleep 5
 	@until docker exec neonplay-postgres pg_isready -U postgres > /dev/null 2>&1; do \
@@ -60,19 +60,19 @@ setup:
 	@echo "✅ Databases started!"
 	@echo ""
 	@echo "Step 2/4: Running Prisma migrations..."
-	@docker run --rm --network neonplay2_neonplay-network \
+	@docker run --rm --network neonplay_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
-		sh -c "npm install prisma @prisma/client && DATABASE_URL='postgresql://postgres:123456@postgres:5432/neonplay' npx prisma db push --accept-data-loss"
+		sh -c "npm install prisma @prisma/client && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db push --accept-data-loss"
 	@echo "✅ Migrations complete!"
 	@echo ""
 	@echo "Step 3/4: Seeding database with demo data..."
-	@docker run --rm --network neonplay2_neonplay-network \
+	@docker run --rm --network neonplay_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
-		sh -c "rm -rf node_modules/bcrypt && npm install bcrypt && DATABASE_URL='postgresql://postgres:123456@postgres:5432/neonplay' npx prisma db seed"
+		sh -c "rm -rf node_modules/bcrypt && npm install bcrypt && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db seed"
 	@echo "✅ Database seeded!"
 	@echo ""
 	@echo "Step 4/4: Starting frontend..."
-	@docker-compose up -d player-frontend
+	@docker compose up -d player-frontend
 	@echo ""
 	@echo "============================================"
 	@echo "🎉 Setup Complete!"
@@ -94,7 +94,7 @@ setup:
 # Development mode - databases + player frontend
 dev:
 	@echo "Starting development environment..."
-	docker-compose up -d postgres redis player-frontend
+	docker compose up -d postgres redis player-frontend
 	@echo ""
 	@echo "Development environment started!"
 	@echo "  Player Frontend: http://localhost:8000"
@@ -106,7 +106,7 @@ dev:
 # Start frontends only (default - static data mode for admin)
 up:
 	@echo "Starting frontends..."
-	docker-compose up -d postgres redis player-frontend admin-frontend
+	docker compose up -d postgres redis player-frontend admin-frontend
 	@echo ""
 	@echo "Services started!"
 	@echo "  Player Frontend: http://localhost:8000"
@@ -115,7 +115,7 @@ up:
 # Start all services including backends
 all:
 	@echo "Starting all services..."
-	docker-compose --profile with-backend up -d
+	docker compose --profile with-backend up -d
 	@echo ""
 	@echo "All services started!"
 	@echo "  Player Frontend: http://localhost:8000"
@@ -128,68 +128,68 @@ all:
 # Start databases only
 db-up:
 	@echo "Starting databases..."
-	docker-compose up -d postgres redis
+	docker compose up -d postgres redis
 	@echo "PostgreSQL: localhost:5432"
 	@echo "Redis: localhost:6379"
 
 # Stop databases
 db-down:
 	@echo "Stopping databases..."
-	docker-compose stop postgres redis
+	docker compose stop postgres redis
 
 # Start backends only
 backend:
 	@echo "Starting backends..."
-	docker-compose --profile with-backend up -d postgres redis player-backend admin-backend
+	docker compose --profile with-backend up -d postgres redis player-backend admin-backend
 	@echo "Player Backend: http://localhost:4000"
 	@echo "Admin Backend: http://localhost:8002"
 
 # Start player frontend only
 player:
 	@echo "Starting player frontend..."
-	docker-compose up -d postgres redis player-frontend
+	docker compose up -d postgres redis player-frontend
 	@echo "Player Frontend: http://localhost:8000"
 
 # Start admin frontend only
 admin:
 	@echo "Starting admin frontend..."
-	docker-compose up -d admin-frontend
+	docker compose up -d admin-frontend
 	@echo "Admin Frontend: http://localhost:8003"
 
 # Stop all containers
 down:
 	@echo "Stopping all containers..."
-	docker-compose --profile with-backend --profile dev down
+	docker compose --profile with-backend --profile dev down
 
 # Build all images
 build:
 	@echo "Building all images..."
-	docker-compose --profile with-backend build
+	docker compose --profile with-backend build
 
 # View logs
 logs:
-	docker-compose --profile with-backend logs -f
+	docker compose --profile with-backend logs -f
 
 # View frontend logs only
 logs-frontend:
-	docker-compose logs -f player-frontend admin-frontend
+	docker compose logs -f player-frontend admin-frontend
 
 # View database logs
 logs-db:
-	docker-compose logs -f postgres redis
+	docker compose logs -f postgres redis
 
 # Clean everything
 clean:
 	@echo "Cleaning up..."
-	docker-compose --profile with-backend --profile dev down -v --rmi all --remove-orphans
+	docker compose --profile with-backend --profile dev down -v --rmi all --remove-orphans
 	@echo "Cleanup complete!"
 
 # Run Prisma migrations (via Docker)
 migrate:
 	@echo "Running Prisma migrations..."
-	@docker run --rm --network neonplay2_neonplay-network \
+	@docker run --rm --network neonplay_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
-		sh -c "npm install prisma @prisma/client && DATABASE_URL='postgresql://postgres:123456@postgres:5432/neonplay' npx prisma db push --accept-data-loss"
+		sh -c "npm install prisma @prisma/client && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db push --accept-data-loss"
 	@echo "Migrations complete!"
 
 # Generate Prisma client
@@ -200,18 +200,18 @@ prisma-generate:
 # Seed databases (via Docker)
 seed:
 	@echo "Seeding databases..."
-	@docker run --rm --network neonplay2_neonplay-network \
+	@docker run --rm --network neonplay_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
-		sh -c "rm -rf node_modules/bcrypt && npm install bcrypt && DATABASE_URL='postgresql://postgres:123456@postgres:5432/neonplay' npx prisma db seed"
+		sh -c "rm -rf node_modules/bcrypt && npm install bcrypt && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db seed"
 	@echo "Database seeded!"
 
 # Start Prisma Studio (database viewer)
 studio:
 	@echo "Starting Prisma Studio..."
 	@docker rm -f prisma-studio 2>/dev/null || true
-	@docker run -d --name prisma-studio --network neonplay2_neonplay-network \
+	@docker run -d --name prisma-studio --network neonplay_neonplay-network \
 		-p 5555:5555 -v $(shell pwd)/player-backend:/app -w /app node:20 \
-		sh -c "npm install -g prisma && DATABASE_URL='postgresql://postgres:123456@postgres:5432/neonplay' npx prisma studio --port 5555 --hostname 0.0.0.0"
+		sh -c "npm install -g prisma && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma studio --port 5555 --hostname 0.0.0.0"
 	@echo "Waiting for Prisma Studio to start..."
 	@sleep 8
 	@echo "✅ Prisma Studio is running at: http://localhost:5555"
@@ -235,7 +235,7 @@ db-reset:
 # Start development tools (Adminer, Redis Commander)
 dev-tools:
 	@echo "Starting development tools..."
-	docker-compose --profile dev up -d adminer redis-commander
+	docker compose --profile dev up -d adminer redis-commander
 	@echo "Adminer: http://localhost:8080"
 	@echo "Redis Commander: http://localhost:8081"
 

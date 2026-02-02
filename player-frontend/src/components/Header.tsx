@@ -22,7 +22,7 @@ export function Header({
 }: HeaderProps) {
   const { avatar: userAvatar } = useUserAvatar();
   const { playerPosition } = useLeaderboardData();
-  const { balances, primaryCurrency, formatCurrency } = useWallet();
+  const { balances, primaryCurrency, formatCurrency, refresh } = useWallet();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [balanceDropdownOpen, setBalanceDropdownOpen] = useState(false);
@@ -250,6 +250,12 @@ export function Header({
       <WalletModal
         isOpen={walletModalOpen}
         onClose={() => setWalletModalOpen(false)}
+        onDepositSuccess={(amount) => {
+          refresh();
+        }}
+        onWithdrawSuccess={(amount) => {
+          refresh();
+        }}
       />
     </header>
   );

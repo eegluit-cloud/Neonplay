@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
-const { getDb } = require('../database/init');
+const prisma = require('../lib/prisma');
 
-const authenticateAdmin = (req, res, next) => {
+const authenticateAdmin = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -16,18 +16,31 @@ const authenticateAdmin = (req, res, next) => {
       return res.status(403).json({ error: 'Invalid token type' });
     }
 
-    const db = getDb();
-    const admin = db.prepare('SELECT id, email, role, status FROM admins WHERE id = ?').get(decoded.id);
+    const admin = await prisma.adminUser.findUnique({
+      where: { id: decoded.id },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isActive: true
+      }
+    });
 
     if (!admin) {
       return res.status(401).json({ error: 'Admin not found' });
     }
 
-    if (admin.status !== 'active') {
+    if (!admin.isActive) {
       return res.status(403).json({ error: 'Account is disabled' });
     }
 
-    req.admin = admin;
+    req.admin = {
+      id: admin.id,
+      email: admin.email,
+      role: admin.role,
+      status: admin.isActive ? 'active' : 'inactive'
+    };
+
     next();
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
@@ -36,6 +49,7 @@ const authenticateAdmin = (req, res, next) => {
     if (error.name === 'JsonWebTokenError') {
       return res.status(401).json({ error: 'Invalid token' });
     }
+    console.error('Authentication error:', error);
     return res.status(500).json({ error: 'Authentication failed' });
   }
 };
@@ -54,22 +68,20 @@ const requireRole = (...roles) => {
 const logAction = (action, entityType = null) => {
   return (req, res, next) => {
     const originalJson = res.json.bind(res);
-    res.json = (data) => {
+    res.json = async (data) => {
       // Log after successful response
       if (res.statusCode >= 200 && res.statusCode < 400) {
         try {
-          const db = getDb();
-          db.prepare(`
-            INSERT INTO admin_logs (admin_id, action, entity_type, entity_id, details, ip_address)
-            VALUES (?, ?, ?, ?, ?, ?)
-          `).run(
-            req.admin.id,
-            action,
-            entityType,
-            req.params.id || req.params.playerId || null,
-            JSON.stringify({ body: req.body, params: req.params }),
-            req.ip
-          );
+          await prisma.adminAuditLog.create({
+            data: {
+              adminId: req.admin.id,
+              action,
+              entityType: entityType || 'unknown',
+              entityId: req.params.id || req.params.playerId || null,
+              newValues: { body: req.body, params: req.params },
+              ipAddress: req.ip
+            }
+          });
         } catch (err) {
           console.error('Failed to log admin action:', err);
         }

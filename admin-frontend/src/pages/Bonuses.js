@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { bonuses as staticBonuses, playerBonuses as staticPlayerBonuses, players } from '../data/staticData';
+import {
+  getBonusStats, getBonuses, createBonus, updateBonus, deleteBonus,
+  getPlayerBonuses, cancelPlayerBonus
+} from '../services/api';
 
 const Bonuses = () => {
   const [activeTab, setActiveTab] = useState('bonuses');
@@ -7,7 +10,8 @@ const Bonuses = () => {
   const [bonuses, setBonuses] = useState([]);
   const [playerBonusesList, setPlayerBonusesList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1 });
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [showModal, setShowModal] = useState(null);
   const [editBonus, setEditBonus] = useState(null);
   const [formData, setFormData] = useState({
@@ -24,78 +28,104 @@ const Bonuses = () => {
     if (activeTab === 'player-bonuses') loadPlayerBonuses();
   }, [activeTab, pagination.page]);
 
-  const loadStats = () => {
-    const activeBonuses = staticBonuses.filter(b => b.status === 'active').length;
-    const activePlayerBonuses = staticPlayerBonuses.filter(pb => pb.status === 'active').length;
-    const totalGiven = staticPlayerBonuses.reduce((sum, pb) => sum + pb.amount, 0);
-    const totalWagered = staticPlayerBonuses.reduce((sum, pb) => sum + pb.wagered, 0);
-    setStats({
-      active_bonuses: activeBonuses,
-      active_player_bonuses: activePlayerBonuses,
-      total_bonus_given: totalGiven,
-      total_wagered_on_bonuses: totalWagered
-    });
+  const loadStats = async () => {
+    try {
+      const response = await getBonusStats();
+      setStats(response.stats || {});
+    } catch (err) {
+      console.error('Failed to load bonus stats:', err);
+      setError('Failed to load bonus stats');
+    }
   };
 
-  const loadBonuses = () => {
-    setLoading(true);
-    setBonuses(staticBonuses.map(b => ({
-      ...b,
-      wageringReq: b.wageringReq,
-      maxCap: b.maxBonus
-    })));
-    setLoading(false);
+  const loadBonuses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getBonuses({ page: 1, limit: 100 });
+      setBonuses(response.bonuses || []);
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load bonuses:', err);
+      setError('Failed to load bonuses');
+      setBonuses([]);
+      setLoading(false);
+    }
   };
 
-  const loadPlayerBonuses = () => {
-    setLoading(true);
-    const enriched = staticPlayerBonuses.map(pb => {
-      const player = players.find(p => p.id === pb.playerId);
-      return {
-        ...pb,
-        playerEmail: player?.email || 'Unknown',
-        progress: pb.wageringTarget > 0 ? Math.round((pb.wagered / pb.wageringTarget) * 100) : 100
+  const loadPlayerBonuses = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const params = {
+        page: pagination.page,
+        limit: 20
       };
-    });
-    setPlayerBonusesList(enriched);
-    setPagination({ page: 1, pages: 1 });
-    setLoading(false);
+      const response = await getPlayerBonuses(params);
+      setPlayerBonusesList(response.playerBonuses || []);
+
+      // Backend returns pagination nested in response.pagination
+      const paginationData = response.pagination || {};
+      setPagination({
+        page: paginationData.page || 1,
+        pages: paginationData.pages || 1,
+        total: paginationData.total || 0
+      });
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load player bonuses:', err);
+      setError('Failed to load player bonuses');
+      setPlayerBonusesList([]);
+      setLoading(false);
+    }
   };
 
-  const handleCreateBonus = (e) => {
+  const handleCreateBonus = async (e) => {
     e.preventDefault();
-    const newBonus = {
-      id: bonuses.length + 1,
+    const bonusData = {
       ...formData,
       amount: parseFloat(formData.amount) || 0,
       percentage: parseFloat(formData.percentage) || 0,
       wageringReq: parseFloat(formData.wageringReq) || 1,
       minDeposit: parseFloat(formData.minDeposit) || 0,
       maxCap: formData.maxCap ? parseFloat(formData.maxCap) : null,
-      status: 'active',
-      currentClaims: 0
     };
-    setBonuses([...bonuses, newBonus]);
-    setShowModal(null);
-    resetForm();
-    alert('Bonus created successfully');
+
+    try {
+      const response = await createBonus(bonusData);
+      setBonuses([...bonuses, response.bonus]);
+      setShowModal(null);
+      resetForm();
+      alert('Bonus created successfully');
+      loadStats(); // Reload stats
+    } catch (err) {
+      console.error('Failed to create bonus:', err);
+      alert('Failed to create bonus: ' + (err.message || 'Unknown error'));
+    }
   };
 
-  const handleUpdateBonus = (e) => {
+  const handleUpdateBonus = async (e) => {
     e.preventDefault();
-    setBonuses(bonuses.map(b => b.id === editBonus.id ? {
-      ...b,
+    const bonusData = {
       ...formData,
       amount: parseFloat(formData.amount) || 0,
       percentage: parseFloat(formData.percentage) || 0,
       wageringReq: parseFloat(formData.wageringReq) || 1,
       minDeposit: parseFloat(formData.minDeposit) || 0,
       maxCap: formData.maxCap ? parseFloat(formData.maxCap) : null,
-    } : b));
-    setShowModal(null);
-    setEditBonus(null);
-    resetForm();
-    alert('Bonus updated successfully');
+    };
+
+    try {
+      await updateBonus(editBonus.id, bonusData);
+      setBonuses(bonuses.map(b => b.id === editBonus.id ? { ...b, ...bonusData } : b));
+      setShowModal(null);
+      setEditBonus(null);
+      resetForm();
+      alert('Bonus updated successfully');
+    } catch (err) {
+      console.error('Failed to update bonus:', err);
+      alert('Failed to update bonus: ' + (err.message || 'Unknown error'));
+    }
   };
 
   const handleStatusChange = (bonusId, status) => {

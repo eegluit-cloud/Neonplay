@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { initDatabase } = require('./database/init');
 
 // Import routes
 const authRoutes = require('./routes/auth');
@@ -12,6 +11,7 @@ const gamesRoutes = require('./routes/games');
 const bonusRoutes = require('./routes/bonus');
 const reportsRoutes = require('./routes/reports');
 const adminsRoutes = require('./routes/admins');
+const vipRoutes = require('./routes/vip');
 
 const app = express();
 
@@ -26,9 +26,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, '..', 'player-backend', 'uploads')));
 
-// Initialize database
-initDatabase();
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/players', playersRoutes);
@@ -37,6 +34,7 @@ app.use('/api/games', gamesRoutes);
 app.use('/api/bonus', bonusRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/admins', adminsRoutes);
+app.use('/api/vip', vipRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

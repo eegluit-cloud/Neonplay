@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { games as staticGames, categories as staticCategories, providers as staticProviders } from '../data/staticData';
-
-const aggregatorsData = [
-  { id: 1, name: 'SoftSwiss', status: 'active', providerCount: 4, gameCount: 8 }
-];
+import {
+  getGames, getCategories, getProviders, getAggregators,
+  updateGame, updateCategory, updateProvider, updateAggregator,
+  createCategory, deleteCategory
+} from '../services/api';
 
 const Games = () => {
   const [activeTab, setActiveTab] = useState('games');
@@ -12,7 +12,8 @@ const Games = () => {
   const [aggregators, setAggregators] = useState([]);
   const [providers, setProviders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [pagination, setPagination] = useState({ page: 1, pages: 1 });
+  const [error, setError] = useState(null);
+  const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
   const [filters, setFilters] = useState({ search: '', providerId: '', categoryId: '', status: '' });
   const [showModal, setShowModal] = useState(null);
 
@@ -26,88 +27,146 @@ const Games = () => {
     if (activeTab === 'games') loadGames();
   }, [activeTab, pagination.page, filters]);
 
-  const loadCategories = () => {
-    setCategories(staticCategories.map(c => ({
-      ...c,
-      type: 'custom',
-      status: 'active',
-      sortOrder: c.id,
-      icon: c.id === 1 ? '🎰' : c.id === 2 ? '🃏' : c.id === 3 ? '🎥' : '💰'
-    })));
-  };
-
-  const loadAggregators = () => {
-    setAggregators(aggregatorsData);
-  };
-
-  const loadProviders = () => {
-    setProviders(staticProviders.map(p => ({
-      ...p,
-      aggregatorName: 'SoftSwiss',
-      commissionRate: 15
-    })));
-  };
-
-  const loadGames = () => {
-    setLoading(true);
-    let filtered = [...staticGames];
-
-    if (filters.search) {
-      filtered = filtered.filter(g => g.name.toLowerCase().includes(filters.search.toLowerCase()));
+  const loadCategories = async () => {
+    try {
+      const response = await getCategories();
+      setCategories(response.categories || []);
+    } catch (err) {
+      console.error('Failed to load categories:', err);
+      setError('Failed to load categories');
     }
-    if (filters.providerId) {
-      filtered = filtered.filter(g => g.providerId === parseInt(filters.providerId));
+  };
+
+  const loadAggregators = async () => {
+    try {
+      const response = await getAggregators();
+      setAggregators(response.aggregators || []);
+    } catch (err) {
+      console.error('Failed to load aggregators:', err);
+      setError('Failed to load aggregators');
     }
-    if (filters.categoryId) {
-      filtered = filtered.filter(g => g.categoryId === parseInt(filters.categoryId));
+  };
+
+  const loadProviders = async () => {
+    try {
+      const response = await getProviders();
+      setProviders(response.providers || []);
+    } catch (err) {
+      console.error('Failed to load providers:', err);
+      setError('Failed to load providers');
     }
-    if (filters.status) {
-      filtered = filtered.filter(g => g.status === filters.status);
+  };
+
+  const loadGames = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const params = {
+        page: pagination.page,
+        limit: 30,
+      };
+
+      if (filters.search) params.search = filters.search;
+      if (filters.providerId) params.providerId = filters.providerId;
+      if (filters.categoryId) params.categoryId = filters.categoryId;
+      if (filters.status) params.status = filters.status;
+
+      const response = await getGames(params);
+      setGames(response.games || []);
+
+      // Backend returns pagination nested in response.pagination
+      const paginationData = response.pagination || {};
+      setPagination({
+        page: paginationData.page || 1,
+        pages: paginationData.pages || 1,
+        total: paginationData.total || 0
+      });
+      setLoading(false);
+    } catch (err) {
+      console.error('Failed to load games:', err);
+      setError('Failed to load games');
+      setGames([]);
+      setLoading(false);
     }
-
-    const total = filtered.length;
-    const pages = Math.ceil(total / 30) || 1;
-    setGames(filtered);
-    setPagination({ page: 1, pages });
-    setLoading(false);
   };
 
-  const handleUpdateCategory = (categoryId, data) => {
-    setCategories(categories.map(c => c.id === categoryId ? { ...c, ...data } : c));
+  const handleUpdateCategory = async (categoryId, data) => {
+    try {
+      await updateCategory(categoryId, data);
+      setCategories(categories.map(c => c.id === categoryId ? { ...c, ...data } : c));
+    } catch (err) {
+      console.error('Failed to update category:', err);
+      setError('Failed to update category');
+    }
   };
 
-  const handleUpdateAggregator = (aggregatorId, data) => {
-    setAggregators(aggregators.map(a => a.id === aggregatorId ? { ...a, ...data } : a));
+  const handleUpdateAggregator = async (aggregatorId, data) => {
+    try {
+      await updateAggregator(aggregatorId, data);
+      setAggregators(aggregators.map(a => a.id === aggregatorId ? { ...a, ...data } : a));
+    } catch (err) {
+      console.error('Failed to update aggregator:', err);
+      setError('Failed to update aggregator');
+    }
   };
 
-  const handleUpdateProvider = (providerId, data) => {
-    setProviders(providers.map(p => p.id === providerId ? { ...p, ...data } : p));
+  const handleUpdateProvider = async (providerId, data) => {
+    try {
+      await updateProvider(providerId, data);
+      setProviders(providers.map(p => p.id === providerId ? { ...p, ...data } : p));
+    } catch (err) {
+      console.error('Failed to update provider:', err);
+      setError('Failed to update provider');
+    }
   };
 
-  const handleUpdateGame = (gameId, data) => {
-    setGames(games.map(g => g.id === gameId ? { ...g, ...data } : g));
+  const handleUpdateGame = async (gameId, data) => {
+    try {
+      await updateGame(gameId, data);
+      setGames(games.map(g => g.id === gameId ? { ...g, ...data } : g));
+    } catch (err) {
+      console.error('Failed to update game:', err);
+      setError('Failed to update game');
+    }
   };
 
-  const handleCreateCategory = (e) => {
+  const handleCreateCategory = async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    const newCat = {
-      id: categories.length + 1,
+    const categoryData = {
       name: formData.get('name'),
       slug: formData.get('slug'),
       icon: formData.get('icon') || '🎮',
       type: 'custom',
-      status: 'active',
-      gameCount: 0,
-      sortOrder: categories.length + 1
+      status: 'active'
     };
-    setCategories([...categories, newCat]);
-    setShowModal(null);
-    alert('Category created successfully');
+
+    try {
+      const response = await createCategory(categoryData);
+      setCategories([...categories, response.category]);
+      setShowModal(null);
+      alert('Category created successfully');
+    } catch (err) {
+      console.error('Failed to create category:', err);
+      alert('Failed to create category: ' + (err.message || 'Unknown error'));
+    }
   };
 
   return (
     <div>
+      {/* Error Message */}
+      {error && (
+        <div className="alert alert-danger" style={{ marginBottom: '20px' }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          {error}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="tabs">
         <button className={`tab ${activeTab === 'games' ? 'active' : ''}`} onClick={() => setActiveTab('games')}>Games</button>

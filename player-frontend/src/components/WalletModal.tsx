@@ -1,11 +1,25 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronLeft, CreditCard, Building2, ChevronRight, ArrowLeft, ChevronDown, Keyboard, CheckCircle2, Loader2, Copy, AlertCircle, Gift, HelpCircle, X } from 'lucide-react';
+import { ChevronLeft, CreditCard, Building2, ChevronRight, ArrowLeft, ChevronDown, Keyboard, CheckCircle2, Loader2, Copy, AlertCircle, Gift, HelpCircle, X, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AppleIcon, GooglePayColorIcon, VisaIcon, MastercardIcon, BitcoinIcon, EthereumIcon, TetherIcon } from '@/components/icons/PaymentIcons';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import confetti from 'canvas-confetti';
+import { pay247Api } from '@/lib/api';
+import {
+  Pay247Currency,
+  Pay247DepositMethod,
+  Pay247WithdrawalMethod,
+  PAY247_LIMITS,
+  PAY247_METHOD_NAMES,
+  PAY247_METHODS_BY_CURRENCY,
+  type Pay247AccountDetails,
+  type UpiAccountDetails,
+  type BankAccountDetails,
+  type CryptoAccountDetails,
+  type GCashAccountDetails,
+} from '@/types/pay247';
 
 interface WalletModalProps {
   isOpen: boolean;
@@ -15,8 +29,8 @@ interface WalletModalProps {
   defaultTab?: 'deposit' | 'withdraw';
 }
 
-type PaymentMethod = 'credit-card' | 'apple-pay' | 'google-pay' | 'bank-transfer' | 'crypto' | null;
-type Step = 'amount' | 'payment' | 'card-details' | 'crypto-deposit' | 'processing' | 'success';
+type PaymentMethod = 'credit-card' | 'apple-pay' | 'google-pay' | 'bank-transfer' | 'crypto' | 'pay247' | null;
+type Step = 'amount' | 'payment' | 'card-details' | 'crypto-deposit' | 'pay247-details' | 'processing' | 'success';
 type CryptoCurrency = 'ETH' | 'BTC' | 'USDT' | 'USDC' | 'SOL' | 'DOGE';
 type CryptoNetwork = 'ERC20' | 'TRC20' | 'BEP20' | 'Polygon' | 'Arbitrum' | 'Optimism' | 'Solana';
 
@@ -65,6 +79,12 @@ const networkLabels: Record<CryptoNetwork, string> = {
 };
 
 const paymentMethods = [
+  {
+    id: 'pay247' as const,
+    name: 'Pay247',
+    icon: Wallet,
+    description: 'USDT, INR, PHP, UPI, GCash',
+  },
   {
     id: 'credit-card' as const,
     name: 'Credit Card',
@@ -118,6 +138,24 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
   const [addressCopied, setAddressCopied] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  // Pay247 state
+  const [pay247Currency, setPay247Currency] = useState<Pay247Currency>(Pay247Currency.USDT);
+  const [pay247DepositMethod, setPay247DepositMethod] = useState<Pay247DepositMethod>(Pay247DepositMethod.TRC20);
+  const [pay247WithdrawalMethod, setPay247WithdrawalMethod] = useState<Pay247WithdrawalMethod>(Pay247WithdrawalMethod.TRC20);
+  const [pay247AccountDetails, setPay247AccountDetails] = useState<Pay247AccountDetails | null>(null);
+  const [pay247Processing, setPay247Processing] = useState(false);
+  const [pay247Error, setPay247Error] = useState<string | null>(null);
+
+  // Pay247 withdrawal account detail fields
+  const [upiId, setUpiId] = useState('');
+  const [accountHolder, setAccountHolder] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [ifscCode, setIfscCode] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [walletAddress, setWalletAddress] = useState('');
+  const [mobileNumber, setMobileNumber] = useState('');
+  const [accountName, setAccountName] = useState('');
+
   // Sync activeTab with defaultTab when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -137,7 +175,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
   };
 
   const handleBack = () => {
-    if (step === 'card-details' || step === 'crypto-deposit') {
+    if (step === 'card-details' || step === 'crypto-deposit' || step === 'pay247-details') {
       setStep('payment');
     } else {
       setStep('amount');
@@ -151,6 +189,9 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
       setStep('card-details');
     } else if (methodId === 'crypto') {
       setStep('crypto-deposit');
+    } else if (methodId === 'pay247') {
+      setStep('pay247-details');
+      setPay247Error(null);
     } else {
       // Handle other payment methods
       console.log({ activeTab, amount, paymentMethod: methodId });
@@ -218,6 +259,105 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
     resetState();
   };
 
+  const handlePay247Deposit = async () => {
+    setPay247Processing(true);
+    setPay247Error(null);
+
+    try {
+      const response = await pay247Api.createDeposit({
+        amount: parseFloat(amount),
+        currency: pay247Currency,
+        paymentMethod: pay247DepositMethod,
+      });
+
+      // Redirect to Pay247 payment URL
+      if (response.data.paymentUrl) {
+        window.open(response.data.paymentUrl, '_blank');
+        setStep('processing');
+
+        // Poll for transaction status
+        setTimeout(() => {
+          setStep('success');
+          triggerConfetti();
+          const totalAmount = parseFloat(total);
+          if (!isNaN(totalAmount) && onDepositSuccess) {
+            onDepositSuccess(totalAmount);
+          }
+        }, 2000);
+      }
+    } catch (error: any) {
+      setPay247Error(error.response?.data?.message || 'Failed to create deposit. Please try again.');
+      console.error('Pay247 deposit error:', error);
+    } finally {
+      setPay247Processing(false);
+    }
+  };
+
+  const handlePay247Withdrawal = async () => {
+    setPay247Processing(true);
+    setPay247Error(null);
+
+    try {
+      // Build account details based on payment method
+      let accountDetails: Pay247AccountDetails;
+
+      if (pay247WithdrawalMethod === Pay247WithdrawalMethod.UPI) {
+        accountDetails = { upiId } as UpiAccountDetails;
+      } else if (pay247WithdrawalMethod === Pay247WithdrawalMethod.BANK_TRANSFER) {
+        accountDetails = {
+          accountHolder,
+          accountNumber,
+          ifscCode,
+          bankName,
+        } as BankAccountDetails;
+      } else if (
+        pay247WithdrawalMethod === Pay247WithdrawalMethod.TRC20 ||
+        pay247WithdrawalMethod === Pay247WithdrawalMethod.ERC20 ||
+        pay247WithdrawalMethod === Pay247WithdrawalMethod.BEP20
+      ) {
+        accountDetails = {
+          walletAddress,
+          network: pay247WithdrawalMethod,
+        } as CryptoAccountDetails;
+      } else if (
+        pay247WithdrawalMethod === Pay247WithdrawalMethod.GCASH ||
+        pay247WithdrawalMethod === Pay247WithdrawalMethod.MAYA
+      ) {
+        accountDetails = {
+          mobileNumber,
+          accountName,
+        } as GCashAccountDetails;
+      } else {
+        setPay247Error('Invalid withdrawal method selected');
+        setPay247Processing(false);
+        return;
+      }
+
+      const response = await pay247Api.createWithdrawal({
+        amount: parseFloat(amount),
+        currency: pay247Currency,
+        paymentMethod: pay247WithdrawalMethod,
+        accountDetails,
+      });
+
+      // Withdrawal initiated successfully
+      setStep('processing');
+      setTimeout(() => {
+        setStep('success');
+        triggerConfetti();
+        const withdrawAmount = parseFloat(amount);
+        if (!isNaN(withdrawAmount) && onWithdrawSuccess) {
+          onWithdrawSuccess(withdrawAmount);
+        }
+      }, 2000);
+    } catch (error: any) {
+      setPay247Error(error.response?.data?.message || 'Failed to create withdrawal. Please try again.');
+      console.error('Pay247 withdrawal error:', error);
+    } finally {
+      setPay247Processing(false);
+    }
+  };
+
   const resetState = () => {
     setStep('amount');
     setAmount('100');
@@ -229,6 +369,21 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
     setCardName('ivontx AI');
     setCardAddress('123 Main Street, New York');
     setConfirmCvv('123');
+    // Reset Pay247 state
+    setPay247Currency(Pay247Currency.USDT);
+    setPay247DepositMethod(Pay247DepositMethod.TRC20);
+    setPay247WithdrawalMethod(Pay247WithdrawalMethod.TRC20);
+    setPay247AccountDetails(null);
+    setPay247Processing(false);
+    setPay247Error(null);
+    setUpiId('');
+    setAccountHolder('');
+    setAccountNumber('');
+    setIfscCode('');
+    setBankName('');
+    setWalletAddress('');
+    setMobileNumber('');
+    setAccountName('');
   };
 
   const handleClose = () => {
@@ -361,6 +516,24 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
 
             {/* Payment Methods */}
             <div className="space-y-3">
+              {/* Pay247 */}
+              <button
+                onClick={() => handlePaymentSelect('pay247')}
+                className="w-full flex items-center gap-4 p-4 bg-gradient-to-r from-cyan-500/10 to-blue-400/10 hover:from-cyan-500/20 hover:to-blue-400/20 border-2 border-cyan-500/50 rounded-xl transition-all group"
+              >
+                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-400 rounded-lg flex items-center justify-center">
+                  <Wallet className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="font-semibold text-foreground flex items-center gap-2">
+                    Pay247
+                    <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">Recommended</span>
+                  </p>
+                  <p className="text-sm text-muted-foreground">USDT, INR, PHP, UPI, GCash & more</p>
+                </div>
+                <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors" />
+              </button>
+
               {/* Credit Card */}
               <button
                 onClick={() => handlePaymentSelect('credit-card')}
@@ -772,11 +945,229 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             </div>
           </div>
 
-          {/* Processing Step */}
-          <div 
+          {/* Pay247 Details Step */}
+          <div
             className={`transition-all duration-300 ease-out ${
-              step === 'processing' 
-                ? 'opacity-100 scale-100' 
+              step === 'pay247-details'
+                ? 'opacity-100 translate-x-0'
+                : 'opacity-0 translate-x-full absolute inset-0 p-8 pointer-events-none'
+            }`}
+          >
+            {/* Back Button */}
+            <button
+              onClick={handleBack}
+              className="w-8 h-8 rounded-lg bg-[#2a2a2a] flex items-center justify-center hover:bg-[#3a3a3a] transition-colors mb-4"
+            >
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+            </button>
+
+            <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-4">
+              {activeTab === 'withdraw' ? 'Withdraw with Pay247' : 'Deposit with Pay247'}
+            </h2>
+
+            {/* Amount Display */}
+            <div className="mb-6 p-4 bg-secondary/50 rounded-xl">
+              <p className="text-sm text-muted-foreground">{activeTab === 'withdraw' ? 'Amount to withdraw' : 'Amount to deposit'}</p>
+              <p className="text-2xl font-bold text-primary">${amount}</p>
+            </div>
+
+            {/* Error Message */}
+            {pay247Error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <p className="text-sm text-red-400">{pay247Error}</p>
+              </div>
+            )}
+
+            {/* Currency Selection */}
+            <div className="mb-4">
+              <label className="text-sm text-muted-foreground mb-2 block font-medium">Select Currency</label>
+              <div className="grid grid-cols-3 gap-3">
+                {Object.values(Pay247Currency).map((currency) => (
+                  <button
+                    key={currency}
+                    onClick={() => {
+                      setPay247Currency(currency);
+                      // Reset method to first available for this currency
+                      const availableMethods = PAY247_METHODS_BY_CURRENCY[currency];
+                      if (availableMethods.length > 0) {
+                        setPay247DepositMethod(availableMethods[0]);
+                        setPay247WithdrawalMethod(availableMethods[0] as Pay247WithdrawalMethod);
+                      }
+                    }}
+                    className={`p-3 rounded-xl border-2 transition-all font-semibold ${
+                      pay247Currency === currency
+                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                        : 'border-border bg-secondary/50 text-muted-foreground hover:border-cyan-500/50'
+                    }`}
+                  >
+                    {currency}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Limits: ${PAY247_LIMITS[pay247Currency].min} - ${PAY247_LIMITS[pay247Currency].max}
+              </p>
+            </div>
+
+            {/* Payment Method Selection */}
+            <div className="mb-4">
+              <label className="text-sm text-muted-foreground mb-2 block font-medium">Select Payment Method</label>
+              <div className="grid grid-cols-1 gap-2">
+                {PAY247_METHODS_BY_CURRENCY[pay247Currency].map((method) => (
+                  <button
+                    key={method}
+                    onClick={() => {
+                      if (activeTab === 'deposit') {
+                        setPay247DepositMethod(method);
+                      } else {
+                        setPay247WithdrawalMethod(method as Pay247WithdrawalMethod);
+                      }
+                    }}
+                    className={`p-3 rounded-xl border-2 transition-all text-left ${
+                      (activeTab === 'deposit' ? pay247DepositMethod : pay247WithdrawalMethod) === method
+                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
+                        : 'border-border bg-secondary/50 text-foreground hover:border-cyan-500/50'
+                    }`}
+                  >
+                    <span className="font-medium">{PAY247_METHOD_NAMES[method]}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Withdrawal Account Details */}
+            {activeTab === 'withdraw' && (
+              <div className="mb-4 space-y-3">
+                <label className="text-sm text-muted-foreground block font-medium">Account Details</label>
+
+                {/* UPI */}
+                {pay247WithdrawalMethod === Pay247WithdrawalMethod.UPI && (
+                  <Input
+                    type="text"
+                    placeholder="UPI ID (e.g., username@upi)"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                  />
+                )}
+
+                {/* Bank Transfer */}
+                {pay247WithdrawalMethod === Pay247WithdrawalMethod.BANK_TRANSFER && (
+                  <>
+                    <Input
+                      type="text"
+                      placeholder="Account Holder Name"
+                      value={accountHolder}
+                      onChange={(e) => setAccountHolder(e.target.value)}
+                      className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                    <Input
+                      type="text"
+                      placeholder="Account Number"
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
+                      className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                    {pay247Currency === Pay247Currency.INR && (
+                      <Input
+                        type="text"
+                        placeholder="IFSC Code"
+                        value={ifscCode}
+                        onChange={(e) => setIfscCode(e.target.value)}
+                        className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                      />
+                    )}
+                    <Input
+                      type="text"
+                      placeholder="Bank Name (optional)"
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
+                      className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                  </>
+                )}
+
+                {/* Crypto (TRC20/ERC20/BEP20) */}
+                {(pay247WithdrawalMethod === Pay247WithdrawalMethod.TRC20 ||
+                  pay247WithdrawalMethod === Pay247WithdrawalMethod.ERC20 ||
+                  pay247WithdrawalMethod === Pay247WithdrawalMethod.BEP20) && (
+                  <Input
+                    type="text"
+                    placeholder={`${pay247WithdrawalMethod} Wallet Address`}
+                    value={walletAddress}
+                    onChange={(e) => setWalletAddress(e.target.value)}
+                    className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground font-mono"
+                  />
+                )}
+
+                {/* GCash / Maya */}
+                {(pay247WithdrawalMethod === Pay247WithdrawalMethod.GCASH ||
+                  pay247WithdrawalMethod === Pay247WithdrawalMethod.MAYA) && (
+                  <>
+                    <Input
+                      type="text"
+                      placeholder="Mobile Number"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value)}
+                      className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                    <Input
+                      type="text"
+                      placeholder="Account Name"
+                      value={accountName}
+                      onChange={(e) => setAccountName(e.target.value)}
+                      className="h-12 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
+                    />
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Info Box */}
+            <div className="mb-6 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-foreground">
+                {activeTab === 'deposit' ? (
+                  <p>You will be redirected to Pay247 to complete the payment securely.</p>
+                ) : (
+                  <p>Withdrawal will be processed within 24 hours to your provided account details.</p>
+                )}
+              </div>
+            </div>
+
+            {/* Confirm Button */}
+            <Button
+              onClick={activeTab === 'deposit' ? handlePay247Deposit : handlePay247Withdrawal}
+              disabled={
+                pay247Processing ||
+                (activeTab === 'withdraw' && (
+                  (pay247WithdrawalMethod === Pay247WithdrawalMethod.UPI && !upiId) ||
+                  (pay247WithdrawalMethod === Pay247WithdrawalMethod.BANK_TRANSFER && (!accountHolder || !accountNumber || (pay247Currency === Pay247Currency.INR && !ifscCode))) ||
+                  ((pay247WithdrawalMethod === Pay247WithdrawalMethod.TRC20 || pay247WithdrawalMethod === Pay247WithdrawalMethod.ERC20 || pay247WithdrawalMethod === Pay247WithdrawalMethod.BEP20) && !walletAddress) ||
+                  ((pay247WithdrawalMethod === Pay247WithdrawalMethod.GCASH || pay247WithdrawalMethod === Pay247WithdrawalMethod.MAYA) && (!mobileNumber || !accountName))
+                ))
+              }
+              className="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold text-lg shadow-lg disabled:opacity-50"
+            >
+              {pay247Processing ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Processing...
+                </span>
+              ) : activeTab === 'withdraw' ? (
+                `Withdraw $${amount} via Pay247`
+              ) : (
+                `Deposit $${amount} via Pay247`
+              )}
+            </Button>
+          </div>
+
+          {/* Processing Step */}
+          <div
+            className={`transition-all duration-300 ease-out ${
+              step === 'processing'
+                ? 'opacity-100 scale-100'
                 : 'opacity-0 scale-95 absolute inset-0 p-8 pointer-events-none'
             }`}
           >
