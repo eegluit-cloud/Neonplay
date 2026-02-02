@@ -38,8 +38,8 @@ export class VipService {
     return tiers.map((tier, index) => {
       const nextTier = tiers[index + 1];
       // Transform benefits: support multiple formats for backward compatibility
-      const benefits = tier.benefits && typeof tier.benefits === 'object'
-        ? (tier.benefits.list || tier.benefits.features || [])
+      const benefits = tier.benefits && typeof tier.benefits === 'object' && !Array.isArray(tier.benefits)
+        ? ((tier.benefits as any).list || (tier.benefits as any).features || [])
         : (Array.isArray(tier.benefits) ? tier.benefits : []);
 
       return {
