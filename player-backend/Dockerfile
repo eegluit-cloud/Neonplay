@@ -6,9 +6,12 @@ WORKDIR /app
 # Install OpenSSL for Prisma and build tools for native modules
 RUN apk add --no-cache openssl openssl-dev python3 make g++
 
+# Copy shared schema first
+COPY shared ./shared/
+
 # Install dependencies
-COPY package*.json ./
-COPY prisma ./prisma/
+COPY player-backend/package*.json ./
+COPY player-backend/prisma ./prisma/
 
 RUN npm ci
 
@@ -19,7 +22,7 @@ RUN npm rebuild bcrypt
 RUN npx prisma generate
 
 # Copy source code
-COPY . .
+COPY player-backend .
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs

@@ -37,8 +37,14 @@ export class VipService {
 
     return tiers.map((tier, index) => {
       const nextTier = tiers[index + 1];
+      // Transform benefits: support multiple formats for backward compatibility
+      const benefits = tier.benefits && typeof tier.benefits === 'object'
+        ? (tier.benefits.list || tier.benefits.features || [])
+        : (Array.isArray(tier.benefits) ? tier.benefits : []);
+
       return {
         ...tier,
+        benefits,
         minXp: tier.minXp.toString(),
         nextTierXp: nextTier ? nextTier.minXp.toString() : null,
         cashbackPercent: Number(tier.cashbackPercent),
@@ -471,5 +477,24 @@ export class VipService {
       cashbackPercent: Number(tier.cashbackPercent),
       redemptionBonusPercent: Number(tier.redemptionBonusPercent),
     }));
+  }
+
+  /**
+   * Get VIP page content settings
+   */
+  async getPageContent() {
+    const setting = await this.prisma.siteSetting.findUnique({
+      where: { key: 'vip_page_content' },
+    });
+
+    const defaultContent = {
+      pageTitle: 'Exclusive VIP Bonus',
+      pageSubtitle: 'your progress is an accumulated sum through your wager, increase through tiers to earn bigger rewards',
+      logoUrl: null,
+      bannerImage: null,
+      bannerGradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    };
+
+    return setting ? setting.value : defaultContent;
   }
 }

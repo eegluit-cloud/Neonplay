@@ -26,6 +26,7 @@ import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { TokenResponse } from '../../shared/interfaces/user.interface';
+import { SkipCsrf } from '../../common/guards/csrf.guard';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -33,6 +34,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Public()
+  @SkipCsrf()
   @Post('register')
   @Throttle({ default: { ttl: 60000, limit: 5 } }) // 5 registrations per minute per IP
   @ApiOperation({ summary: 'Register a new user' })
@@ -43,6 +45,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Post('login')
   @Throttle({ default: { ttl: 60000, limit: 10 } }) // 10 login attempts per minute per IP
   @HttpCode(HttpStatus.OK)

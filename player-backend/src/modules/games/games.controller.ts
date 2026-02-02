@@ -20,6 +20,8 @@ import { GamesService, GamesQueryDto } from './games.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { OptionalAuth } from '../../common/decorators/optional-auth.decorator';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { PaginationDto } from '../../common/utils/pagination.util';
 
 @ApiTags('Games')
@@ -87,14 +89,27 @@ export class GamesController {
     return this.gamesService.getGamesByCategory(slug, query);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @OptionalAuth()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('favorites')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get user favorite games' })
+  @ApiOperation({ summary: 'Get user favorite games (optional auth)' })
   async getUserFavorites(
-    @CurrentUser('id') userId: string,
-    @Query() query: PaginationDto,
+    @CurrentUser('id') userId?: string,
+    @Query() query?: PaginationDto,
   ) {
+    if (!userId) {
+      // Return empty favorites list when not authenticated
+      return {
+        data: [],
+        meta: {
+          total: 0,
+          page: 1,
+          limit: query?.limit || 20,
+          totalPages: 0,
+        },
+      };
+    }
     return this.gamesService.getUserFavorites(userId, query);
   }
 

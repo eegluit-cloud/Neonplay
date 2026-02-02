@@ -20,6 +20,11 @@ const CURRENCY_BALANCE_FIELDS: Record<Currency, string> = {
   GBP: 'gbpBalance',
   CAD: 'cadBalance',
   AUD: 'audBalance',
+  PHP: 'phpBalance',
+  INR: 'inrBalance',
+  THB: 'thbBalance',
+  CNY: 'cnyBalance',
+  JPY: 'jpyBalance',
   USDC: 'usdcBalance',
   USDT: 'usdtBalance',
   BTC: 'btcBalance',
@@ -88,6 +93,11 @@ export class WalletService {
         gbpBalance: true,
         cadBalance: true,
         audBalance: true,
+        phpBalance: true,
+        inrBalance: true,
+        thbBalance: true,
+        cnyBalance: true,
+        jpyBalance: true,
         usdcBalance: true,
         usdtBalance: true,
         btcBalance: true,
@@ -103,9 +113,10 @@ export class WalletService {
       },
     });
 
+    let walletData = wallet;
     if (!wallet) {
       // Create wallet if doesn't exist
-      return this.prisma.wallet.create({
+      walletData = await this.prisma.wallet.create({
         data: { userId },
         select: {
           id: true,
@@ -114,6 +125,11 @@ export class WalletService {
           gbpBalance: true,
           cadBalance: true,
           audBalance: true,
+          phpBalance: true,
+          inrBalance: true,
+          thbBalance: true,
+          cnyBalance: true,
+          jpyBalance: true,
           usdcBalance: true,
           usdtBalance: true,
           btcBalance: true,
@@ -130,7 +146,35 @@ export class WalletService {
       });
     }
 
-    return wallet;
+    // Transform to frontend-expected format
+    return {
+      balances: {
+        USD: parseFloat(walletData.usdBalance.toString()),
+        EUR: parseFloat(walletData.eurBalance.toString()),
+        GBP: parseFloat(walletData.gbpBalance.toString()),
+        CAD: parseFloat(walletData.cadBalance.toString()),
+        AUD: parseFloat(walletData.audBalance.toString()),
+        PHP: parseFloat(walletData.phpBalance.toString()),
+        INR: parseFloat(walletData.inrBalance.toString()),
+        THB: parseFloat(walletData.thbBalance.toString()),
+        CNY: parseFloat(walletData.cnyBalance.toString()),
+        JPY: parseFloat(walletData.jpyBalance.toString()),
+        USDC: parseFloat(walletData.usdcBalance.toString()),
+        USDT: parseFloat(walletData.usdtBalance.toString()),
+        BTC: parseFloat(walletData.btcBalance.toString()),
+        ETH: parseFloat(walletData.ethBalance.toString()),
+        SOL: parseFloat(walletData.solBalance.toString()),
+        DOGE: parseFloat(walletData.dogeBalance.toString()),
+      },
+      primaryCurrency: walletData.primaryCurrency as Currency,
+      lifetimeStats: {
+        deposited: parseFloat(walletData.lifetimeDeposited.toString()),
+        withdrawn: parseFloat(walletData.lifetimeWithdrawn.toString()),
+        wagered: parseFloat(walletData.lifetimeWagered.toString()),
+        won: parseFloat(walletData.lifetimeWon.toString()),
+        bonuses: parseFloat(walletData.lifetimeBonuses.toString()),
+      },
+    };
   }
 
   /**

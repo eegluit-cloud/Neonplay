@@ -16,7 +16,7 @@ export interface PaginatedResponse<T> {
 }
 
 // Currency types
-export type FiatCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD';
+export type FiatCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'PHP' | 'INR' | 'THB' | 'CNY' | 'JPY';
 export type CryptoCurrency = 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'SOL' | 'DOGE';
 export type Currency = FiatCurrency | CryptoCurrency;
 

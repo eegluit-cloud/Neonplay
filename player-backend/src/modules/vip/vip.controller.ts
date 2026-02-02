@@ -10,6 +10,8 @@ import { VipService } from './vip.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
+import { OptionalAuth } from '../../common/decorators/optional-auth.decorator';
+import { OptionalJwtAuthGuard } from '../../common/guards/optional-jwt-auth.guard';
 import { PaginationDto } from '../../common/utils/pagination.util';
 
 @ApiTags('VIP')
@@ -25,17 +27,43 @@ export class VipController {
   }
 
   @Public()
+  @Get('levels')
+  @ApiOperation({ summary: 'Get all VIP levels (alias for tiers)' })
+  async getAllLevels() {
+    return this.vipService.getAllTiers();
+  }
+
+  @Public()
   @Get('tiers/requirements')
   @ApiOperation({ summary: 'Get VIP tier requirements summary' })
   async getTierRequirements() {
     return this.vipService.getTierRequirements();
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Public()
+  @Get('page-content')
+  @ApiOperation({ summary: 'Get VIP page content and settings' })
+  async getPageContent() {
+    return this.vipService.getPageContent();
+  }
+
+  @OptionalAuth()
+  @UseGuards(OptionalJwtAuthGuard)
   @Get('status')
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get user VIP status with tier, XP, and progress' })
-  async getUserVipStatus(@CurrentUser('id') userId: string) {
+  @ApiOperation({ summary: 'Get user VIP status with tier, XP, and progress (optional auth)' })
+  async getUserVipStatus(@CurrentUser('id') userId?: string) {
+    if (!userId) {
+      // Return default/guest VIP status when not authenticated
+      return {
+        tier: null,
+        currentXp: 0,
+        nextTier: null,
+        progress: 0,
+        benefits: [],
+        isGuest: true,
+      };
+    }
     return this.vipService.getUserVipStatus(userId);
   }
 
