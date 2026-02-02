@@ -7,6 +7,11 @@ export const FIAT_CURRENCIES = {
   GBP: { code: 'GBP', name: 'British Pound', symbol: '£', decimals: 2 },
   CAD: { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$', decimals: 2 },
   AUD: { code: 'AUD', name: 'Australian Dollar', symbol: 'A$', decimals: 2 },
+  PHP: { code: 'PHP', name: 'Philippine Peso', symbol: '₱', decimals: 2 },
+  INR: { code: 'INR', name: 'Indian Rupee', symbol: '₹', decimals: 2 },
+  THB: { code: 'THB', name: 'Thai Baht', symbol: '฿', decimals: 2 },
+  CNY: { code: 'CNY', name: 'Chinese Yuan', symbol: '¥', decimals: 2 },
+  JPY: { code: 'JPY', name: 'Japanese Yen', symbol: '¥', decimals: 0 },
 } as const;
 
 export const CRYPTO_CURRENCIES = {

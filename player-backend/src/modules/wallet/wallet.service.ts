@@ -147,32 +147,33 @@ export class WalletService {
     }
 
     // Transform to frontend-expected format
+    // walletData is guaranteed to be non-null here
     return {
       balances: {
-        USD: parseFloat(walletData.usdBalance.toString()),
-        EUR: parseFloat(walletData.eurBalance.toString()),
-        GBP: parseFloat(walletData.gbpBalance.toString()),
-        CAD: parseFloat(walletData.cadBalance.toString()),
-        AUD: parseFloat(walletData.audBalance.toString()),
-        PHP: parseFloat(walletData.phpBalance.toString()),
-        INR: parseFloat(walletData.inrBalance.toString()),
-        THB: parseFloat(walletData.thbBalance.toString()),
-        CNY: parseFloat(walletData.cnyBalance.toString()),
-        JPY: parseFloat(walletData.jpyBalance.toString()),
-        USDC: parseFloat(walletData.usdcBalance.toString()),
-        USDT: parseFloat(walletData.usdtBalance.toString()),
-        BTC: parseFloat(walletData.btcBalance.toString()),
-        ETH: parseFloat(walletData.ethBalance.toString()),
-        SOL: parseFloat(walletData.solBalance.toString()),
-        DOGE: parseFloat(walletData.dogeBalance.toString()),
+        USD: parseFloat(walletData!.usdBalance.toString()),
+        EUR: parseFloat(walletData!.eurBalance.toString()),
+        GBP: parseFloat(walletData!.gbpBalance.toString()),
+        CAD: parseFloat(walletData!.cadBalance.toString()),
+        AUD: parseFloat(walletData!.audBalance.toString()),
+        PHP: parseFloat(walletData!.phpBalance.toString()),
+        INR: parseFloat(walletData!.inrBalance.toString()),
+        THB: parseFloat(walletData!.thbBalance.toString()),
+        CNY: parseFloat(walletData!.cnyBalance.toString()),
+        JPY: parseFloat(walletData!.jpyBalance.toString()),
+        USDC: parseFloat(walletData!.usdcBalance.toString()),
+        USDT: parseFloat(walletData!.usdtBalance.toString()),
+        BTC: parseFloat(walletData!.btcBalance.toString()),
+        ETH: parseFloat(walletData!.ethBalance.toString()),
+        SOL: parseFloat(walletData!.solBalance.toString()),
+        DOGE: parseFloat(walletData!.dogeBalance.toString()),
       },
-      primaryCurrency: walletData.primaryCurrency as Currency,
+      primaryCurrency: walletData!.primaryCurrency as Currency,
       lifetimeStats: {
-        deposited: parseFloat(walletData.lifetimeDeposited.toString()),
-        withdrawn: parseFloat(walletData.lifetimeWithdrawn.toString()),
-        wagered: parseFloat(walletData.lifetimeWagered.toString()),
-        won: parseFloat(walletData.lifetimeWon.toString()),
-        bonuses: parseFloat(walletData.lifetimeBonuses.toString()),
+        deposited: parseFloat(walletData!.lifetimeDeposited.toString()),
+        withdrawn: parseFloat(walletData!.lifetimeWithdrawn.toString()),
+        wagered: parseFloat(walletData!.lifetimeWagered.toString()),
+        won: parseFloat(walletData!.lifetimeWon.toString()),
+        bonuses: parseFloat(walletData!.lifetimeBonuses.toString()),
       },
     };
   }
@@ -195,7 +196,7 @@ export class WalletService {
 
     for (const currency of Object.keys(CURRENCY_BALANCE_FIELDS) as Currency[]) {
       const field = CURRENCY_BALANCE_FIELDS[currency];
-      const balance = new Decimal((wallet as any)[field] || 0);
+      const balance = new Decimal((wallet.balances as any)[currency] || 0);
       const rate = await this.getExchangeRate(currency);
       balances[currency] = {
         balance,
@@ -206,13 +207,7 @@ export class WalletService {
     return {
       balances,
       primaryCurrency: wallet.primaryCurrency,
-      lifetimeStats: {
-        deposited: wallet.lifetimeDeposited,
-        withdrawn: wallet.lifetimeWithdrawn,
-        wagered: wallet.lifetimeWagered,
-        won: wallet.lifetimeWon,
-        bonuses: wallet.lifetimeBonuses,
-      },
+      lifetimeStats: wallet.lifetimeStats,
     };
   }
 
