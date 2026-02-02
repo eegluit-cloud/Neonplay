@@ -17,8 +17,8 @@ export class Pay247ApiUtil {
   private readonly apiUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.merchantId = this.configService.get<string>('PAY247_MERCHANT_ID');
-    this.secretKey = this.configService.get<string>('PAY247_SECRET_KEY');
+    this.merchantId = this.configService.get<string>('PAY247_MERCHANT_ID') || '';
+    this.secretKey = this.configService.get<string>('PAY247_SECRET_KEY') || '';
     this.apiUrl = this.configService.get<string>('PAY247_API_URL') || 'https://api.pay247.io';
 
     if (!this.merchantId || !this.secretKey) {

@@ -535,6 +535,10 @@ export class Pay247Service {
       throw new NotFoundException('Deposit not found');
     }
 
+    if (!deposit.pay247OrderId || !deposit.merchantOrderId) {
+      throw new Error('Deposit missing Pay247 order IDs');
+    }
+
     // Query Pay247 API for latest status
     const pay247Status = await this.pay247Api.queryOrder(deposit.pay247OrderId);
 
@@ -555,6 +559,10 @@ export class Pay247Service {
 
     if (!withdrawal) {
       throw new NotFoundException('Withdrawal not found');
+    }
+
+    if (!withdrawal.pay247OrderId || !withdrawal.merchantOrderId) {
+      throw new Error('Withdrawal missing Pay247 order IDs');
     }
 
     // Query Pay247 API for latest status
