@@ -27,22 +27,7 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister, onForgotPasswo
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      await login(email, password);
-      navigate('/lobby');
-      onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
-      console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+const handleSubmit = async (e: React.FormEvent) => {    e.preventDefault();    setIsLoading(true);    setError(null);    try {      await login(email, password);      onClose();      setTimeout(() => navigate("/lobby"), 100);    } catch (err: any) {      setError(err.response?.data?.message || "Login failed. Please check your credentials.");      console.error("Login error:", err);    } finally {      setIsLoading(false);    }  };
 
   // Mobile version - clean wallet-style design
   if (isMobile) {
