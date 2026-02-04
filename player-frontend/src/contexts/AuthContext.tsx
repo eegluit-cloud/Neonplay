@@ -99,12 +99,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check for existing session on mount
   useEffect(() => {
     const initAuth = async () => {
-      // Check if we have a session (refresh token exists)
+      // Check if we have a refresh token but no access token (page was refreshed)
+      const hasRefreshToken = tokenManager.hasSession();
+      const hasAccessToken = tokenManager.getAccessToken() !== null;
+
+      if (hasRefreshToken && !hasAccessToken) {
+        try {
+          // Proactively refresh the access token
+          const refreshToken = tokenManager.getRefreshToken();
+          if (refreshToken) {
+            const response = await authApi.refreshToken(refreshToken);
+            const { accessToken, refreshToken: newRefreshToken } = response.data;
+            tokenManager.setTokens(accessToken, newRefreshToken);
+          }
+        } catch (error) {
+          console.error('Token refresh failed:', error);
+          tokenManager.clearTokens();
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Now fetch user profile if we have a session
       if (tokenManager.hasSession()) {
         try {
           await refreshUser();
           await refreshWallet();
-        } catch {
+        } catch (error) {
+          console.error('Failed to load user profile:', error);
           tokenManager.clearTokens();
         }
       }

@@ -1,53 +1,57 @@
 /**
  * Token Manager - Secure token storage
  *
- * Access tokens are stored in memory only (cleared on page refresh)
- * Refresh tokens are stored in sessionStorage (cleared when browser closes)
+ * Access tokens are stored in localStorage for persistence across page refreshes
+ * Refresh tokens are stored in localStorage for persistent sessions
  *
  * For production, consider:
- * - Using httpOnly cookies for refresh tokens (requires backend changes)
+ * - Using httpOnly cookies for tokens (requires backend changes)
  * - Implementing token rotation
  * - Adding token fingerprinting
  */
 
-// In-memory storage for access token (not persisted to disk)
-let accessToken: string | null = null;
-
-// Session storage key for refresh token (cleared when browser closes)
-const REFRESH_TOKEN_KEY = 'rt_session';
+// localStorage keys
+const ACCESS_TOKEN_KEY = 'access_token';
+const REFRESH_TOKEN_KEY = 'refresh_token';
 
 export const tokenManager = {
   /**
-   * Get the current access token from memory
+   * Get the current access token from localStorage
    */
   getAccessToken(): string | null {
-    return accessToken;
+    if (typeof window === 'undefined') return null;
+    return localStorage.getItem(ACCESS_TOKEN_KEY);
   },
 
   /**
-   * Set the access token in memory
+   * Set the access token in localStorage
    */
   setAccessToken(token: string | null): void {
-    accessToken = token;
+    if (typeof window === 'undefined') return;
+    if (token) {
+      localStorage.setItem(ACCESS_TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+    }
   },
 
   /**
-   * Get the refresh token from session storage
+   * Get the refresh token from localStorage
    */
   getRefreshToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return sessionStorage.getItem(REFRESH_TOKEN_KEY);
+    return localStorage.getItem(REFRESH_TOKEN_KEY);
   },
 
   /**
-   * Set the refresh token in session storage
+   * Set the refresh token in localStorage
    */
   setRefreshToken(token: string | null): void {
     if (typeof window === 'undefined') return;
     if (token) {
-      sessionStorage.setItem(REFRESH_TOKEN_KEY, token);
+      localStorage.setItem(REFRESH_TOKEN_KEY, token);
     } else {
-      sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
   },
 
@@ -63,9 +67,9 @@ export const tokenManager = {
    * Clear all tokens
    */
   clearTokens(): void {
-    accessToken = null;
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem(REFRESH_TOKEN_KEY);
+      localStorage.removeItem(ACCESS_TOKEN_KEY);
+      localStorage.removeItem(REFRESH_TOKEN_KEY);
     }
   },
 
@@ -77,13 +81,14 @@ export const tokenManager = {
   },
 
   /**
-   * Migrate tokens from old localStorage storage (one-time migration)
+   * Migrate tokens from old sessionStorage storage (one-time migration)
    */
   migrateFromLocalStorage(): void {
     if (typeof window === 'undefined') return;
 
-    const oldAccessToken = localStorage.getItem('accessToken');
-    const oldRefreshToken = localStorage.getItem('refreshToken');
+    // Migrate from old sessionStorage keys
+    const oldAccessToken = sessionStorage.getItem('accessToken');
+    const oldRefreshToken = sessionStorage.getItem('rt_session');
 
     if (oldAccessToken || oldRefreshToken) {
       // Migrate tokens
@@ -95,8 +100,8 @@ export const tokenManager = {
       }
 
       // Clear old storage
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('accessToken');
+      sessionStorage.removeItem('rt_session');
     }
   }
 };
