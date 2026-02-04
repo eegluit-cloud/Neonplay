@@ -192,12 +192,14 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8002
+      - HOST=0.0.0.0
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - JWT_SECRET=docker-jwt-secret-change-in-production
       - JWT_EXPIRES_IN=24h
+      - ADMIN_FRONTEND_URL=http://13.228.114.152:8003
     depends_on:
       postgres:
         condition: service_healthy

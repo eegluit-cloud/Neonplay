@@ -17,10 +17,26 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: true,
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+
+    // Allow all origins in development
+    const allowedOrigins = [
+      'http://localhost:8003',
+      'http://127.0.0.1:8003',
+      'http://13.228.114.152:8003',
+      process.env.ADMIN_FRONTEND_URL
+    ].filter(Boolean);
+
+    // Allow all origins for now (can be restricted later)
+    callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -56,9 +72,10 @@ app.use((req, res) => {
 });
 
 const PORT = process.env.PORT || 8002;
+const HOST = process.env.HOST || '0.0.0.0';
 
-app.listen(PORT, () => {
-  console.log(`Admin Backend running on port ${PORT}`);
+app.listen(PORT, HOST, () => {
+  console.log(`Admin Backend running on ${HOST}:${PORT}`);
 });
 
 module.exports = app;
