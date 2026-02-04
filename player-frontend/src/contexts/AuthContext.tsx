@@ -115,6 +115,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.error('Token refresh failed:', error);
           tokenManager.clearTokens();
+    
+    // Redirect to home page after logout
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
           setIsLoading(false);
           return;
         }
@@ -128,6 +133,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
           console.error('Failed to load user profile:', error);
           tokenManager.clearTokens();
+    
+    // Redirect to home page after logout
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
         }
       }
       setIsLoading(false);
@@ -163,6 +173,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Ignore errors on logout
     }
     tokenManager.clearTokens();
+    
+    // Redirect to home page after logout
+    if (typeof window !== "undefined") {
+      window.location.href = "/";
+    }
     setUser(null);
     setWallet(null);
   };

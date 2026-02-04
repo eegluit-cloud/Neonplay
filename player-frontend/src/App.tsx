@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SupportButton } from "@/components/SupportButton";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageLoadingState } from "@/components/PageLoadingState";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Eagerly load Register (landing page) for fast initial render
 import Register from "./pages/Register";
@@ -67,27 +68,31 @@ const App = () => (
           <ScrollToTop />
           <Suspense fallback={<PageLoadingState />}>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Register />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/providers" element={<Providers />} />
-              <Route path="/providers/:providerId" element={<ProviderGames />} />
-              <Route path="/favorites" element={<Favorites />} />
-              <Route path="/live-casino" element={<LiveCasino />} />
-              <Route path="/promotions" element={<Promotions />} />
-              <Route path="/refer-friend" element={<ReferFriend />} />
-              <Route path="/vip" element={<VIP />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
-              <Route path="/prizes" element={<Prizes />} />
-              <Route path="/search" element={<Search />} />
-              <Route path="/hot-games" element={<HotGames />} />
-              <Route path="/slots" element={<Slots />} />
-              <Route path="/crash-games" element={<CrashGames />} />
-              <Route path="/casino" element={<Casino />} />
-              <Route path="/game/:gameId" element={<GameDetail />} />
-              <Route path="/sports" element={<Sports />} />
-              <Route path="/lobby" element={<Index />} />
-              <Route path="/amoe" element={<AMOE />} />
-              <Route path="/neonplay-tv" element={<NeonPlayTV />} />
+              
+              {/* Protected routes */}
+              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/providers" element={<ProtectedRoute><Providers /></ProtectedRoute>} />
+              <Route path="/providers/:providerId" element={<ProtectedRoute><ProviderGames /></ProtectedRoute>} />
+              <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+              <Route path="/live-casino" element={<ProtectedRoute><LiveCasino /></ProtectedRoute>} />
+              <Route path="/promotions" element={<ProtectedRoute><Promotions /></ProtectedRoute>} />
+              <Route path="/refer-friend" element={<ProtectedRoute><ReferFriend /></ProtectedRoute>} />
+              <Route path="/vip" element={<ProtectedRoute><VIP /></ProtectedRoute>} />
+              <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
+              <Route path="/prizes" element={<ProtectedRoute><Prizes /></ProtectedRoute>} />
+              <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
+              <Route path="/hot-games" element={<ProtectedRoute><HotGames /></ProtectedRoute>} />
+              <Route path="/slots" element={<ProtectedRoute><Slots /></ProtectedRoute>} />
+              <Route path="/crash-games" element={<ProtectedRoute><CrashGames /></ProtectedRoute>} />
+              <Route path="/casino" element={<ProtectedRoute><Casino /></ProtectedRoute>} />
+              <Route path="/game/:gameId" element={<ProtectedRoute><GameDetail /></ProtectedRoute>} />
+              <Route path="/sports" element={<ProtectedRoute><Sports /></ProtectedRoute>} />
+              <Route path="/lobby" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+              <Route path="/amoe" element={<ProtectedRoute><AMOE /></ProtectedRoute>} />
+              <Route path="/neonplay-tv" element={<ProtectedRoute><NeonPlayTV /></ProtectedRoute>} />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
