@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { MessageCircle, Coins, Shield, Smartphone, Trophy, Gamepad2, Star, CheckCircle2, Dice5, ChevronDown } from 'lucide-react';
 
@@ -315,6 +316,14 @@ const perks = [
 
 export default function Register() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Redirect to lobby if already authenticated
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate("/lobby");
+    }
+  }, [isAuthenticated, isLoading, navigate]);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   
   // Slot machine state
