@@ -13,8 +13,14 @@ async function bootstrap() {
 
   const configService = app.get(ConfigService);
 
-  // Security
-  app.use(helmet());
+  // Security - Configure Helmet to allow CORS
+  app.use(
+    helmet({
+      contentSecurityPolicy: false,
+      crossOriginEmbedderPolicy: false,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+    }),
+  );
   app.use(cookieParser());
 
   // CORS - Allow all origins
@@ -23,6 +29,7 @@ async function bootstrap() {
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+    exposedHeaders: ['set-cookie'],
   });
 
   // API Versioning - use 'api' as prefix, versioning handles the version number

@@ -15,6 +15,7 @@ import { Request } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { Pay247Service } from './pay247.service';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { SkipCsrf } from '../../../common/guards/csrf.guard';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import { CreateDepositDto } from './dto/create-deposit.dto';
 import { CreateWithdrawalDto } from './dto/create-withdrawal.dto';
@@ -116,6 +117,7 @@ export class Pay247Controller {
   // ==========================================
 
   @Post('webhook/deposit')
+  @SkipCsrf() // Skip CSRF validation for external webhook
   @Throttle(100, 60) // 100 requests per minute per IP
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Pay247 deposit webhook (called by Pay247)' })
@@ -151,6 +153,7 @@ export class Pay247Controller {
   }
 
   @Post('webhook/withdrawal')
+  @SkipCsrf() // Skip CSRF validation for external webhook
   @Throttle(100, 60) // 100 requests per minute per IP
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Pay247 withdrawal webhook (called by Pay247)' })

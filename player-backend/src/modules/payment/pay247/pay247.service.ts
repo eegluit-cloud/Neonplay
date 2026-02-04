@@ -97,8 +97,8 @@ export class Pay247Service {
         where: { id: deposit.depositId },
         data: {
           merchantOrderId,
-          pay247OrderId: pay247Response.order_id,
-          paymentUrl: pay247Response.payment_url,
+          pay247OrderId: pay247Response.order_no,
+          paymentUrl: pay247Response.pay_url,
           pay247Metadata: pay247Response as any,
         },
       });
@@ -107,9 +107,9 @@ export class Pay247Service {
 
       return {
         depositId: deposit.depositId,
-        paymentUrl: pay247Response.payment_url,
+        paymentUrl: pay247Response.pay_url,
         merchantOrderId,
-        pay247OrderId: pay247Response.order_id,
+        pay247OrderId: pay247Response.order_no,
       };
     } catch (error: unknown) {
       console.log(error)
@@ -130,7 +130,7 @@ export class Pay247Service {
     // STEP 1: SIGNATURE VERIFICATION
     const isValid = SignatureUtil.verify(
       webhookData,
-      this.configService.get<string>('PAY247_WEBHOOK_SECRET'),
+      this.configService.get<string>('PAY247_WEBHOOK_SECRET') || '',
     );
 
     if (!isValid) {
@@ -138,12 +138,12 @@ export class Pay247Service {
       throw new UnauthorizedException('Invalid signature');
     }
 
-    // STEP 2: IP WHITELIST VALIDATION (Optional)
-    const allowedIPs = this.configService.get<string>('PAY247_WEBHOOK_IPS')?.split(',') || [];
-    if (allowedIPs.length > 0 && !allowedIPs.includes(ipAddress)) {
-      this.logger.error('Webhook from unauthorized IP', { ipAddress, webhookData });
-      throw new ForbiddenException('Unauthorized IP address');
-    }
+//     // STEP 2: IP WHITELIST VALIDATION (Optional)
+//     const allowedIPs = this.configService.get<string>('PAY247_WEBHOOK_IPS')?.split(',') || [];
+//     if (allowedIPs.length > 0 && !allowedIPs.includes(ipAddress)) {
+//       this.logger.error('Webhook from unauthorized IP', { ipAddress, webhookData });
+//       throw new ForbiddenException('Unauthorized IP address');
+//     }
 
     // STEP 3: IDEMPOTENCY CHECK
     const idempotencyKey = `deposit_${webhookData.order_no}_${webhookData.created_at || Date.now()}`;
@@ -365,7 +365,7 @@ export class Pay247Service {
     // STEP 1: SIGNATURE VERIFICATION
     const isValid = SignatureUtil.verify(
       webhookData,
-      this.configService.get<string>('PAY247_WEBHOOK_SECRET'),
+      this.configService.get<string>('PAY247_WEBHOOK_SECRET') || '',
     );
 
     if (!isValid) {
@@ -373,12 +373,12 @@ export class Pay247Service {
       throw new UnauthorizedException('Invalid signature');
     }
 
-    // STEP 2: IP WHITELIST VALIDATION
-    const allowedIPs = this.configService.get<string>('PAY247_WEBHOOK_IPS')?.split(',') || [];
-    if (allowedIPs.length > 0 && !allowedIPs.includes(ipAddress)) {
-      this.logger.error('Webhook from unauthorized IP', { ipAddress });
-      throw new ForbiddenException('Unauthorized IP address');
-    }
+//     // STEP 2: IP WHITELIST VALIDATION
+//     const allowedIPs = this.configService.get<string>('PAY247_WEBHOOK_IPS')?.split(',') || [];
+//     if (allowedIPs.length > 0 && !allowedIPs.includes(ipAddress)) {
+//       this.logger.error('Webhook from unauthorized IP', { ipAddress });
+//       throw new ForbiddenException('Unauthorized IP address');
+//     }
 
     // STEP 3: IDEMPOTENCY CHECK
     const idempotencyKey = `withdrawal_${webhookData.payout_id}_${webhookData.timestamp || Date.now()}`;

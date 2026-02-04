@@ -54,7 +54,7 @@ services:
       target: development
     container_name: neonplay-migrations
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}?connection_limit=50&pool_timeout=60
     volumes:
       - ./shared:/app/shared:ro
     depends_on:
@@ -79,7 +79,7 @@ services:
       dockerfile: ./admin-backend/Dockerfile
     container_name: neonplay-admin-migrations
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}?connection_limit=50&pool_timeout=60
     volumes:
       - ./shared:/app/shared:ro
     depends_on:
@@ -118,7 +118,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}?connection_limit=50&pool_timeout=60
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}

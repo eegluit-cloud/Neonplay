@@ -76,9 +76,9 @@ export class Pay247ApiUtil {
     return_url?: string;
     theme?: 'link' | 'custom';
   }): Promise<{
-    order_id: string;
-    payment_url: string;
-    merchant_order_id: string;
+    order_no: string;
+    pay_url: string;
+    mch_order_no: string;
   }> {
     // Map our parameter names to Pay247's expected format (as per their docs)
     const requestData = this.prepareRequest({
