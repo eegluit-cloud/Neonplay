@@ -82,6 +82,7 @@ export class AuthController {
   }
 
   @Public()
+  @SkipCsrf()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Refresh access token' })

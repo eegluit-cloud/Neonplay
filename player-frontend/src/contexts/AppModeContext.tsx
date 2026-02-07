@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import AuthContext from './AuthContext';
 
 // Supported currencies
-export type FiatCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD';
+export type FiatCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'PHP' | 'INR' | 'THB' | 'CNY' | 'JPY';
 export type CryptoCurrency = 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'SOL' | 'DOGE';
 export type Currency = FiatCurrency | CryptoCurrency;
 
@@ -25,6 +25,11 @@ export interface WalletBalances {
   GBP: number;
   CAD: number;
   AUD: number;
+  PHP: number;
+  INR: number;
+  THB: number;
+  CNY: number;
+  JPY: number;
   USDC: number;
   USDT: number;
   BTC: number;
@@ -70,6 +75,11 @@ const CURRENCY_CONFIG: Record<Currency, { symbol: string; decimals: number }> = 
   GBP: { symbol: '£', decimals: 2 },
   CAD: { symbol: 'C$', decimals: 2 },
   AUD: { symbol: 'A$', decimals: 2 },
+  PHP: { symbol: '₱', decimals: 2 },
+  INR: { symbol: '₹', decimals: 2 },
+  THB: { symbol: '฿', decimals: 2 },
+  CNY: { symbol: '¥', decimals: 2 },
+  JPY: { symbol: '¥', decimals: 0 },
   USDC: { symbol: '', decimals: 2 },
   USDT: { symbol: '', decimals: 2 },
   BTC: { symbol: '₿', decimals: 8 },
@@ -85,6 +95,11 @@ const EXCHANGE_RATES: Record<Currency, number> = {
   GBP: 1.27,
   CAD: 0.74,
   AUD: 0.65,
+  PHP: 0.018,
+  INR: 0.012,
+  THB: 0.028,
+  CNY: 0.14,
+  JPY: 0.0067,
   USDC: 1,
   USDT: 1,
   BTC: 43000,
@@ -101,6 +116,11 @@ const DEMO_WALLET: Wallet = {
     GBP: 0,
     CAD: 0,
     AUD: 0,
+    PHP: 0,
+    INR: 0,
+    THB: 0,
+    CNY: 0,
+    JPY: 0,
     USDC: 500,
     USDT: 0,
     BTC: 0.01,

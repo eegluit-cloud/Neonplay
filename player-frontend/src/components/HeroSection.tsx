@@ -244,12 +244,12 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
         return (
           <div className={`absolute inset-0 flex items-center justify-start ${padding}`}>
             <div className="flex flex-col gap-0.5 md:gap-1 z-10">
-              <span className={`${subtitleSize} font-medium uppercase tracking-widest text-cyan-400`}>
+              <span className={`${subtitleSize} font-medium uppercase tracking-widest text-amber-400`}>
                 Start Your Journey
               </span>
               <h2 className={`${titleSize} font-bold text-white leading-tight`}>
                 Build Your
-                <span className="block bg-gradient-to-r from-cyan-400 via-blue-300 to-cyan-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent">
                   Brand
                 </span>
               </h2>
@@ -260,12 +260,12 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
         return (
           <div className={`absolute inset-0 flex items-center justify-start ${padding}`}>
             <div className="flex flex-col gap-0.5 md:gap-1 z-10">
-              <span className={`${subtitleSize} font-medium uppercase tracking-widest text-cyan-400`}>
+              <span className={`${subtitleSize} font-medium uppercase tracking-widest text-amber-400`}>
                 Ready to Launch
               </span>
               <h2 className={`${smallTitleSize} font-bold text-white leading-tight`}>
                 Payments &
-                <span className="block bg-gradient-to-r from-cyan-400 via-blue-300 to-cyan-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent">
                   Providers
                 </span>
               </h2>
@@ -276,12 +276,12 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
         return (
           <div className={`absolute inset-0 flex items-center justify-start ${padding}`}>
             <div className="flex flex-col gap-0.5 md:gap-1 z-10">
-              <span className={`${subtitleSize} font-medium uppercase tracking-widest text-cyan-400`}>
+              <span className={`${subtitleSize} font-medium uppercase tracking-widest text-amber-400`}>
                 Boost Engagement
               </span>
               <h2 className={`${smallTitleSize} font-bold text-white leading-tight`}>
                 Create Your
-                <span className="block bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <span className="block bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 bg-clip-text text-transparent">
                   Leaderboard
                 </span>
               </h2>
@@ -369,7 +369,7 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
               onClick={() => goToSlide(index)}
               className={`tap-sm block p-0 m-0 border-0 bg-transparent appearance-none h-[2px] rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 ${
                 (currentSlide % totalSlides) === index
-                  ? 'bg-cyan-400 w-[14px]'
+                  ? 'bg-amber-400 w-[14px]'
                   : 'bg-white/40 hover:bg-white/60 w-[4px]'
               }`}
             />

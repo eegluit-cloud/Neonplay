@@ -13,14 +13,14 @@ import { toast } from "sonner";
 import coinsImage from "@/assets/coins.png";
 import crownImage from "@/assets/crown.png";
 import treasureChestImage from "@/assets/treasure-chest.png";
-import referCharacterImage from "@/assets/refer-character.png";
-import referCharacter2Image from "@/assets/refer-character-2.png";
+import referHeroImage from "@/assets/refer-hero.png";
+import referGenerateLinkImage from "@/assets/refer-generate-link.png";
 import trophyAwardImage from "@/assets/trophy-award.png";
 import vipBadgeImage from "@/assets/vip-badge.png";
 import megaphoneImage from "@/assets/megaphone.png";
 import coinBagImage from "@/assets/coin-bag.png";
 import referBannerBg from "@/assets/refer-banner-bg.jpg";
-import casinoDealerImage from "@/assets/casino-dealer.png";
+import referEarnRewardsImage from "@/assets/refer-earn-rewards.png";
 
 const ReferFriend = () => {
   const [copied, setCopied] = useState(false);
@@ -81,26 +81,27 @@ const ReferFriend = () => {
           <MobilePageHeader title="Refer a Friend" />
           
           {/* Hero Banner */}
-          <div className="relative rounded-2xl overflow-hidden border border-blue-500/30 !mt-0">
-            {/* Background image */}
+          <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 !mt-0">
+            {/* Background image with golden overlay */}
             <img src={referBannerBg} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            <div className="absolute inset-0 bg-black/30" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1a1000]/90 via-[#1a1000]/70 to-[#1a1000]/50" />
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-900/40 via-transparent to-amber-800/20" />
             
             
             <div className="relative z-10 p-6 md:py-6 md:px-10 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="space-y-4">
-                <h1 className="text-xl sm:text-2xl md:text-4xl font-black text-white tracking-tight">
+                <h1 className="text-xl sm:text-2xl md:text-4xl font-black tracking-tight bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-500 bg-clip-text text-transparent [text-shadow:none]">
                   REFER A FRIEND
                 </h1>
                 
                 <div className="flex gap-3">
-                  <div className="bg-card/80 backdrop-blur-sm border border-green-500/30 rounded-xl px-6 py-2 flex items-center gap-3">
+                  <div className="bg-card/80 backdrop-blur-sm border border-amber-500/30 rounded-xl px-6 py-2 flex items-center gap-3">
                     <p className="text-xs text-gray-400">You Earn</p>
-                    <span className="text-green-400 font-bold text-xl">$100</span>
+                    <span className="text-amber-400 font-bold text-xl">$100</span>
                   </div>
-                  <div className="bg-card/80 backdrop-blur-sm border border-green-500/30 rounded-xl px-6 py-2 flex items-center gap-3">
+                  <div className="bg-card/80 backdrop-blur-sm border border-amber-500/30 rounded-xl px-6 py-2 flex items-center gap-3">
                     <p className="text-xs text-gray-400">They Earn</p>
-                    <span className="text-green-400 font-bold text-xl">$100</span>
+                    <span className="text-amber-400 font-bold text-xl">$100</span>
                   </div>
                 </div>
                 
@@ -109,21 +110,27 @@ const ReferFriend = () => {
                 </p>
               </div>
               
-              <img 
-                src={referCharacterImage} 
-                alt="Refer Character" 
-                className="w-40 h-40 md:w-72 md:h-72 md:-my-8 object-contain"
-              />
+              <div className="relative w-40 h-40 md:w-72 md:h-72 md:-my-8 overflow-hidden">
+                <img 
+                  src={referHeroImage} 
+                  alt="Refer a Friend" 
+                  className="w-full h-[115%] object-contain object-top mix-blend-lighten"
+                />
+                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-[#1a1000] to-transparent" />
+              </div>
             </div>
           </div>
 
           {/* Generate Referral Link Section */}
           <div className="flex flex-col md:flex-row items-center gap-8 bg-card/50 rounded-2xl p-6 md:p-10 border border-border">
-            <img 
-              src={referCharacter2Image} 
-              alt="Character" 
-              className="w-56 h-56 md:w-64 md:h-64 object-contain scale-125 origin-center"
-            />
+            <div className="relative w-56 h-56 md:w-64 md:h-64 overflow-hidden flex-shrink-0">
+              <img 
+                src={referGenerateLinkImage} 
+                alt="Generate Referral Link" 
+                className="w-full h-[115%] object-contain object-top mix-blend-lighten scale-110 origin-top"
+              />
+              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent" />
+            </div>
             
             <div className="flex-1 space-y-4 text-center md:text-left">
               <h2 className="text-lg sm:text-xl md:text-2xl font-bold text-foreground">
@@ -160,7 +167,7 @@ const ReferFriend = () => {
             <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-foreground mb-2">
               Earn Rewards Instantly
               </h2>
-              <div className="w-16 h-1 bg-blue-500 mx-auto rounded-full" />
+              <div className="w-16 h-1 bg-amber-500 mx-auto rounded-full" />
             </div>
             <p className="text-muted-foreground text-sm sm:text-base md:text-lg max-w-2xl mx-auto">
               Get bonuses or points every time your friend signs up and meets the requirements.
@@ -176,7 +183,7 @@ const ReferFriend = () => {
                   key={index}
                   className="relative bg-gradient-to-r from-[#0a1420] to-[#132033] rounded-xl p-2 pl-3 flex items-center justify-between overflow-hidden group transition-all border border-transparent"
                   style={{
-                    boxShadow: '0 4px 20px rgba(59, 130, 246, 0.15), inset 0 -2px 0 0 rgba(59, 130, 246, 0.5)'
+                    boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15), inset 0 -2px 0 0 rgba(245, 158, 11, 0.4)'
                   }}
                 >
                   <div className="space-y-1 z-10 flex-1">
@@ -201,7 +208,7 @@ const ReferFriend = () => {
                     key={index}
                     className="relative bg-gradient-to-r from-[#0a1420] to-[#132033] rounded-xl p-2 pl-4 flex items-center justify-between overflow-visible group transition-all border border-transparent"
                     style={{
-                      boxShadow: '0 4px 20px rgba(59, 130, 246, 0.15), inset 0 -2px 0 0 rgba(59, 130, 246, 0.5)'
+                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15), inset 0 -2px 0 0 rgba(245, 158, 11, 0.4)'
                     }}
                   >
                     <div className="space-y-0.5 z-10 flex-1">
@@ -219,11 +226,14 @@ const ReferFriend = () => {
               
               {/* Center - Dealer Image */}
               <div className="flex justify-center items-center">
-                <img 
-                  src={casinoDealerImage} 
-                  alt="Casino Dealer" 
-                  className="w-72 h-72 object-contain drop-shadow-2xl"
-                />
+                <div className="relative w-72 h-72 overflow-hidden">
+                  <img 
+                    src={referEarnRewardsImage} 
+                    alt="Earn Rewards" 
+                    className="w-full h-[115%] object-contain object-top mix-blend-lighten drop-shadow-2xl"
+                  />
+                  <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-background to-transparent" />
+                </div>
               </div>
               
               {/* Right Column - 2 boxes stacked */}
@@ -233,7 +243,7 @@ const ReferFriend = () => {
                     key={index}
                     className="relative bg-gradient-to-r from-[#0a1420] to-[#132033] rounded-xl p-2 pl-4 flex items-center justify-between overflow-visible group transition-all border border-transparent"
                     style={{
-                      boxShadow: '0 4px 20px rgba(59, 130, 246, 0.15), inset 0 -2px 0 0 rgba(59, 130, 246, 0.5)'
+                      boxShadow: '0 4px 20px rgba(245, 158, 11, 0.15), inset 0 -2px 0 0 rgba(245, 158, 11, 0.4)'
                     }}
                   >
                     <div className="space-y-0.5 z-10 flex-1">

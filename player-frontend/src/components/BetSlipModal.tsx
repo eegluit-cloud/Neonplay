@@ -96,7 +96,7 @@ export function BetSlipModal({ isOpen, onClose, bet }: BetSlipModalProps) {
                   e.currentTarget.nextElementSibling?.classList.remove('hidden');
                 }}
               />
-              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-base sm:text-lg font-bold text-white hidden flex-shrink-0">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-amber-400 to-blue-500 flex items-center justify-center text-base sm:text-lg font-bold text-white hidden flex-shrink-0">
                 {bet.user.charAt(0)}
               </div>
               <div className="flex-1 min-w-0">
@@ -107,12 +107,12 @@ export function BetSlipModal({ isOpen, onClose, bet }: BetSlipModalProps) {
                 <p className="text-[10px] sm:text-xs text-muted-foreground sm:hidden">{formattedDate}</p>
                 <div className="flex items-center gap-1 sm:gap-1.5 mt-0.5 sm:mt-1">
                   <span className="text-[10px] sm:text-xs text-muted-foreground">ID:</span>
-                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-cyan-500 flex items-center justify-center flex-shrink-0">
+                  <div className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full bg-amber-500 flex items-center justify-center flex-shrink-0">
                     <Check className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-white" />
                   </div>
                   <span className="text-[10px] sm:text-xs text-foreground font-mono truncate max-w-[80px] sm:max-w-[120px]">{betId.slice(0, 10)}...</span>
                   <button onClick={handleCopy} className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0">
-                    {copied ? <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-cyan-400" /> : <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
+                    {copied ? <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-amber-400" /> : <Copy className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
                   </button>
                 </div>
               </div>

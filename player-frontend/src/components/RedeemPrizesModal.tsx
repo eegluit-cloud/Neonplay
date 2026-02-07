@@ -285,7 +285,7 @@ export function RedeemPrizesModal({ isOpen, onClose, onSuccess }: RedeemPrizesMo
 
           {step === 'success' && selectedPrize && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 flex items-center justify-center mb-4">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-blue-500 flex items-center justify-center mb-4">
                 <Check className="w-8 h-8 text-white" />
               </div>
               <Sparkles className="w-8 h-8 text-amber-400 mb-2" />

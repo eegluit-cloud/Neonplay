@@ -57,7 +57,7 @@ export function ResetSuccessModal({ isOpen, onClose, onContinue }: ResetSuccessM
 
             <Button
               onClick={handleContinue}
-              className="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg"
+              className="w-full h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg"
             >
               Continue to Login
             </Button>
@@ -109,7 +109,7 @@ export function ResetSuccessModal({ isOpen, onClose, onContinue }: ResetSuccessM
 
                   <Button 
                     onClick={handleContinue}
-                    className="w-full h-11 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm"
+                    className="w-full h-11 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-semibold text-sm"
                   >
                     Continue
                   </Button>

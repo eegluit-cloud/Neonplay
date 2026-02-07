@@ -51,7 +51,7 @@ export const CrashGamesSection = memo(function CrashGamesSection() {
           onScrollRight={scrollRight}
         />
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
         </div>
       </section>
     );

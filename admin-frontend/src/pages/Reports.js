@@ -12,11 +12,12 @@ const Reports = () => {
     startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0],
   });
-  const [playerStats, setPlayerStats] = useState({});
-  const [casinoStats, setCasinoStats] = useState({});
-  const [bankingStats, setBankingStats] = useState({});
-  const [bonusStats, setBonusStats] = useState({});
-  const [gameStats, setGameStats] = useState({});
+
+  // Store full API response data
+  const [playerReport, setPlayerReport] = useState(null);
+  const [bankingReport, setBankingReport] = useState(null);
+  const [bonusReport, setBonusReport] = useState(null);
+  const [gameReport, setGameReport] = useState(null);
 
   useEffect(() => {
     loadReports();
@@ -33,27 +34,17 @@ const Reports = () => {
       };
 
       // Load all reports in parallel
-      const [playerReport, bankingReport, bonusReport, gameReport] = await Promise.all([
-        getPlayerReport(params),
-        getBankingReport(params),
-        getBonusReport(params),
-        getGameReport(params)
+      const [playerRes, bankingRes, bonusRes, gameRes] = await Promise.all([
+        getPlayerReport(params).catch(() => ({})),
+        getBankingReport(params).catch(() => ({})),
+        getBonusReport(params).catch(() => ({})),
+        getGameReport(params).catch(() => ({}))
       ]);
 
-      setPlayerStats(playerReport.stats || {});
-      setBankingStats(bankingReport.stats || {});
-      setBonusStats(bonusReport.stats || {});
-      setGameStats(gameReport.stats || {});
-
-      // Calculate casino stats from transaction data
-      setCasinoStats({
-        totalBets: gameReport.stats?.totalBets || 0,
-        totalWins: gameReport.stats?.totalWins || 0,
-        ggr: gameReport.stats?.ggr || 0,
-        ngr: gameReport.stats?.ngr || 0,
-        uniquePlayers: gameReport.stats?.uniquePlayers || 0,
-        totalRounds: gameReport.stats?.totalRounds || 0
-      });
+      setPlayerReport(playerRes || {});
+      setBankingReport(bankingRes || {});
+      setBonusReport(bonusRes || {});
+      setGameReport(gameRes || {});
 
       setLoading(false);
     } catch (err) {
@@ -64,26 +55,114 @@ const Reports = () => {
   };
 
   const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
-  const formatPercent = (value) => `${(value || 0).toFixed(1)}%`;
+  const formatPercent = (value) => `${(isFinite(value) ? value : 0).toFixed(1)}%`;
+  const safeDiv = (a, b) => (b ? a / b : 0);
 
-  // Remove static calculations - data now comes from API
-  /* const playerStats = {
-    total: players.length,
-    active: players.filter(p => p.status === 'active').length,
-    blocked: players.filter(p => p.status === 'blocked').length,
-    suspended: players.filter(p => p.status === 'suspended').length,
-    kycVerified: players.filter(p => p.kycStatus === 'verified').length,
-    kycPending: players.filter(p => p.kycStatus === 'pending').length,
-    kycUnderReview: players.filter(p => p.kycStatus === 'under_review').length,
-    kycRejected: players.filter(p => p.kycStatus === 'rejected').length,
-    totalBalance: players.reduce((sum, p) => sum + p.balance, 0),
-    totalBonusBalance: players.reduce((sum, p) => sum + p.bonusBalance, 0),
-    vipPlayers: players.filter(p => p.tags?.some(t => t.name === 'VIP')).length,
-    newThisWeek: 3,
-    newThisMonth: 8
+  // Derive player stats from API response
+  const statusBreakdown = playerReport?.statusBreakdown || [];
+  const kycBreakdown = playerReport?.kycBreakdown || [];
+  const totalPlayers = playerReport?.totalPlayers || 0;
+  const getStatusCount = (status) => {
+    const found = statusBreakdown.find(s => s.status === status);
+    return found ? Number(found.count) : 0;
+  };
+  const getKycCount = (status) => {
+    const found = kycBreakdown.find(s => s.kyc_status === status);
+    return found ? Number(found.count) : 0;
   };
 
-  */
+  const playerStats = {
+    total: totalPlayers,
+    active: getStatusCount('active'),
+    suspended: getStatusCount('suspended'),
+    blocked: getStatusCount('blocked'),
+    kycVerified: getKycCount('verified'),
+    kycPending: getKycCount('pending'),
+    kycUnderReview: getKycCount('under_review'),
+    kycRejected: getKycCount('rejected'),
+    newThisMonth: (playerReport?.registrations || []).reduce((sum, r) => sum + Number(r.new_players || 0), 0),
+    totalBalance: 0,
+    totalBonusBalance: 0,
+    vipPlayers: 0,
+  };
+
+  // Derive banking stats from API response
+  const byPaymentMethod = bankingReport?.byPaymentMethod || [];
+  const depositMethods = byPaymentMethod.filter(m => m.type === 'deposit');
+  const withdrawalMethods = byPaymentMethod.filter(m => m.type === 'withdrawal');
+  const totalDeposits = depositMethods.reduce((sum, m) => sum + Number(m.total || 0), 0);
+  const totalWithdrawals = withdrawalMethods.reduce((sum, m) => sum + Number(m.total || 0), 0);
+  const depositCount = depositMethods.reduce((sum, m) => sum + Number(m.count || 0), 0);
+  const withdrawalCount = withdrawalMethods.reduce((sum, m) => sum + Number(m.count || 0), 0);
+  const pendingWithdrawals = bankingReport?.pendingWithdrawals || {};
+
+  const bankingStats = {
+    totalDeposits,
+    totalWithdrawals,
+    depositCount,
+    withdrawalCount,
+    netCashflow: totalDeposits - totalWithdrawals,
+    pendingCount: pendingWithdrawals.count || 0,
+    pendingAmount: pendingWithdrawals.total || 0,
+  };
+
+  // Build payment method summary for the table (group by method)
+  const paymentMethodSummary = (() => {
+    const methods = {};
+    byPaymentMethod.forEach(row => {
+      const key = row.payment_method || 'unknown';
+      if (!methods[key]) methods[key] = { method: key, deposits: 0, withdrawals: 0, depositCount: 0, withdrawalCount: 0 };
+      if (row.type === 'deposit') {
+        methods[key].deposits += Number(row.total || 0);
+        methods[key].depositCount += Number(row.count || 0);
+      } else {
+        methods[key].withdrawals += Number(row.total || 0);
+        methods[key].withdrawalCount += Number(row.count || 0);
+      }
+    });
+    return Object.values(methods);
+  })();
+
+  // Derive casino/game stats from API response
+  const overallGgr = gameReport?.overallGgr || {};
+  const casinoStats = {
+    totalBets: Number(overallGgr.total_bets || 0),
+    totalWins: Number(overallGgr.total_wins || 0),
+    ggr: Number(overallGgr.ggr || 0),
+    ngr: Number(overallGgr.ggr || 0), // NGR not separately provided, fallback to GGR
+    totalRounds: Number(overallGgr.total_rounds || 0),
+    uniquePlayers: Number(overallGgr.unique_players || 0),
+  };
+  const ggrByProvider = gameReport?.ggrByProvider || [];
+  const topGames = gameReport?.topGames || [];
+  const topPlayers = playerReport?.topPlayers || [];
+
+  // Derive bonus stats from API response
+  const costSummary = bonusReport?.costSummary || {};
+  const bonusByType = bonusReport?.byType || [];
+  const bonusByBonus = bonusReport?.byBonus || [];
+  const totalBonusClaims = bonusByType.reduce((sum, b) => sum + Number(b.claims || 0), 0);
+  const totalBonusCompleted = bonusByType.reduce((sum, b) => sum + Number(b.completed || 0), 0);
+  const bonusStats = {
+    totalCost: Number(costSummary.total_bonus_cost || 0),
+    totalWagered: Number(costSummary.total_wagered || 0),
+    totalClaims: totalBonusClaims,
+    activeBonuses: totalBonusClaims - totalBonusCompleted - bonusByType.reduce((sum, b) => sum + Number(b.forfeited || 0), 0),
+    conversionRate: safeDiv(totalBonusCompleted, totalBonusClaims) * 100,
+  };
+
+  // Derive KYC stats from player report kycBreakdown
+  const kycTotalSubmissions = kycBreakdown.reduce((sum, k) => sum + Number(k.count || 0), 0);
+  const kycStats = {
+    totalSubmissions: kycTotalSubmissions,
+    pending: getKycCount('pending'),
+    approved: getKycCount('verified'),
+    rejected: getKycCount('rejected'),
+    avgProcessingTime: 24,
+  };
+
+  // Registration trends from API
+  const registrationTrend = (playerReport?.registrations || []).slice(0, 10);
 
   const handleExport = async (reportType) => {
     try {
@@ -99,13 +178,6 @@ const Reports = () => {
       alert('Failed to export report: ' + (err.message || 'Unknown error'));
     }
   };
-
-  const registrationTrend = [
-    { period: 'Jan Week 1', newPlayers: 12, deposits: 8, kycCompleted: 6 },
-    { period: 'Jan Week 2', newPlayers: 18, deposits: 14, kycCompleted: 10 },
-    { period: 'Jan Week 3', newPlayers: 15, deposits: 11, kycCompleted: 9 },
-    { period: 'Jan Week 4', newPlayers: 22, deposits: 17, kycCompleted: 14 }
-  ];
 
   return (
     <div>
@@ -144,6 +216,18 @@ const Reports = () => {
           }}>Last 30 Days</button>
         </div>
       </div>
+
+      {loading && (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--gray)' }}>
+          Loading reports...
+        </div>
+      )}
+
+      {error && (
+        <div className="card" style={{ background: 'rgba(255,0,0,0.1)', color: 'var(--danger)', padding: '16px', marginBottom: '16px' }}>
+          {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="tabs-container">
@@ -191,12 +275,12 @@ const Reports = () => {
             <div className="stat-card">
               <div className="stat-card-title">Active Players</div>
               <div className="stat-card-value">{playerStats.active}</div>
-              <div className="stat-card-change">{formatPercent(playerStats.active / playerStats.total * 100)} of total</div>
+              <div className="stat-card-change">{formatPercent(safeDiv(playerStats.active, playerStats.total) * 100)} of total</div>
             </div>
             <div className="stat-card">
               <div className="stat-card-title">VIP Players</div>
               <div className="stat-card-value">{playerStats.vipPlayers}</div>
-              <div className="stat-card-change">{formatPercent(playerStats.vipPlayers / playerStats.total * 100)} of total</div>
+              <div className="stat-card-change">{formatPercent(safeDiv(playerStats.vipPlayers, playerStats.total) * 100)} of total</div>
             </div>
             <div className="stat-card">
               <div className="stat-card-title">Total Balances</div>
@@ -222,17 +306,17 @@ const Reports = () => {
                     <tr>
                       <td><span className="badge badge-success">Active</span></td>
                       <td>{playerStats.active}</td>
-                      <td>{formatPercent(playerStats.active / playerStats.total * 100)}</td>
+                      <td>{formatPercent(safeDiv(playerStats.active, playerStats.total) * 100)}</td>
                     </tr>
                     <tr>
                       <td><span className="badge badge-warning">Suspended</span></td>
                       <td>{playerStats.suspended}</td>
-                      <td>{formatPercent(playerStats.suspended / playerStats.total * 100)}</td>
+                      <td>{formatPercent(safeDiv(playerStats.suspended, playerStats.total) * 100)}</td>
                     </tr>
                     <tr>
                       <td><span className="badge badge-danger">Blocked</span></td>
                       <td>{playerStats.blocked}</td>
-                      <td>{formatPercent(playerStats.blocked / playerStats.total * 100)}</td>
+                      <td>{formatPercent(safeDiv(playerStats.blocked, playerStats.total) * 100)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -255,22 +339,22 @@ const Reports = () => {
                     <tr>
                       <td><span className="badge badge-success">Verified</span></td>
                       <td>{playerStats.kycVerified}</td>
-                      <td>{formatPercent(playerStats.kycVerified / playerStats.total * 100)}</td>
+                      <td>{formatPercent(safeDiv(playerStats.kycVerified, playerStats.total) * 100)}</td>
                     </tr>
                     <tr>
                       <td><span className="badge badge-warning">Pending</span></td>
                       <td>{playerStats.kycPending}</td>
-                      <td>{formatPercent(playerStats.kycPending / playerStats.total * 100)}</td>
+                      <td>{formatPercent(safeDiv(playerStats.kycPending, playerStats.total) * 100)}</td>
                     </tr>
                     <tr>
                       <td><span className="badge badge-info">Under Review</span></td>
                       <td>{playerStats.kycUnderReview}</td>
-                      <td>{formatPercent(playerStats.kycUnderReview / playerStats.total * 100)}</td>
+                      <td>{formatPercent(safeDiv(playerStats.kycUnderReview, playerStats.total) * 100)}</td>
                     </tr>
                     <tr>
                       <td><span className="badge badge-danger">Rejected</span></td>
                       <td>{playerStats.kycRejected}</td>
-                      <td>{formatPercent(playerStats.kycRejected / playerStats.total * 100)}</td>
+                      <td>{formatPercent(safeDiv(playerStats.kycRejected, playerStats.total) * 100)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -287,21 +371,19 @@ const Reports = () => {
                   <tr>
                     <th>Period</th>
                     <th>New Players</th>
-                    <th>First Deposits</th>
-                    <th>KYC Completed</th>
-                    <th>Conversion Rate</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {registrationTrend.map((row, i) => (
+                  {registrationTrend.length > 0 ? registrationTrend.map((row, i) => (
                     <tr key={i}>
                       <td>{row.period}</td>
-                      <td>{row.newPlayers}</td>
-                      <td>{row.deposits}</td>
-                      <td>{row.kycCompleted}</td>
-                      <td>{formatPercent(row.deposits / row.newPlayers * 100)}</td>
+                      <td>{row.new_players}</td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan="2" style={{ textAlign: 'center', color: 'var(--gray)' }}>No registration data for this period</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -314,7 +396,7 @@ const Reports = () => {
         <div>
           <div className="card-header">
             <h3 className="card-title">Casino Transactions Report</h3>
-            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('casino')}>
+            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('game_history')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -328,25 +410,25 @@ const Reports = () => {
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-card-title">Total Bets</div>
-              <div className="stat-card-value">{formatCurrency(ngrData?.totals?.totalBets || casinoStats.totalBets)}</div>
+              <div className="stat-card-value">{formatCurrency(casinoStats.totalBets)}</div>
               <div className="stat-card-change">{casinoStats.totalRounds} rounds</div>
             </div>
             <div className="stat-card">
               <div className="stat-card-title">Total Wins</div>
-              <div className="stat-card-value">{formatCurrency(ngrData?.totals?.totalWins || casinoStats.totalWins)}</div>
+              <div className="stat-card-value">{formatCurrency(casinoStats.totalWins)}</div>
               <div className="stat-card-change">{casinoStats.uniquePlayers} players</div>
             </div>
             <div className="stat-card">
               <div className="stat-card-title">GGR (Gross)</div>
               <div className="stat-card-value" style={{ color: 'var(--success)' }}>
-                {formatCurrency(ngrData?.totals?.totalGgr || casinoStats.ggr)}
+                {formatCurrency(casinoStats.ggr)}
               </div>
               <div className="stat-card-change">Bets - Wins</div>
             </div>
             <div className="stat-card">
               <div className="stat-card-title">NGR (Net)</div>
               <div className="stat-card-value" style={{ color: 'var(--success)' }}>
-                {formatCurrency(ngrData?.totals?.totalNgr || casinoStats.ngr)}
+                {formatCurrency(casinoStats.ngr)}
               </div>
               <div className="stat-card-change">GGR - Bonus Cost</div>
             </div>
@@ -361,22 +443,26 @@ const Reports = () => {
                   <thead>
                     <tr>
                       <th>Provider</th>
+                      <th>Plays</th>
                       <th>Bets</th>
                       <th>Wins</th>
                       <th>GGR</th>
-                      <th>NGR</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(ngrData?.byProvider || []).map((row, i) => (
+                    {ggrByProvider.length > 0 ? ggrByProvider.map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '500' }}>{row.providerName}</td>
-                        <td>{formatCurrency(row.bets)}</td>
-                        <td>{formatCurrency(row.wins)}</td>
+                        <td style={{ fontWeight: '500' }}>{row.provider_name || 'Unknown'}</td>
+                        <td>{Number(row.plays || 0).toLocaleString()}</td>
+                        <td>{formatCurrency(row.total_bets)}</td>
+                        <td>{formatCurrency(row.total_wins)}</td>
                         <td style={{ color: 'var(--success)' }}>{formatCurrency(row.ggr)}</td>
-                        <td style={{ color: 'var(--success)' }}>{formatCurrency(row.ngr)}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: 'center', color: 'var(--gray)' }}>No provider data</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -396,21 +482,25 @@ const Reports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(ngrData?.byGame || []).map((row, i) => (
+                    {topGames.length > 0 ? topGames.map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '500' }}>{row.gameName}</td>
-                        <td>{formatCurrency(row.bets)}</td>
+                        <td style={{ fontWeight: '500' }}>{row.name || 'Unknown'}</td>
+                        <td>{formatCurrency(row.totalBets)}</td>
                         <td style={{ color: 'var(--success)' }}>{formatCurrency(row.ggr)}</td>
-                        <td>{row.playCount.toLocaleString()}</td>
+                        <td>{Number(row.plays || 0).toLocaleString()}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', color: 'var(--gray)' }}>No game data</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
           </div>
 
-          {/* Player Wagering */}
+          {/* Top Player Wagering */}
           <div className="card">
             <h4 className="card-title mb-2">Top Player Wagering</h4>
             <div className="table-container">
@@ -418,31 +508,29 @@ const Reports = () => {
                 <thead>
                   <tr>
                     <th>Player</th>
-                    <th>Total Bets</th>
-                    <th>Total Wins</th>
-                    <th>Net Result</th>
-                    <th>Rounds</th>
+                    <th>Total Deposits</th>
+                    <th>Total Withdrawals</th>
+                    <th>Lifetime Value</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {players.slice(0, 5).map((player, i) => {
-                    const bets = (player.balance * 3) + (i * 500);
-                    const wins = bets * 0.92;
-                    return (
-                      <tr key={player.id}>
-                        <td>
-                          <div style={{ fontWeight: '500' }}>{player.firstName} {player.lastName}</div>
-                          <div style={{ fontSize: '0.85rem', color: 'var(--gray)' }}>{player.email}</div>
-                        </td>
-                        <td>{formatCurrency(bets)}</td>
-                        <td>{formatCurrency(wins)}</td>
-                        <td style={{ color: bets - wins >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                          {formatCurrency(bets - wins)}
-                        </td>
-                        <td>{Math.floor(50 + i * 20)}</td>
-                      </tr>
-                    );
-                  })}
+                  {topPlayers.length > 0 ? topPlayers.slice(0, 10).map((player, i) => (
+                    <tr key={i}>
+                      <td>
+                        <div style={{ fontWeight: '500' }}>{player.name || 'N/A'}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--gray)' }}>{player.email}</div>
+                      </td>
+                      <td>{formatCurrency(player.totalDeposits)}</td>
+                      <td>{formatCurrency(player.totalWithdrawals)}</td>
+                      <td style={{ color: player.lifetimeValue >= 0 ? 'var(--success)' : 'var(--danger)', fontWeight: '500' }}>
+                        {formatCurrency(player.lifetimeValue)}
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="4" style={{ textAlign: 'center', color: 'var(--gray)' }}>No player data</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -455,7 +543,7 @@ const Reports = () => {
         <div>
           <div className="card-header">
             <h3 className="card-title">Banking Report</h3>
-            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('banking')}>
+            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('transactions')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -486,7 +574,7 @@ const Reports = () => {
             </div>
             <div className="stat-card" style={{ background: 'rgba(253, 203, 110, 0.2)' }}>
               <div className="stat-card-title">Pending Withdrawals</div>
-              <div className="stat-card-value">{bankingStats.pendingWithdrawals.length}</div>
+              <div className="stat-card-value">{bankingStats.pendingCount}</div>
               <div className="stat-card-change">{formatCurrency(bankingStats.pendingAmount)} pending</div>
             </div>
           </div>
@@ -506,77 +594,105 @@ const Reports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(bankingReportData?.byMethod || []).map((row, i) => (
+                    {paymentMethodSummary.length > 0 ? paymentMethodSummary.map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '500' }}>{row.method}</td>
+                        <td style={{ fontWeight: '500', textTransform: 'capitalize' }}>{row.method?.replace('_', ' ')}</td>
                         <td style={{ color: 'var(--success)' }}>{formatCurrency(row.deposits)}</td>
                         <td style={{ color: 'var(--danger)' }}>{formatCurrency(row.withdrawals)}</td>
                         <td>{row.depositCount + row.withdrawalCount} txns</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', color: 'var(--gray)' }}>No payment method data</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
             </div>
 
-            {/* Pending Transactions */}
+            {/* Success Rates */}
             <div className="card">
-              <h4 className="card-title mb-2">Pending Transactions</h4>
-              {bankingStats.pendingWithdrawals.length > 0 ? (
-                <div className="table-container">
-                  <table className="table">
-                    <thead>
-                      <tr>
-                        <th>Player</th>
-                        <th>Amount</th>
-                        <th>Method</th>
-                        <th>Date</th>
+              <h4 className="card-title mb-2">Transaction Success Rates</h4>
+              <div className="table-container">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>Total</th>
+                      <th>Successful</th>
+                      <th>Success Rate</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(bankingReport?.successRate || []).length > 0 ? (bankingReport?.successRate || []).map((row, i) => (
+                      <tr key={i}>
+                        <td style={{ fontWeight: '500', textTransform: 'capitalize' }}>{row.type}</td>
+                        <td>{row.total}</td>
+                        <td style={{ color: 'var(--success)' }}>{row.successful}</td>
+                        <td>{Number(row.rate || 0).toFixed(1)}%</td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {bankingStats.pendingWithdrawals.map((tx, i) => (
-                        <tr key={i}>
-                          <td>{tx.playerName}</td>
-                          <td style={{ fontWeight: '500' }}>{formatCurrency(tx.amount)}</td>
-                          <td style={{ textTransform: 'capitalize' }}>{tx.paymentMethod?.replace('_', ' ')}</td>
-                          <td>{new Date(tx.createdAt).toLocaleDateString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--gray)' }}>
-                  No pending transactions
-                </div>
-              )}
+                    )) : (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', color: 'var(--gray)' }}>No transaction data</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 
-          {/* Daily Trend */}
+          {/* Individual Transaction Listing */}
           <div className="card">
-            <h4 className="card-title mb-2">Daily Cashflow Trend</h4>
+            <h4 className="card-title mb-2">Transaction Listing</h4>
             <div className="table-container">
               <table className="table">
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Deposits</th>
-                    <th>Withdrawals</th>
-                    <th>Net</th>
+                    <th>Type</th>
+                    <th>Player</th>
+                    <th>Amount</th>
+                    <th>Currency</th>
+                    <th>Method</th>
+                    <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {(bankingReportData?.dailyTrend || []).map((row, i) => (
+                  {(bankingReport?.recentTransactions || []).length > 0 ? (bankingReport?.recentTransactions || []).map((txn, i) => (
                     <tr key={i}>
-                      <td>{row.date}</td>
-                      <td style={{ color: 'var(--success)' }}>{formatCurrency(row.deposits)}</td>
-                      <td style={{ color: 'var(--danger)' }}>{formatCurrency(row.withdrawals)}</td>
-                      <td style={{ fontWeight: '500', color: row.deposits - row.withdrawals >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                        {formatCurrency(row.deposits - row.withdrawals)}
+                      <td style={{ whiteSpace: 'nowrap' }}>{new Date(txn.createdAt).toLocaleString()}</td>
+                      <td>
+                        <span className={`badge ${txn.type === 'deposit' ? 'badge-success' : 'badge-danger'}`} style={{ textTransform: 'capitalize' }}>
+                          {txn.type}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: '500' }}>{txn.playerName}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--gray)' }}>{txn.playerEmail}</div>
+                      </td>
+                      <td style={{ fontWeight: '500', color: txn.type === 'deposit' ? 'var(--success)' : 'var(--danger)' }}>
+                        {txn.type === 'deposit' ? '+' : '-'}{formatCurrency(txn.amount)}
+                      </td>
+                      <td>{txn.currency}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{txn.method?.replace('_', ' ')}</td>
+                      <td>
+                        <span className={`badge ${
+                          txn.status === 'completed' ? 'badge-success' :
+                          txn.status === 'pending' ? 'badge-warning' :
+                          txn.status === 'failed' || txn.status === 'rejected' ? 'badge-danger' :
+                          'badge-info'
+                        }`} style={{ textTransform: 'capitalize' }}>
+                          {txn.status}
+                        </span>
                       </td>
                     </tr>
-                  ))}
+                  )) : (
+                    <tr>
+                      <td colSpan="7" style={{ textAlign: 'center', color: 'var(--gray)' }}>No transactions found for this period</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -589,7 +705,7 @@ const Reports = () => {
         <div>
           <div className="card-header">
             <h3 className="card-title">Bonus Report</h3>
-            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('bonus')}>
+            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('bonuses')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -613,7 +729,7 @@ const Reports = () => {
             </div>
             <div className="stat-card">
               <div className="stat-card-title">Active Bonuses</div>
-              <div className="stat-card-value">{bonusStats.activeBonuses}</div>
+              <div className="stat-card-value">{Math.max(0, bonusStats.activeBonuses)}</div>
               <div className="stat-card-change">In progress</div>
             </div>
             <div className="stat-card">
@@ -638,14 +754,18 @@ const Reports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {bonuses.map((bonus, i) => (
+                    {bonusByType.length > 0 ? bonusByType.map((bonus, i) => (
                       <tr key={i}>
-                        <td style={{ textTransform: 'capitalize', fontWeight: '500' }}>{bonus.type?.replace('_', ' ')}</td>
-                        <td>{bonus.currentClaims}</td>
-                        <td>{formatCurrency(bonus.amount ? bonus.amount * bonus.currentClaims : bonus.currentClaims * 75)}</td>
-                        <td>{formatCurrency(bonus.amount ? bonus.amount * bonus.currentClaims * bonus.wageringReq : bonus.currentClaims * 75 * 15)}</td>
+                        <td style={{ textTransform: 'capitalize', fontWeight: '500' }}>{(bonus.type || 'unknown').replace('_', ' ')}</td>
+                        <td>{bonus.claims || 0}</td>
+                        <td>{formatCurrency(bonus.total_given)}</td>
+                        <td>{formatCurrency(bonus.total_wagered)}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', color: 'var(--gray)' }}>No bonus type data</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -653,30 +773,30 @@ const Reports = () => {
 
             {/* Top Bonuses */}
             <div className="card">
-              <h4 className="card-title mb-2">Top Bonuses by Cost</h4>
+              <h4 className="card-title mb-2">Top Bonuses by Claims</h4>
               <div className="table-container">
                 <table className="table">
                   <thead>
                     <tr>
                       <th>Bonus</th>
-                      <th>Status</th>
+                      <th>Type</th>
                       <th>Claims</th>
-                      <th>Total Cost</th>
+                      <th>Total Given</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {bonuses.sort((a, b) => b.currentClaims - a.currentClaims).slice(0, 5).map((bonus, i) => (
+                    {bonusByBonus.length > 0 ? bonusByBonus.slice(0, 10).map((bonus, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '500' }}>{bonus.name}</td>
-                        <td>
-                          <span className={`badge badge-${bonus.status === 'active' ? 'success' : 'danger'}`}>
-                            {bonus.status}
-                          </span>
-                        </td>
-                        <td>{bonus.currentClaims}</td>
-                        <td>{formatCurrency(bonus.amount ? bonus.amount * bonus.currentClaims : bonus.currentClaims * 75)}</td>
+                        <td style={{ fontWeight: '500' }}>{bonus.name || 'Unknown'}</td>
+                        <td style={{ textTransform: 'capitalize' }}>{(bonus.type || '').replace('_', ' ')}</td>
+                        <td>{bonus.claims || 0}</td>
+                        <td>{formatCurrency(bonus.total_given)}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="4" style={{ textAlign: 'center', color: 'var(--gray)' }}>No bonus data</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -689,16 +809,16 @@ const Reports = () => {
             <div className="grid grid-3 gap-2">
               <div className="stat-card">
                 <div className="stat-card-title">Avg Bonus Size</div>
-                <div className="stat-card-value">{formatCurrency(bonusStats.totalCost / bonusStats.totalClaims || 0)}</div>
+                <div className="stat-card-value">{formatCurrency(safeDiv(bonusStats.totalCost, bonusStats.totalClaims))}</div>
               </div>
               <div className="stat-card">
                 <div className="stat-card-title">Wagering Multiplier</div>
-                <div className="stat-card-value">{(bonusStats.totalWagered / bonusStats.totalCost || 0).toFixed(1)}x</div>
+                <div className="stat-card-value">{safeDiv(bonusStats.totalWagered, bonusStats.totalCost).toFixed(1)}x</div>
               </div>
               <div className="stat-card">
                 <div className="stat-card-title">ROI</div>
                 <div className="stat-card-value" style={{ color: 'var(--success)' }}>
-                  {formatPercent((bonusStats.totalWagered * 0.05 / bonusStats.totalCost) * 100 || 0)}
+                  {formatPercent(safeDiv(bonusStats.totalWagered * 0.05, bonusStats.totalCost) * 100)}
                 </div>
               </div>
             </div>
@@ -711,7 +831,7 @@ const Reports = () => {
         <div>
           <div className="card-header">
             <h3 className="card-title">KYC Report</h3>
-            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('kyc')}>
+            <button className="btn btn-sm btn-secondary" onClick={() => handleExport('players')}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="7 10 12 15 17 10"/>
@@ -725,49 +845,51 @@ const Reports = () => {
           <div className="stats-grid">
             <div className="stat-card">
               <div className="stat-card-title">Total Submissions</div>
-              <div className="stat-card-value">{kycReportStats?.summary?.totalSubmissions || kycStats.totalSubmissions}</div>
+              <div className="stat-card-value">{kycStats.totalSubmissions}</div>
             </div>
             <div className="stat-card" style={{ background: 'rgba(253, 203, 110, 0.2)' }}>
               <div className="stat-card-title">Pending Review</div>
-              <div className="stat-card-value">{kycReportStats?.summary?.pending || kycStats.pending}</div>
+              <div className="stat-card-value">{kycStats.pending}</div>
             </div>
             <div className="stat-card">
               <div className="stat-card-title">Approved</div>
               <div className="stat-card-value" style={{ color: 'var(--success)' }}>
-                {kycReportStats?.summary?.approved || kycStats.approved}
+                {kycStats.approved}
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-card-title">Avg Processing Time</div>
-              <div className="stat-card-value">{kycStats.avgProcessingTime}h</div>
+              <div className="stat-card-title">Rejected</div>
+              <div className="stat-card-value" style={{ color: 'var(--danger)' }}>
+                {kycStats.rejected}
+              </div>
             </div>
           </div>
 
           <div className="grid grid-2 gap-2">
-            {/* By Document Type */}
+            {/* KYC Breakdown */}
             <div className="card">
-              <h4 className="card-title mb-2">By Document Type</h4>
+              <h4 className="card-title mb-2">KYC Status Breakdown</h4>
               <div className="table-container">
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Document Type</th>
-                      <th>Submissions</th>
-                      <th>Approved</th>
-                      <th>Rejected</th>
-                      <th>Pending</th>
+                      <th>Status</th>
+                      <th>Count</th>
+                      <th>Percentage</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {(kycReportStats?.byDocumentType || []).map((row, i) => (
+                    {kycBreakdown.length > 0 ? kycBreakdown.map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '500' }}>{row.type}</td>
-                        <td>{row.submissions}</td>
-                        <td style={{ color: 'var(--success)' }}>{row.approved}</td>
-                        <td style={{ color: 'var(--danger)' }}>{row.rejected}</td>
-                        <td style={{ color: 'var(--warning)' }}>{row.pending}</td>
+                        <td style={{ fontWeight: '500', textTransform: 'capitalize' }}>{(row.kyc_status || 'unknown').replace('_', ' ')}</td>
+                        <td>{row.count}</td>
+                        <td>{formatPercent(safeDiv(Number(row.count), kycStats.totalSubmissions) * 100)}</td>
                       </tr>
-                    ))}
+                    )) : (
+                      <tr>
+                        <td colSpan="3" style={{ textAlign: 'center', color: 'var(--gray)' }}>No KYC data</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -780,12 +902,12 @@ const Reports = () => {
                 <div className="flex-between mb-2">
                   <span>Approval Rate</span>
                   <span style={{ fontWeight: 'bold', color: 'var(--success)' }}>
-                    {formatPercent((kycReportStats?.summary?.approved || kycStats.approved) / (kycReportStats?.summary?.totalSubmissions || kycStats.totalSubmissions) * 100)}
+                    {formatPercent(safeDiv(kycStats.approved, kycStats.totalSubmissions) * 100)}
                   </span>
                 </div>
                 <div className="progress-bar mb-2">
                   <div className="progress-fill" style={{
-                    width: `${(kycReportStats?.summary?.approved || kycStats.approved) / (kycReportStats?.summary?.totalSubmissions || kycStats.totalSubmissions) * 100}%`,
+                    width: `${safeDiv(kycStats.approved, kycStats.totalSubmissions) * 100}%`,
                     background: 'var(--success)'
                   }}></div>
                 </div>
@@ -793,45 +915,16 @@ const Reports = () => {
                 <div className="flex-between mb-2">
                   <span>Rejection Rate</span>
                   <span style={{ fontWeight: 'bold', color: 'var(--danger)' }}>
-                    {formatPercent((kycReportStats?.summary?.rejected || kycStats.rejected) / (kycReportStats?.summary?.totalSubmissions || kycStats.totalSubmissions) * 100)}
+                    {formatPercent(safeDiv(kycStats.rejected, kycStats.totalSubmissions) * 100)}
                   </span>
                 </div>
                 <div className="progress-bar">
                   <div className="progress-fill" style={{
-                    width: `${(kycReportStats?.summary?.rejected || kycStats.rejected) / (kycReportStats?.summary?.totalSubmissions || kycStats.totalSubmissions) * 100}%`,
+                    width: `${safeDiv(kycStats.rejected, kycStats.totalSubmissions) * 100}%`,
                     background: 'var(--danger)'
                   }}></div>
                 </div>
               </div>
-            </div>
-          </div>
-
-          {/* Weekly Trend */}
-          <div className="card">
-            <h4 className="card-title mb-2">Weekly KYC Trend</h4>
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Week</th>
-                    <th>Submissions</th>
-                    <th>Approved</th>
-                    <th>Rejected</th>
-                    <th>Approval Rate</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(kycReportStats?.weeklyTrend || []).map((row, i) => (
-                    <tr key={i}>
-                      <td>{row.week}</td>
-                      <td>{row.submissions}</td>
-                      <td style={{ color: 'var(--success)' }}>{row.approved}</td>
-                      <td style={{ color: 'var(--danger)' }}>{row.rejected}</td>
-                      <td>{formatPercent(row.approved / row.submissions * 100)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         </div>

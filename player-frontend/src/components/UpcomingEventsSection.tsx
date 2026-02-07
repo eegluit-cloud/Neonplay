@@ -12,7 +12,7 @@ export function UpcomingEventsSection() {
       <SectionHeaderRow
         title={
           <>
-            <Wifi className="w-4 h-4 md:w-5 md:h-5 text-cyan-500" />
+            <Wifi className="w-4 h-4 md:w-5 md:h-5 text-amber-500" />
             Upcoming Matches
           </>
         }

@@ -218,7 +218,7 @@ export function SpinGiftModal({ isOpen, onClose }: SpinGiftModalProps) {
             <div className="p-4 rounded-xl bg-secondary/50 border border-border">
               <p className="text-xs text-muted-foreground">👤 Hidden</p>
               <p className="text-xl font-bold">
-                Win: <span className="text-cyan-400">${winAmount?.toFixed(2) || '0.00'}</span>
+                Win: <span className="text-amber-400">${winAmount?.toFixed(2) || '0.00'}</span>
               </p>
             </div>
           </div>

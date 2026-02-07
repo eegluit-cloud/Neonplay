@@ -29,7 +29,7 @@ export function BetslipSelectionItem({ selection }: BetslipSelectionItemProps) {
       </button>
 
       {/* Market label */}
-      <div className="text-cyan-400 font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1">
+      <div className="text-amber-400 font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1">
         {getMarketLabel(selection.market)}
       </div>
 

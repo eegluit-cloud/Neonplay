@@ -26,7 +26,7 @@ export function LobbyModeSwitcher({ activeMode, onModeChange }: LobbyModeSwitche
             className={cn(
               "flex items-center gap-1.5 sm:gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-all",
               isActive
-                ? "bg-cyan-500 text-white shadow-lg shadow-cyan-500/25"
+                ? "bg-amber-500 text-white shadow-lg shadow-cyan-500/25"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-secondary"
             )}
           >

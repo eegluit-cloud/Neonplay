@@ -18,7 +18,8 @@ const Login = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
+      const response = await login(email, password);
+      localStorage.setItem("admin_token", response.token);
       navigate('/dashboard');
     } catch (err) {
       setError('Invalid email or password');

@@ -27,6 +27,24 @@ export const api = axios.create({
   withCredentials: true, // Required for cookies to be sent
 });
 
+// Token refresh mutex - prevents concurrent refresh calls
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value: unknown) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 // Request interceptor to add auth token and CSRF token
 api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -50,42 +68,61 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor for token refresh
+// Response interceptor for token refresh (with mutex to prevent concurrent refreshes)
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // If already refreshing, queue this request
+      if (isRefreshing) {
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+          }
+          return api(originalRequest);
+        }).catch((err) => Promise.reject(err));
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         const refreshToken = tokenManager.getRefreshToken();
-        if (refreshToken) {
-          const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
-            refreshToken,
-          });
-
-          const { accessToken, refreshToken: newRefreshToken } = response.data;
-          tokenManager.setTokens(accessToken, newRefreshToken);
-
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-          }
-          return api(originalRequest);
+        if (!refreshToken) {
+          throw new Error('No refresh token');
         }
+
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+          refreshToken,
+        }, { withCredentials: true });
+
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        tokenManager.setTokens(accessToken, newRefreshToken);
+
+        // Process all queued requests with the new token
+        processQueue(null, accessToken);
+        isRefreshing = false;
+
+        if (originalRequest.headers) {
+          originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        }
+        return api(originalRequest);
       } catch (refreshError) {
+        processQueue(refreshError, null);
+        isRefreshing = false;
         tokenManager.clearTokens();
-        // Show session expiry notification before redirecting
         try {
           const { toast } = await import('sonner');
           toast.error('Session expired', { description: 'Please log in again.' });
         } catch {
-          // toast not available, that's ok
+          // toast not available
         }
-        // Brief delay so user sees the toast
         setTimeout(() => { window.location.href = '/'; }, 1500);
-        return new Promise(() => {}); // prevent further processing
+        return new Promise(() => {});
       }
     }
 
@@ -207,10 +244,32 @@ export const vipApi = {
 
   getMyStatus: () => api.get('/vip/status'),
 
-  getRewards: () => api.get('/vip/rewards'),
+  getBenefits: () => api.get('/vip/benefits'),
 
-  claimReward: (rewardId: string) => api.post(`/vip/rewards/${rewardId}/claim`),
+  claimCashback: () => api.post('/vip/cashback/claim'),
 };
+
+/**
+ * Proactively refresh the access token using the stored refresh token.
+ * Returns true if successful, false otherwise.
+ * Uses bare axios (not the api instance) to avoid interceptor loops.
+ */
+export async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = tokenManager.getRefreshToken();
+  if (!refreshToken) return false;
+
+  try {
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
+      refreshToken,
+    }, { withCredentials: true });
+    const { accessToken, refreshToken: newRefreshToken } = response.data;
+    tokenManager.setTokens(accessToken, newRefreshToken);
+    return true;
+  } catch {
+    tokenManager.clearTokens();
+    return false;
+  }
+}
 
 // Referrals API
 export const referralsApi = {

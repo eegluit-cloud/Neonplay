@@ -62,7 +62,7 @@ export function LastBets() {
   const [activeTab, setActiveTab] = useState('Latest Bets');
   return (
     <div className="w-full bg-card rounded-xl p-4 md:p-6 border border-border">
-      <div className="flex bg-[#1a1a1a] rounded-full p-1 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)] w-fit mb-6">
+      <div className="flex bg-[#1a1a1a] rounded-full p-1 border border-amber-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)] w-fit mb-6">
         {tabs.map((tab) => (
           <button
             key={tab}

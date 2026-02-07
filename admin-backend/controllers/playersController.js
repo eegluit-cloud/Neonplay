@@ -412,6 +412,7 @@ const getPlayerTransactions = async (req, res) => {
         status: t.status,
         referenceType: t.referenceType,
         referenceId: t.referenceId,
+        reference: t.referenceId,
         createdAt: t.createdAt
       })),
       pagination: {

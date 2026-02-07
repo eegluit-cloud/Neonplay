@@ -75,7 +75,7 @@ export function BetslipPanel() {
         "md:top-0 md:bottom-0 md:left-auto md:right-0 md:w-[400px] md:max-h-full md:rounded-none md:rounded-l-3xl md:pb-0"
       )}>
         {/* Cyan header */}
-        <div className="bg-cyan-600 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between rounded-t-2xl sm:rounded-t-3xl md:rounded-tl-3xl md:rounded-tr-none flex-shrink-0">
+        <div className="bg-amber-600 px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between rounded-t-2xl sm:rounded-t-3xl md:rounded-tl-3xl md:rounded-tr-none flex-shrink-0">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/10 rounded-md sm:rounded-lg flex items-center justify-center">
               <Menu className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white" />
@@ -108,7 +108,7 @@ export function BetslipPanel() {
                 )} />
                 <div className={cn(
                   "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full transition-all absolute",
-                  quickBetEnabled ? "bg-cyan-600 right-0.5 sm:right-1" : "bg-white right-5 sm:right-6"
+                  quickBetEnabled ? "bg-amber-600 right-0.5 sm:right-1" : "bg-white right-5 sm:right-6"
                 )} />
               </div>
             </div>
@@ -138,7 +138,7 @@ export function BetslipPanel() {
             >
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
               {activeTab === tab && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500" />
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-amber-500" />
               )}
             </button>
           ))}

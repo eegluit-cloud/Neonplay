@@ -49,7 +49,7 @@ export const GameCard = memo(function GameCard({
     >
       {/* Player Count Badge */}
       <div className="absolute top-1.5 md:top-2 left-1.5 md:left-2 z-10 flex items-center gap-1 bg-black/70 rounded-full px-1.5 md:px-2 py-0.5 md:py-1">
-        <span className="w-1.5 md:w-2 h-1.5 md:h-2 bg-cyan-400 rounded-full animate-slow-blink" />
+        <span className="w-1.5 md:w-2 h-1.5 md:h-2 bg-amber-400 rounded-full animate-slow-blink" />
         <span className="text-[10px] md:text-xs font-medium">{game.players}</span>
       </div>
 
@@ -78,7 +78,7 @@ export const GameCard = memo(function GameCard({
       {/* Play Overlay */}
       <div className="game-overlay rounded-lg md:rounded-xl">
         <button
-          className="w-10 md:w-14 h-10 md:h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center hover:scale-110 transition-all shadow-[0_0_20px_hsl(187_85%_53%/0.4)] hover:shadow-[0_0_30px_hsl(187_85%_53%/0.6)]"
+          className="w-10 md:w-14 h-10 md:h-14 rounded-full bg-gradient-to-br from-amber-400 to-cyan-600 flex items-center justify-center hover:scale-110 transition-all shadow-[0_0_20px_hsl(187_85%_53%/0.4)] hover:shadow-[0_0_30px_hsl(187_85%_53%/0.6)]"
           aria-label={`Play ${game.name}`}
         >
           <Play className="w-5 md:w-7 h-5 md:h-7 text-black fill-current" />
@@ -112,7 +112,7 @@ export const MiniGameCard = memo(function MiniGameCard({
     >
       {/* Player Count Badge */}
       <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/70 rounded-full px-2 py-1">
-        <span className="w-2 h-2 bg-cyan-400 rounded-full animate-slow-blink" />
+        <span className="w-2 h-2 bg-amber-400 rounded-full animate-slow-blink" />
         <span className="text-xs font-medium">{game.players}</span>
       </div>
 
@@ -136,7 +136,7 @@ export const MiniGameCard = memo(function MiniGameCard({
 
       {/* Play Overlay */}
       <div className="game-overlay rounded-xl">
-        <button className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center hover:scale-110 transition-all shadow-[0_0_20px_hsl(187_85%_53%/0.4)] hover:shadow-[0_0_30px_hsl(187_85%_53%/0.6)]">
+        <button className="w-14 h-14 rounded-full bg-gradient-to-br from-amber-400 to-cyan-600 flex items-center justify-center hover:scale-110 transition-all shadow-[0_0_20px_hsl(187_85%_53%/0.4)] hover:shadow-[0_0_30px_hsl(187_85%_53%/0.6)]">
           <Play className="w-7 h-7 text-black fill-current" />
         </button>
       </div>

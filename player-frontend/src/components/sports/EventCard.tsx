@@ -18,7 +18,7 @@ export function EventCard({ event }: { event: EventMatch }) {
       {/* Time/Status */}
       <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
         {event.isLive ? (
-          <span className="text-cyan-400 text-xs sm:text-sm font-medium flex items-center gap-1">
+          <span className="text-amber-400 text-xs sm:text-sm font-medium flex items-center gap-1">
             {event.liveMinute}' {event.liveHalf}
             <Wifi className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-red-400 ml-0.5 sm:ml-1" aria-hidden="true" />
           </span>

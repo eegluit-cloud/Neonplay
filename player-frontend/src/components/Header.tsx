@@ -53,7 +53,7 @@ export function Header({
   }, [balanceDropdownOpen]);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 header-bar border-b border-border" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+    <header className="fixed top-0 left-0 right-0 z-50 header-bar border-b border-amber-500/40" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
       <div className="flex items-center justify-between h-14 md:h-16 px-3 md:px-4 lg:px-4">
         {/* Left Side - Hamburger + Logo on tablet/desktop, Logo only on mobile */}
         <div className="flex items-center gap-2 md:gap-2 lg:gap-3">
@@ -74,7 +74,7 @@ export function Header({
                 <span className="w-4 h-[2px] bg-muted-foreground rounded-full" />
               </div>
               <svg width="8" height="10" viewBox="0 0 8 10" fill="none" className="ml-0.5">
-                <path d="M1 1L6 5L1 9" stroke="#22d3ee" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M1 1L6 5L1 9" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
             </div>
           </button>
@@ -139,7 +139,7 @@ export function Header({
               className="relative w-7 h-7 flex items-center justify-center rounded-lg header-icon-btn"
             >
               <Bell className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-cyan-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white shadow-lg badge-pulse">1</span>
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white shadow-lg badge-pulse">1</span>
             </button>
           </div>
 
@@ -194,7 +194,7 @@ export function Header({
               className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full header-icon-btn"
             >
               <Gift className="w-4 lg:w-5 h-4 lg:h-5 text-muted-foreground" strokeWidth={1.5} />
-              <span className="absolute -top-0.5 lg:-top-1 -right-0 lg:-right-0.5 min-w-4 lg:min-w-5 h-4 lg:h-5 px-0.5 lg:px-1 bg-cyan-500 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center text-white shadow-lg badge-pulse">1</span>
+              <span className="absolute -top-0.5 lg:-top-1 -right-0 lg:-right-0.5 min-w-4 lg:min-w-5 h-4 lg:h-5 px-0.5 lg:px-1 bg-amber-500 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center text-white shadow-lg badge-pulse">1</span>
             </button>
 
             <div className="w-px h-5 lg:h-6 bg-white/20 mx-0.5 lg:mx-1" />
@@ -212,7 +212,7 @@ export function Header({
           {/* User Avatar */}
           <button
             onClick={() => navigate('/profile')}
-            className="w-9 lg:w-11 h-9 lg:h-11 rounded-full transition-all overflow-hidden shrink-0 ring-2 ring-transparent hover:ring-cyan-500/40 active:scale-95"
+            className="w-9 lg:w-11 h-9 lg:h-11 rounded-full transition-all overflow-hidden shrink-0 ring-2 ring-transparent hover:ring-amber-500/40 active:scale-95"
           >
             <img src={userAvatar} alt="User" className="w-full h-full rounded-full object-cover" />
           </button>

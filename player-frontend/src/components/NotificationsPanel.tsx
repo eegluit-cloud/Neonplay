@@ -141,8 +141,8 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
           <p className="text-sm text-muted-foreground">
             {selectedNotification?.message}
           </p>
-          <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-xl p-4 space-y-3">
-            <h4 className="text-sm font-semibold text-cyan-400">Bonus Details</h4>
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4 space-y-3">
+            <h4 className="text-sm font-semibold text-amber-400">Bonus Details</h4>
             <ul className="space-y-2 text-xs text-muted-foreground">
               <li className="flex justify-between">
                 <span>Minimum Stake:</span>
@@ -168,7 +168,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
               </li>
             </ul>
           </div>
-          <button className="w-full py-3 bg-gradient-to-r from-cyan-500 to-blue-400 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity">
+          <button className="w-full py-3 bg-gradient-to-r from-amber-500 to-blue-400 text-white font-semibold rounded-xl hover:opacity-90 transition-opacity">
             Claim Bonus
           </button>
         </div>
@@ -221,7 +221,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                 >
                   {tab.label}
                   {count > 0 && (
-                    <span className="min-w-5 h-5 px-1.5 bg-cyan-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white">
+                    <span className="min-w-5 h-5 px-1.5 bg-amber-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white">
                       {count}
                     </span>
                   )}
@@ -245,7 +245,7 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
                 <div className="flex items-center gap-2 px-4 pt-3">
                   <span className="text-xs text-muted-foreground">{notification.date}</span>
                   {!notification.isRead && (
-                    <span className="w-2.5 h-2.5 bg-cyan-500 rounded-full" />
+                    <span className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
                   )}
                 </div>
 
@@ -297,12 +297,12 @@ export function NotificationsPanel({ isOpen, onClose }: NotificationsPanelProps)
             <Switch 
               checked={showUnreadOnly} 
               onCheckedChange={setShowUnreadOnly}
-              className="data-[state=checked]:bg-cyan-500"
+              className="data-[state=checked]:bg-amber-500"
             />
           </div>
           <button 
             onClick={markAllAsRead}
-            className="flex items-center gap-1.5 text-cyan-400 text-sm font-medium hover:text-cyan-300 transition-colors"
+            className="flex items-center gap-1.5 text-amber-400 text-sm font-medium hover:text-amber-300 transition-colors"
           >
             <Check className="w-4 h-4" />
             <Check className="w-4 h-4 -ml-2.5" />

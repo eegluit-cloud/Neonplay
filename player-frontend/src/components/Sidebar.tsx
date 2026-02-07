@@ -62,12 +62,12 @@ const navigationConfig: NavSection[] = [
     collapsible: true,
     icon: Volleyball,
     items: [
+      { id: 'sports-home', label: 'Sports Home', icon: Volleyball, href: '/sports' },
       { id: 'live-sports', label: 'Live', icon: Globe, href: '/sports?filter=live' },
       { id: 'soccer', label: 'Soccer', icon: Target, href: '/sports?filter=soccer' },
       { id: 'basketball', label: 'Basketball', icon: Trophy, href: '/sports?filter=basketball' },
       { id: 'tennis', label: 'Tennis', icon: Target, href: '/sports?filter=tennis' },
       { id: 'esports', label: 'Esports', icon: Gamepad2, href: '/sports?filter=esports' },
-      { id: 'my-bets', label: 'My Bets', icon: Star, href: '/profile' },
     ],
   },
   {
@@ -76,6 +76,7 @@ const navigationConfig: NavSection[] = [
     collapsible: true,
     icon: Gamepad2,
     items: [
+      { id: 'casino-home', label: 'All Games', icon: Gamepad2, href: '/casino' },
       { id: 'favorites', label: 'Favorites', icon: Heart, href: '/favorites' },
       { id: 'hot-games', label: 'Hot Games', icon: TrendingUp, href: '/hot-games' },
       { id: 'slots', label: 'Slots', icon: Gamepad2, href: '/slots' },
@@ -94,28 +95,30 @@ const navigationConfig: NavSection[] = [
       { id: 'vip-club', label: 'VIP Club', icon: Crown, href: '/vip' },
       { id: 'refer-friend', label: 'Refer a Friend', icon: Share2, href: '/refer-friend' },
       { id: 'prizes-promo', label: 'Prizes', icon: Trophy, href: '/prizes' },
+      { id: 'leaderboard', label: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
     ],
   },
   {
-    id: 'main',
+    id: 'account',
+    title: 'Account',
+    collapsible: true,
+    icon: Users,
     items: [
+      { id: 'profile', label: 'Profile', icon: Users, href: '/profile' },
       { id: 'wallet', label: 'Wallet', icon: Wallet, href: '/profile?tab=transactions' },
-      { id: 'referral', label: 'Referral', icon: Share2, href: '/refer-friend' },
-      { id: 'leaderboard', label: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
-      { id: 'prizes', label: 'Prizes', icon: Trophy, href: '/prizes' },
-      { id: 'provably-fair', label: 'Provably Fair', icon: Scale, href: '/provably-fair' },
-      { id: 'responsible', label: 'Responsible Gambling', icon: ShieldCheck, href: '/responsible-gambling' },
     ],
   },
   {
     id: 'support',
-    title: 'Support',
+    title: 'Support & Info',
     collapsible: true,
     icon: Headphones,
     items: [
       { id: 'live-chat', label: 'Live Chat', icon: MessageCircle, href: '/faq' },
       { id: 'telegram', label: 'Telegram', icon: Send, href: 'https://t.me/phibet' },
       { id: 'whatsapp', label: 'WhatsApp', icon: Phone, href: 'https://wa.me/phibet' },
+      { id: 'provably-fair', label: 'Provably Fair', icon: Scale, href: '/provably-fair' },
+      { id: 'responsible', label: 'Responsible Gambling', icon: ShieldCheck, href: '/responsible-gambling' },
     ],
   },
   {
@@ -129,9 +132,8 @@ const navigationConfig: NavSection[] = [
     ],
   },
   {
-    id: 'account',
+    id: 'logout-standalone',
     items: [
-      { id: 'account', label: 'Account', icon: Users, href: '/profile' },
       { id: 'logout', label: 'Log Out', icon: LogOut, href: '#logout' },
     ],
   },
@@ -228,8 +230,8 @@ const DailyWinnersWidget = () => {
       1: "text-yellow-400",
       2: "text-gray-400",
       3: "text-orange-400",
-      4: "text-cyan-400",
-      5: "text-cyan-400",
+      4: "text-amber-400",
+      5: "text-amber-400",
     };
     return styles[position] || "text-purple-400";
   };
@@ -256,7 +258,7 @@ const DailyWinnersWidget = () => {
       
       <div className="space-y-3">
         {winners.slice(0, 5).map((winner, i) => (
-          <div key={winner.name} className="flex items-center gap-3">
+          <div key={`${winner.name}-${i}`} className="flex items-center gap-3">
             <span className={cn(
               "w-8 h-10 rounded-lg bg-card/80 border border-border/50 flex items-center justify-center text-sm font-bold sidebar-position-badge",
               getPositionStyle(i + 1)
@@ -278,7 +280,7 @@ const VIPStatusWidget = ({ onNavigate }: { onNavigate: (path: string) => void })
   const vip = useUserVIP();
   
   return (
-    <div className="p-3 bg-sidebar-accent rounded-xl shadow-[0_0_20px_rgba(34,211,238,0.08)]">
+    <div className="p-3 bg-sidebar-accent rounded-xl shadow-[0_0_20px_rgba(251,191,36,0.15)]">
       {/* Top Row: VIP Badge + VIP Level + Badge + VIP Club Button */}
       <div className="flex items-center gap-2 mb-3">
         <img src={vip.tierBadge} alt={vip.tierName} className="w-10 h-10 flex-shrink-0 object-contain" />
@@ -290,7 +292,7 @@ const VIPStatusWidget = ({ onNavigate }: { onNavigate: (path: string) => void })
         </div>
         <button 
           onClick={() => onNavigate('/vip')}
-          className="ml-auto text-cyan-400 text-sm font-medium hover:text-cyan-300 transition-colors flex items-center gap-1 flex-shrink-0"
+          className="ml-auto text-amber-400 text-sm font-medium hover:text-amber-300 transition-colors flex items-center gap-1 flex-shrink-0"
         >
           VIP Club
           <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
@@ -300,10 +302,10 @@ const VIPStatusWidget = ({ onNavigate }: { onNavigate: (path: string) => void })
       {/* Progress Bar */}
       <div className="w-full h-2 bg-background rounded-full overflow-hidden">
         <div 
-          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full relative"
+          className="h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full relative"
           style={{ width: `${vip.progressPercent}%` }}
         >
-          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-cyan-400 rounded-full border-2 border-sidebar-accent" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-amber-400 rounded-full border-2 border-sidebar-accent" />
         </div>
       </div>
       <p className="text-xs text-muted-foreground mt-2 text-right">
@@ -343,7 +345,7 @@ const ThemeToggle = () => {
           className={cn(
             "flex-1 px-4 py-2 text-xs font-semibold rounded-full transition-all duration-200 capitalize",
             (mode === 'dark' ? isDark : !isDark)
-              ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white" 
+              ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white" 
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -389,7 +391,7 @@ const NavItemButton = ({ item, isActive, isOpen, onClick }: NavItemButtonProps) 
         className={cn(
           "w-full flex items-center justify-center p-2 sm:p-3 rounded-xl transition-colors tap-feedback",
           isActive 
-            ? "bg-cyan-500/20 text-cyan-400" 
+            ? "bg-amber-500/20 text-amber-400" 
             : "hover:bg-sidebar-accent active:bg-sidebar-accent text-muted-foreground hover:text-foreground"
         )}
       >
@@ -405,23 +407,23 @@ const NavItemButton = ({ item, isActive, isOpen, onClick }: NavItemButtonProps) 
       onFocus={() => prefetchRoute(item.href)}
       className={cn(
         "w-full flex items-center gap-3 px-3 h-11 rounded-xl transition-colors tap-feedback",
-        isActive ? "bg-cyan-500/10 text-cyan-400" : "hover:bg-sidebar-accent active:bg-sidebar-accent/80 text-foreground"
+        isActive ? "bg-amber-500/10 text-amber-400" : "hover:bg-sidebar-accent active:bg-sidebar-accent/80 text-foreground"
       )}
     >
       <Icon className={cn(
         "w-5 h-5 flex-shrink-0",
-        item.highlight || isActive ? "text-cyan-400" : "text-muted-foreground"
+        item.highlight || isActive ? "text-amber-400" : "text-muted-foreground"
       )} />
       <span className="flex-1 text-left text-sm font-medium">
         {item.highlight ? (
           <>
-            <span className="text-cyan-400">{item.label.split(' ')[0]}</span>
+            <span className="text-amber-400">{item.label.split(' ')[0]}</span>
             {item.label.includes(' ') && ` ${item.label.split(' ').slice(1).join(' ')}`}
           </>
         ) : item.label}
       </span>
       {item.badge && (
-        <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs font-semibold rounded-full">
+        <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 text-xs font-semibold rounded-full">
           {item.badge}
         </span>
       )}
@@ -456,18 +458,18 @@ const CollapsibleSection = ({ section, isOpen, isActive, onNavigate }: Collapsib
   // Check if the section itself is active (for sections with directLink)
   const isSectionActive = directLink ? location.pathname === directLink || location.pathname.startsWith(directLink + '/') : false;
 
-  // Keep expanded if has active child, otherwise use local state
-  // Don't auto-expand just because the directLink page is active
-  const [manualExpanded, setManualExpanded] = useState(false);
-  const expanded = hasActiveChild || manualExpanded;
+  // Track manual toggle state: null = no manual override, true/false = user explicitly set
+  const [manualExpanded, setManualExpanded] = useState<boolean | null>(null);
+  // Manual override takes priority; otherwise auto-expand if a child is active
+  const expanded = manualExpanded !== null ? manualExpanded : hasActiveChild;
 
   const handleClick = () => {
+    // In collapsed mode, navigate to directLink if available, otherwise just expand sidebar
     if (directLink) {
       onNavigate(directLink);
       return;
     }
-
-    setManualExpanded(!manualExpanded);
+    setManualExpanded(prev => prev === null ? true : !prev);
   };
 
   // Collapsed view - show only icon
@@ -479,52 +481,38 @@ const CollapsibleSection = ({ section, isOpen, isActive, onNavigate }: Collapsib
           aria-label={section.title}
           className="w-full flex items-center justify-center p-2.5 bg-sidebar-accent hover:bg-sidebar-accent/80 rounded-xl transition-colors"
         >
-          <Icon className="w-5 h-5 text-cyan-400" />
+          <Icon className="w-5 h-5 text-amber-400" />
         </button>
       </div>
     );
   }
 
+  const toggleExpanded = () => setManualExpanded(prev => prev === null ? !hasActiveChild : !prev);
+
   return (
     <div className="mb-0.5">
-      <div className="flex items-center bg-sidebar-accent rounded-xl transition-colors overflow-hidden">
-        {/* Main clickable area - navigates to directLink or toggles if no directLink */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            if (directLink) {
-              onNavigate(directLink);
-            } else {
-              setManualExpanded(!manualExpanded);
-            }
-          }}
-          className="flex-1 flex items-center gap-3 px-3 h-10 hover:bg-sidebar-accent/80 transition-colors"
-        >
-          <Icon className="w-5 h-5 text-cyan-400 flex-shrink-0" />
+      {/* Section header - clicking anywhere toggles the dropdown */}
+      <button
+        onClick={toggleExpanded}
+        aria-expanded={expanded}
+        className="w-full flex items-center bg-sidebar-accent rounded-xl transition-colors hover:bg-sidebar-accent/80"
+      >
+        <div className="flex-1 flex items-center gap-3 px-3 h-10">
+          <Icon className="w-5 h-5 text-amber-400 flex-shrink-0" />
           <span className="flex-1 text-left text-sm font-medium text-foreground">{section.title}</span>
-        </button>
-        
-        {/* Chevron button - always toggles dropdown */}
+        </div>
         {hasItems && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setManualExpanded(!manualExpanded);
-            }}
-            aria-expanded={expanded}
-            aria-label={expanded ? "Collapse menu" : "Expand menu"}
-            className="w-10 h-10 flex items-center justify-center flex-shrink-0"
-          >
+          <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
             <div className="w-6 h-6 rounded-full bg-background flex items-center justify-center">
-              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform", expanded && "rotate-180")} />
+              <ChevronDown className={cn("w-4 h-4 text-muted-foreground transition-transform duration-200", expanded && "rotate-180")} />
             </div>
-          </button>
+          </div>
         )}
-      </div>
+      </button>
       
-      {/* Dropdown items */}
+      {/* Dropdown items with smooth expand */}
       {hasItems && expanded && (
-        <div className="mt-0.5 ml-2 space-y-0.5">
+        <div className="mt-0.5 ml-2 space-y-0.5 animate-fade-in">
           {section.items.map(item => (
             <NavItemButton
               key={item.id}
@@ -708,8 +696,8 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
             </div>
           )}
           
-          {/* Scrollable Content - adjusted padding for tablet */}
-          <div className="flex-1 overflow-y-auto scrollbar-hide scroll-smooth-mobile px-3 py-3 md:py-4 lg:py-6 space-y-2">
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto scrollbar-themed-autohide scroll-smooth-mobile px-3 py-3 md:py-4 lg:py-6 space-y-1.5">
             
             {/* VIP Status */}
             {isOpen && <VIPStatusWidget onNavigate={handleNavigate} />}
@@ -725,9 +713,9 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
               />
             ))}
 
-            {/* Collapsible Navigation Sections - Sports and Casino */}
+            {/* All Collapsible Sections */}
             <nav className="space-y-1.5" aria-label="Main navigation">
-              {collapsibleSections.slice(0, 3).map(section => (
+              {collapsibleSections.map(section => (
                 <CollapsibleSection
                   key={section.id}
                   section={section}
@@ -738,32 +726,8 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
               ))}
             </nav>
 
-            {/* Main Menu */}
-            {staticSections.filter(s => s.id === 'main').map(section => (
-              <StaticSection
-                key={section.id}
-                section={section}
-                isOpen={isOpen}
-                isActive={isActive}
-                onNavigate={handleNavigate}
-              />
-            ))}
-
-            {/* Support & Legal - skip first 3 (sports, casino, promotions) */}
-            <nav className="space-y-1.5" aria-label="Support navigation">
-              {collapsibleSections.slice(3).map(section => (
-                <CollapsibleSection
-                  key={section.id}
-                  section={section}
-                  isOpen={isOpen}
-                  isActive={isActive}
-                  onNavigate={handleNavigate}
-                />
-              ))}
-            </nav>
-
-            {/* Account Section */}
-            {staticSections.filter(s => s.id === 'account').map(section => (
+            {/* Log Out Button - Always Visible */}
+            {staticSections.filter(s => s.id === 'logout-standalone').map(section => (
               <StaticSection
                 key={section.id}
                 section={section}

@@ -58,6 +58,11 @@ export class WalletService {
       GBP: 1.27,
       CAD: 0.74,
       AUD: 0.65,
+      PHP: 0.018,
+      INR: 0.012,
+      THB: 0.028,
+      CNY: 0.14,
+      JPY: 0.0067,
     };
     if (fiatRates[currency]) {
       return new Decimal(fiatRates[currency]);

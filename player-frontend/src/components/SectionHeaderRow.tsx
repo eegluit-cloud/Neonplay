@@ -58,7 +58,7 @@ export function SectionHeaderRow({
           {onScrollLeft && (
             <button
               onClick={onScrollLeft}
-              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center hover:bg-cyan-500/10 hover:border-cyan-500/50 active:scale-95 transition-all tap-feedback"
+              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center hover:bg-amber-500/10 hover:border-amber-500/50 active:scale-95 transition-all tap-feedback"
             >
               <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
@@ -66,7 +66,7 @@ export function SectionHeaderRow({
           {onScrollRight && (
             <button
               onClick={onScrollRight}
-              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center hover:bg-cyan-500/10 hover:border-cyan-500/50 active:scale-95 transition-all tap-feedback"
+              className="w-7 h-7 rounded-lg border border-border flex items-center justify-center hover:bg-amber-500/10 hover:border-amber-500/50 active:scale-95 transition-all tap-feedback"
             >
               <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
             </button>

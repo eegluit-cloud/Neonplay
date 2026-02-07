@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { authApi, walletApi } from '../lib/api';
+import { authApi, walletApi, refreshAccessToken } from '../lib/api';
 import { tokenManager } from '../lib/tokenManager';
 
 export interface User {
@@ -102,8 +102,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Check if we have a session (refresh token exists)
       if (tokenManager.hasSession()) {
         try {
-          await refreshUser();
-          await refreshWallet();
+          // Proactively refresh access token before making API calls
+          // This prevents the 401 → interceptor → refresh race condition
+          const refreshed = await refreshAccessToken();
+          if (refreshed) {
+            await refreshUser();
+            await refreshWallet();
+          } else {
+            // Refresh failed - session is expired
+            tokenManager.clearTokens();
+          }
         } catch {
           tokenManager.clearTokens();
         }
@@ -116,11 +124,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string, rememberMe: boolean = false) => {
     const response = await authApi.login({ email, password });
-    const { accessToken, refreshToken, user: userData } = response.data;
+    const { accessToken, refreshToken } = response.data;
 
     tokenManager.setRememberMe(rememberMe);
     tokenManager.setTokens(accessToken, refreshToken);
-    setUser(userData);
+
+    // Fetch user profile since login API only returns tokens
+    await refreshUser();
 
     // Fetch wallet separately - don't let wallet failure block login
     try {
@@ -132,10 +142,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: RegisterData) => {
     const response = await authApi.register(data);
-    const { accessToken, refreshToken, user: userData } = response.data;
+    const { accessToken, refreshToken } = response.data;
 
     tokenManager.setTokens(accessToken, refreshToken);
-    setUser(userData);
+
+    // Fetch user profile since register API only returns tokens
+    await refreshUser();
 
     try {
       await refreshWallet();

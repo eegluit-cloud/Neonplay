@@ -139,72 +139,111 @@ const getBankingReport = async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
 
-    const where = {
-      type: { in: ['deposit', 'withdrawal'] }
-    };
-
+    const dateFilter = {};
     if (startDate || endDate) {
-      where.createdAt = {};
-      if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate);
+      dateFilter.createdAt = {};
+      if (startDate) dateFilter.createdAt.gte = new Date(startDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        dateFilter.createdAt.lte = end;
+      }
     }
 
-    const transactions = await prisma.transaction.findMany({
-      where,
-      select: {
-        type: true,
-        status: true,
-        amount: true,
-        referenceType: true
-      }
-    });
+    // Query deposits and withdrawals tables (where actual data lives)
+    const [deposits, withdrawals] = await Promise.all([
+      prisma.deposit.findMany({
+        where: dateFilter,
+        select: {
+          id: true,
+          status: true,
+          amount: true,
+          currency: true,
+          paymentProvider: true,
+          createdAt: true,
+          user: { select: { email: true, firstName: true, lastName: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      }),
+      prisma.withdrawal.findMany({
+        where: dateFilter,
+        select: {
+          id: true,
+          status: true,
+          amount: true,
+          currency: true,
+          method: true,
+          createdAt: true,
+          user: { select: { email: true, firstName: true, lastName: true } }
+        },
+        orderBy: { createdAt: 'desc' }
+      })
+    ]);
 
-    // By payment method (using referenceType as proxy)
+    // By payment method
     const byPaymentMethod = {};
-    transactions.forEach(tx => {
-      const key = `${tx.referenceType || 'unknown'}-${tx.type}`;
+
+    deposits.forEach(dep => {
+      const key = `${dep.paymentProvider || 'unknown'}-deposit`;
       if (!byPaymentMethod[key]) {
         byPaymentMethod[key] = {
-          payment_method: tx.referenceType || 'unknown',
-          type: tx.type,
+          payment_method: dep.paymentProvider || 'unknown',
+          type: 'deposit',
           count: 0,
           total: 0,
           successful: 0,
           failed: 0
         };
       }
-
       byPaymentMethod[key].count++;
-      byPaymentMethod[key].total += Number(tx.amount);
-
-      if (tx.status === 'completed' || tx.status === 'approved') {
+      byPaymentMethod[key].total += Number(dep.amount);
+      if (dep.status === 'completed') {
         byPaymentMethod[key].successful++;
-      } else if (tx.status === 'failed' || tx.status === 'rejected') {
+      } else if (dep.status === 'failed' || dep.status === 'refunded') {
         byPaymentMethod[key].failed++;
       }
     });
 
-    // Success rate
-    const successRate = {};
-    transactions.forEach(tx => {
-      if (!successRate[tx.type]) {
-        successRate[tx.type] = {
-          type: tx.type,
+    withdrawals.forEach(wd => {
+      const key = `${wd.method || 'unknown'}-withdrawal`;
+      if (!byPaymentMethod[key]) {
+        byPaymentMethod[key] = {
+          payment_method: wd.method || 'unknown',
+          type: 'withdrawal',
+          count: 0,
           total: 0,
           successful: 0,
-          rate: 0
+          failed: 0
         };
       }
-
-      successRate[tx.type].total++;
-      if (tx.status === 'completed' || tx.status === 'approved') {
-        successRate[tx.type].successful++;
+      byPaymentMethod[key].count++;
+      byPaymentMethod[key].total += Number(wd.amount);
+      if (wd.status === 'completed') {
+        byPaymentMethod[key].successful++;
+      } else if (wd.status === 'rejected' || wd.status === 'cancelled') {
+        byPaymentMethod[key].failed++;
       }
+    });
+
+    // Success rate by type
+    const successRate = {
+      deposit: { type: 'deposit', total: deposits.length, successful: 0, rate: 0 },
+      withdrawal: { type: 'withdrawal', total: withdrawals.length, successful: 0, rate: 0 }
+    };
+
+    deposits.forEach(dep => {
+      if (dep.status === 'completed') successRate.deposit.successful++;
+    });
+    withdrawals.forEach(wd => {
+      if (wd.status === 'completed') successRate.withdrawal.successful++;
     });
 
     Object.values(successRate).forEach(sr => {
       sr.rate = sr.total > 0 ? ((sr.successful / sr.total) * 100).toFixed(2) : 0;
     });
+
+    // Filter out types with 0 transactions
+    const successRateArr = Object.values(successRate).filter(sr => sr.total > 0);
 
     // Pending withdrawals
     const pendingWithdrawals = await prisma.withdrawal.aggregate({
@@ -213,13 +252,40 @@ const getBankingReport = async (req, res) => {
       _sum: { amount: true }
     });
 
+    // Build individual transaction listing
+    const recentTransactions = [
+      ...deposits.map(d => ({
+        id: d.id,
+        type: 'deposit',
+        amount: Number(d.amount),
+        currency: d.currency,
+        method: d.paymentProvider || 'unknown',
+        status: d.status,
+        playerEmail: d.user?.email || 'N/A',
+        playerName: `${d.user?.firstName || ''} ${d.user?.lastName || ''}`.trim() || 'N/A',
+        createdAt: d.createdAt
+      })),
+      ...withdrawals.map(w => ({
+        id: w.id,
+        type: 'withdrawal',
+        amount: Number(w.amount),
+        currency: w.currency,
+        method: w.method || 'unknown',
+        status: w.status,
+        playerEmail: w.user?.email || 'N/A',
+        playerName: `${w.user?.firstName || ''} ${w.user?.lastName || ''}`.trim() || 'N/A',
+        createdAt: w.createdAt
+      }))
+    ].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
     res.json({
       byPaymentMethod: Object.values(byPaymentMethod),
-      successRate: Object.values(successRate),
+      successRate: successRateArr,
       pendingWithdrawals: {
         count: pendingWithdrawals._count || 0,
-        total: Number(pendingWithdrawals._sum.amount || 0)
-      }
+        total: Number(pendingWithdrawals._sum?.amount || 0)
+      },
+      recentTransactions
     });
   } catch (error) {
     console.error('Banking report error:', error);

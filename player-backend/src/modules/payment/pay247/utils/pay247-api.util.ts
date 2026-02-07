@@ -104,7 +104,14 @@ export class Pay247ApiUtil {
       this.logger.log(JSON.stringify(response.data, null, 2));
       this.logger.log('============================');
 
-      return this.handleResponse(response.data);
+      const result = this.handleResponse(response.data);
+
+      // Map Pay247 field names (pay_url, order_no) to our expected interface
+      return {
+        order_id: result.order_no || result.order_id,
+        payment_url: result.pay_url || result.payment_url,
+        merchant_order_id: result.mch_order_no || result.merchant_order_id,
+      };
     } catch (error) {
       throw this.handleError(error, 'createPayment');
     }

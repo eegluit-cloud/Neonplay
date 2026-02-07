@@ -70,8 +70,8 @@ export function BonusClaimedModal({ isOpen, onClose }: BonusClaimedModalProps) {
       {/* Outer glowing container */}
       <div className="relative w-full max-w-xs">
         {/* Outer glow effect - all around */}
-        <div className="absolute -inset-[2px] rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-400 opacity-60 blur-md" />
-        <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400" />
+        <div className="absolute -inset-[2px] rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 opacity-60 blur-md" />
+        <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-yellow-400" />
         
         {/* Modal content */}
         <div className="relative bg-[#0a0e14] rounded-xl overflow-hidden shadow-2xl">
@@ -113,7 +113,7 @@ export function BonusClaimedModal({ isOpen, onClose }: BonusClaimedModalProps) {
                 {/* Come Back Later Button */}
                 <Button 
                   onClick={onClose}
-                  className="w-full h-9 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm mb-2"
+                  className="w-full h-9 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-semibold text-sm mb-2"
                 >
                   Come Back Later
                 </Button>

@@ -16,8 +16,8 @@ const getPositionStyle = (position: number) => {
   if (position === 1) return "text-yellow-400 border-yellow-400/50 rank-gold";
   if (position === 2) return "text-gray-400 border-gray-400/50 rank-silver";
   if (position === 3) return "text-orange-400 border-orange-400/50 rank-bronze";
-  if (position === 4) return "text-cyan-400 border-cyan-400/50";
-  if (position === 5) return "text-cyan-400 border-cyan-400/50";
+  if (position === 4) return "text-amber-400 border-amber-400/50";
+  if (position === 5) return "text-amber-400 border-amber-400/50";
   return "text-purple-400 border-purple-400/50";
 };
 
@@ -60,7 +60,7 @@ const Leaderboard = () => {
     <div className="w-full bg-card rounded-xl p-4 md:p-6 border border-border">
       {/* Header with tabs and period selector on same line */}
       <div className="flex items-center justify-between gap-2 sm:gap-4 mb-6">
-        <div className="relative flex items-center bg-[#1a1a1a] rounded-full p-1 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)] h-11">
+        <div className="relative flex items-center bg-[#1a1a1a] rounded-full p-1 border border-amber-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)] h-11">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -77,7 +77,7 @@ const Leaderboard = () => {
         </div>
 
         {/* Period selector */}
-        <div className="flex items-center bg-[#1a1a1a] rounded-full p-1 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)] h-11">
+        <div className="flex items-center bg-[#1a1a1a] rounded-full p-1 border border-amber-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)] h-11">
           {periods.map((p) => (
             <button
               key={p.id}
@@ -96,7 +96,7 @@ const Leaderboard = () => {
       </div>
 
       {/* User Stats Bar - Mobile optimized */}
-      <div className="bg-[#1a1a1a] rounded-xl p-2.5 mb-4 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
+      <div className="bg-[#1a1a1a] rounded-xl p-2.5 mb-4 border border-amber-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
         <div className="flex items-center gap-2.5 md:gap-5">
           <div className="flex items-center gap-2">
             <Avatar className="w-7 h-7">
@@ -153,7 +153,7 @@ const Leaderboard = () => {
                 } : player;
                 
                 return (
-                  <TableRow key={displayPlayer.name + index} className={`border-b border-border/50 hover:bg-secondary/50 h-7 ${isUserPosition ? 'bg-cyan-500/10' : ''}`}>
+                  <TableRow key={displayPlayer.name + index} className={`border-b border-border/50 hover:bg-secondary/50 h-7 ${isUserPosition ? 'bg-amber-500/10' : ''}`}>
                     <TableCell className="py-1.5 px-2 md:px-4">
                       <span className={`inline-flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-lg bg-card/80 border text-[10px] md:text-xs font-bold ${getPositionStyle(index + 1)}`}>
                         {index + 1}
@@ -168,7 +168,7 @@ const Leaderboard = () => {
                           />
                           <AvatarFallback className="text-[8px]">{displayPlayer.name[0]}</AvatarFallback>
                         </Avatar>
-                        <span className={`text-[10px] md:text-xs truncate max-w-[70px] md:max-w-none ${isUserPosition ? 'text-cyan-400 font-semibold' : 'text-foreground'}`}>
+                        <span className={`text-[10px] md:text-xs truncate max-w-[70px] md:max-w-none ${isUserPosition ? 'text-amber-400 font-semibold' : 'text-foreground'}`}>
                           {displayPlayer.name} {isUserPosition && '(You)'}
                         </span>
                       </div>
@@ -247,7 +247,7 @@ const Leaderboard = () => {
 
       {/* Pagination */}
       <div className="flex items-center justify-center gap-2 mt-6">
-        <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-card border border-border text-muted-foreground hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-colors">
+        <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-card border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors">
           <ChevronLeft className="w-4 h-4" />
         </button>
         {[1, 2, 3].map((page) => (
@@ -256,18 +256,18 @@ const Leaderboard = () => {
             onClick={() => setCurrentPage(page)}
             className={`w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium transition-all ${
               currentPage === page
-                ? 'bg-gradient-to-br from-cyan-500 to-blue-500 text-white'
-                : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-cyan-500/50'
+                ? 'bg-gradient-to-br from-amber-500 to-blue-500 text-white'
+                : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:border-amber-500/50'
             }`}
           >
             {page}
           </button>
         ))}
         <span className="text-muted-foreground px-1">...</span>
-        <button className="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium bg-card border border-border text-muted-foreground hover:text-foreground hover:border-cyan-500/50 transition-all">
+        <button className="w-8 h-8 flex items-center justify-center rounded-lg text-sm font-medium bg-card border border-border text-muted-foreground hover:text-foreground hover:border-amber-500/50 transition-all">
           8
         </button>
-        <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-card border border-border text-muted-foreground hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-colors">
+        <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-card border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors">
           <ChevronRight className="w-4 h-4" />
         </button>
       </div>

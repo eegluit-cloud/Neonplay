@@ -4,10 +4,13 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { RedisService } from '../../database/redis/redis.service';
 import { JackpotService } from '../jackpot/jackpot.service';
+import { HuiduService } from '../huidu/huidu.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
   createPaginatedResult,
@@ -98,6 +101,8 @@ export class GamesService {
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
     private readonly jackpotService: JackpotService,
+    @Inject(forwardRef(() => HuiduService))
+    private readonly huiduService: HuiduService,
   ) {}
 
   async getGames(query: GamesQueryDto) {
@@ -457,7 +462,13 @@ export class GamesService {
 
     // In production, this would call the game provider's API to get a launch URL
     // For now, return session details
-    const launchUrl = this.generateGameLaunchUrl(game, session.sessionToken, currency);
+    // Dispatch to aggregator-specific launch logic
+    let launchUrl: string;
+    if (game.provider.aggregator?.slug === 'huidu') {
+      launchUrl = await this.huiduService.launchGame(userId, game, currency, session.id);
+    } else {
+      launchUrl = this.generateGameLaunchUrl(game, session.sessionToken, currency);
+    }
 
     return {
       sessionId: session.id,

@@ -110,7 +110,7 @@ export function CoinBalancePill({
       balance: balances.USDC || 0,
       currency: "USDC" as Currency,
       icon: Coins,
-      gradient: "from-cyan-400 to-cyan-600",
+      gradient: "from-amber-400 to-cyan-600",
       formatBalance: (bal: number) => `${bal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC`
     },
     {

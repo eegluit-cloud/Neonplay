@@ -16,7 +16,7 @@ import {
 import { Decimal } from '@prisma/client/runtime/library';
 
 // Supported currencies for the multi-currency model
-const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE'] as const;
+const SUPPORTED_CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'PHP', 'INR', 'THB', 'CNY', 'JPY', 'USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE'] as const;
 type Currency = (typeof SUPPORTED_CURRENCIES)[number];
 
 // Balance field mapping for multi-currency wallet
@@ -26,6 +26,11 @@ const BALANCE_FIELDS: Record<string, string> = {
   GBP: 'gbpBalance',
   CAD: 'cadBalance',
   AUD: 'audBalance',
+  PHP: 'phpBalance',
+  INR: 'inrBalance',
+  THB: 'thbBalance',
+  CNY: 'cnyBalance',
+  JPY: 'jpyBalance',
   USDC: 'usdcBalance',
   USDT: 'usdtBalance',
   BTC: 'btcBalance',
@@ -56,6 +61,11 @@ async function getExchangeRateToUsdc(currency: string): Promise<Decimal> {
     GBP: 1.27,
     CAD: 0.74,
     AUD: 0.65,
+    PHP: 0.018,
+    INR: 0.012,
+    THB: 0.028,
+    CNY: 0.14,
+    JPY: 0.0067,
     BTC: 43000,
     ETH: 2200,
     SOL: 100,

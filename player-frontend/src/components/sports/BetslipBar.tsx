@@ -20,7 +20,7 @@ export function BetslipBar() {
     >
       <button
         onClick={toggleBetslip}
-        className="w-full bg-cyan-600 hover:bg-cyan-700 transition-colors rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-2xl shadow-cyan-900/30"
+        className="w-full bg-amber-600 hover:bg-amber-700 transition-colors rounded-xl sm:rounded-2xl px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between shadow-2xl shadow-cyan-900/30"
       >
         {/* Left: Menu icon */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -63,7 +63,7 @@ export function BetslipBar() {
             <div className={cn(
               "w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full transition-all absolute",
               quickBetEnabled 
-                ? "bg-cyan-600 right-0.5 sm:right-1" 
+                ? "bg-amber-600 right-0.5 sm:right-1" 
                 : "bg-white right-5 sm:right-6"
             )} />
           </div>

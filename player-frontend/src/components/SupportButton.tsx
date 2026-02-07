@@ -28,7 +28,7 @@ export function SupportButton() {
     <>
       {/* Chat Button */}
       <button 
-        className="hidden md:flex fixed bottom-4 right-4 z-50 w-12 h-12 rounded-xl bg-card border border-cyan-500/30 hover:border-cyan-400/50 transition-colors items-center justify-center shadow-lg tap-feedback"
+        className="hidden md:flex fixed bottom-4 right-4 z-50 w-12 h-12 rounded-xl bg-card border border-amber-500/30 hover:border-amber-400/50 transition-colors items-center justify-center shadow-lg tap-feedback"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Support"
       >
@@ -43,7 +43,7 @@ export function SupportButton() {
       {isOpen && (
         <div className="hidden md:flex fixed bottom-20 right-4 z-50 w-80 h-96 flex-col bg-card border border-border rounded-xl shadow-2xl overflow-hidden animate-fade-in">
           {/* Header */}
-          <div className="bg-cyan-500 px-4 py-3 flex items-center gap-3">
+          <div className="bg-amber-500 px-4 py-3 flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
               <Headphones className="w-4 h-4 text-black" />
             </div>
@@ -64,7 +64,7 @@ export function SupportButton() {
                   className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${
                     msg.isSupport 
                       ? 'bg-card border border-border text-foreground' 
-                      : 'bg-cyan-500 text-black'
+                      : 'bg-amber-500 text-black'
                   }`}
                 >
                   {msg.text}
@@ -86,7 +86,7 @@ export function SupportButton() {
               />
               <button
                 onClick={handleSend}
-                className="w-9 h-9 rounded-lg bg-cyan-500 hover:bg-cyan-400 transition-colors flex items-center justify-center"
+                className="w-9 h-9 rounded-lg bg-amber-500 hover:bg-amber-400 transition-colors flex items-center justify-center"
               >
                 <Send className="w-4 h-4 text-black" />
               </button>

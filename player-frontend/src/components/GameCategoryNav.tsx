@@ -81,7 +81,7 @@ export function GameCategoryNav({ activeTab = 'lobby', mode = 'all' }: GameCateg
                 isActive ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <tab.icon className={cn("w-4 h-4", isActive && "text-cyan-500")} />
+              <tab.icon className={cn("w-4 h-4", isActive && "text-amber-500")} />
               {tab.label}
             </button>
           );

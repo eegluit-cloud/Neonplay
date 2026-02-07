@@ -140,9 +140,9 @@ export const RecentWins = memo(function RecentWins() {
         {/* Header - compact on mobile */}
         <div className="h-8 flex items-center gap-2 mb-2 md:mb-4">
           <div className="relative flex items-center justify-center">
-            <div className="w-2.5 h-2.5 rounded-full bg-cyan-500" />
-            <div className="absolute w-2.5 h-2.5 rounded-full bg-cyan-500 animate-ping" />
-            <div className="absolute w-4 h-4 rounded-full bg-cyan-500/30 animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+            <div className="absolute w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
+            <div className="absolute w-4 h-4 rounded-full bg-amber-500/30 animate-pulse" />
           </div>
           <h2 className="text-base font-bold text-foreground">Recent Big Wins</h2>
         </div>

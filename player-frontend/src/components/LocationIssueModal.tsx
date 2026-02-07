@@ -60,7 +60,7 @@ export function LocationIssueModal({ isOpen, onClose }: LocationIssueModalProps)
 
             <Button
               onClick={onClose}
-              className="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg"
+              className="w-full h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg"
             >
               I Understand
             </Button>

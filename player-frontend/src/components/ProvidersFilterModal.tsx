@@ -109,7 +109,7 @@ export function ProvidersFilterModal({
               <div className={cn(
                 "w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-colors",
                 selectedProviders.includes(provider.id)
-                  ? "bg-cyan-500 border-cyan-500"
+                  ? "bg-amber-500 border-amber-500"
                   : "border-muted-foreground/50"
               )}>
                 {selectedProviders.includes(provider.id) && (
@@ -133,7 +133,7 @@ export function ProvidersFilterModal({
         <div className="p-4 border-t border-border/30">
           <button
             onClick={clearAll}
-            className="w-full flex items-center justify-center gap-2 py-3 text-cyan-400 hover:text-cyan-300 transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 text-amber-400 hover:text-amber-300 transition-colors"
           >
             <Trash2 className="w-5 h-5" />
             <span className="font-medium">Clear All</span>

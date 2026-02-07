@@ -64,7 +64,7 @@ export function OddsButton({
       className={cn(
         "flex-1 transition-all rounded-md sm:rounded-lg h-9 sm:h-10 px-1.5 sm:px-2 flex items-center justify-between min-w-0",
         isSelected
-          ? "bg-cyan-600 border border-cyan-500"
+          ? "bg-amber-600 border border-amber-500"
           : "bg-white/5 hover:bg-white/10 border border-white/10",
         className
       )}

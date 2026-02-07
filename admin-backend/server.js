@@ -12,6 +12,7 @@ const bonusRoutes = require('./routes/bonus');
 const reportsRoutes = require('./routes/reports');
 const adminsRoutes = require('./routes/admins');
 const vipRoutes = require('./routes/vip');
+const huiduRoutes = require('./routes/huidu');
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use('/api/bonus', bonusRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/admins', adminsRoutes);
 app.use('/api/vip', vipRoutes);
+app.use('/api/huidu', huiduRoutes);
 
 // Health check
 app.get('/health', (req, res) => {

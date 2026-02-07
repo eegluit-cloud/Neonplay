@@ -89,7 +89,7 @@ export function PopularSportsEvents() {
             className={cn(
               "flex-shrink-0 h-8 sm:h-9 px-2.5 sm:px-4 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all text-xs sm:text-sm font-medium",
               activeSport === 'all'
-                ? "bg-cyan-500 text-white"
+                ? "bg-amber-500 text-white"
                 : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10"
             )}
           >
@@ -102,7 +102,7 @@ export function PopularSportsEvents() {
               className={cn(
                 "flex-shrink-0 h-8 sm:h-9 px-2.5 sm:px-4 rounded-full flex items-center gap-1.5 sm:gap-2 transition-all text-xs sm:text-sm font-medium",
                 activeSport === sport.id
-                  ? "bg-cyan-500 text-white"
+                  ? "bg-amber-500 text-white"
                   : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10"
               )}
             >
@@ -116,7 +116,7 @@ export function PopularSportsEvents() {
       {/* Events grid */}
       {isLoading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
         </div>
       ) : filteredEvents.length === 0 ? (
         <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">

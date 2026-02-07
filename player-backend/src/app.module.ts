@@ -44,6 +44,7 @@ import { CmsModule } from './modules/cms/cms.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MediaModule } from './modules/media/media.module';
 import { PaymentModule } from './modules/payment/payment.module';
+import { HuiduModule } from './modules/huidu/huidu.module';
 
 // WebSockets
 import { WebsocketsModule } from './websockets/websockets.module';
@@ -123,6 +124,7 @@ import { JobsModule } from './jobs/jobs.module';
     AdminModule,
     MediaModule,
     PaymentModule,
+    HuiduModule,
 
     // WebSockets
     WebsocketsModule,

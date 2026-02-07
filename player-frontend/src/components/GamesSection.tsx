@@ -62,11 +62,11 @@ const GameSectionRow = memo(function GameSectionRow({
           <button className="h-7 px-2.5 rounded-lg bg-card border border-border text-xs hover:bg-card-hover transition-colors">
             All
           </button>
-          <button onClick={scrollLeft} className="w-7 h-7 rounded-lg border border-border flex items-center justify-center hover:bg-cyan-500/10 hover:border-cyan-500/50 transition-colors">
+          <button onClick={scrollLeft} className="w-7 h-7 rounded-lg border border-border flex items-center justify-center hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors">
             <ChevronLeft className="w-3.5 h-3.5 text-muted-foreground" />
           </button>
-          <button onClick={scrollRight} className="w-7 h-7 rounded-lg border border-cyan-500 bg-transparent flex items-center justify-center hover:bg-cyan-500/10 transition-colors">
-            <ChevronRight className="w-3.5 h-3.5 text-cyan-400" />
+          <button onClick={scrollRight} className="w-7 h-7 rounded-lg border border-amber-500 bg-transparent flex items-center justify-center hover:bg-amber-500/10 transition-colors">
+            <ChevronRight className="w-3.5 h-3.5 text-amber-400" />
           </button>
         </div>
       </div>
@@ -270,7 +270,7 @@ export function GamesSection() {
 
       {/* Active Filters */}
       <div className="hidden md:flex items-center gap-2 flex-wrap">
-        <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-400 text-white text-sm font-medium flex items-center gap-2">
+        <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-blue-400 text-white text-sm font-medium flex items-center gap-2">
           <Grid3X3 className="w-4 h-4" />
           Category
         </button>
@@ -304,7 +304,7 @@ export function GamesSection() {
       {/* Loading State */}
       {gamesLoading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
         </div>
       )}
 
@@ -312,7 +312,7 @@ export function GamesSection() {
       {searchFilteredGames && !gamesLoading && (
         <GameSectionRow
           title={`Search Results (${searchFilteredGames.length})`}
-          icon={<Search className="w-4 md:w-5 h-4 md:h-5 text-cyan-500" />}
+          icon={<Search className="w-4 md:w-5 h-4 md:h-5 text-amber-500" />}
           games={searchFilteredGames}
           scrollRef={slotsScrollRef}
           favoriteIds={favoriteIds}

@@ -22,8 +22,8 @@ export function LowCoinModal({ isOpen, onClose, onBuyCoins }: LowCoinModalProps)
       {/* Outer glowing container */}
       <div className="relative w-full max-w-md">
         {/* Outer glow effect - cyan theme */}
-        <div className="absolute -inset-[2px] rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-cyan-400 opacity-60 blur-md" />
-        <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-cyan-400 via-cyan-300 to-cyan-400" />
+        <div className="absolute -inset-[2px] rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-400 opacity-60 blur-md" />
+        <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-yellow-400" />
         
         {/* Modal content */}
         <div className="relative bg-[#0a0e14] rounded-xl overflow-hidden shadow-2xl">
@@ -71,7 +71,7 @@ export function LowCoinModal({ isOpen, onClose, onBuyCoins }: LowCoinModalProps)
                           key={i}
                           className={`w-4 h-2 rounded-sm ${
                             i < 2 
-                              ? 'bg-gradient-to-r from-cyan-400 to-cyan-500' 
+                              ? 'bg-gradient-to-r from-amber-400 to-yellow-500' 
                               : 'bg-[#2a3038]'
                           }`}
                         />
@@ -83,7 +83,7 @@ export function LowCoinModal({ isOpen, onClose, onBuyCoins }: LowCoinModalProps)
                       {/* Deposit Button - Cyan gradient */}
                       <Button
                         onClick={onBuyCoins}
-                        className="w-full h-10 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm"
+                        className="w-full h-10 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-semibold text-sm"
                       >
                         Deposit Now
                       </Button>

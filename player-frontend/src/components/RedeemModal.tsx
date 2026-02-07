@@ -124,9 +124,9 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
           {step === 'form' && (
             <div className="space-y-5">
               {/* Balance Card */}
-              <div className="bg-gradient-to-r from-cyan-500/20 to-teal-500/20 rounded-xl p-4 border border-cyan-500/30">
+              <div className="bg-gradient-to-r from-amber-500/20 to-teal-500/20 rounded-xl p-4 border border-amber-500/30">
                 <p className="text-sm text-muted-foreground mb-1">Available for Withdrawal</p>
-                <p className="text-2xl font-bold text-cyan-400">
+                <p className="text-2xl font-bold text-amber-400">
                   {formatCurrency(usdcBalance, 'USDC')}
                 </p>
               </div>
@@ -145,7 +145,7 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
                       onChange={(e) => handleAmountChange(e.target.value)}
                       className="h-12 text-base pr-14 bg-secondary/50 border-border"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400 font-semibold text-sm">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-amber-400 font-semibold text-sm">
                       USDC
                     </span>
                   </div>
@@ -178,7 +178,7 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
                 {/* Submit Button */}
                 <Button
                   onClick={handleSubmit}
-                  className="w-full h-12 text-base font-bold bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-600 hover:to-teal-500 text-white shadow-lg shadow-cyan-500/25"
+                  className="w-full h-12 text-base font-bold bg-gradient-to-r from-amber-500 to-teal-400 hover:from-amber-600 hover:to-teal-500 text-white shadow-lg shadow-cyan-500/25"
                 >
                   Withdraw
                 </Button>
@@ -193,7 +193,7 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
 
           {step === 'processing' && (
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-r from-cyan-500 to-teal-400 flex items-center justify-center mb-5">
+              <div className="w-14 h-14 rounded-full bg-gradient-to-r from-amber-500 to-teal-400 flex items-center justify-center mb-5">
                 <Loader2 className="w-7 h-7 text-white animate-spin" />
               </div>
               <h2 className="text-lg font-bold text-foreground mb-2">Processing...</h2>
@@ -205,12 +205,12 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
 
           {step === 'success' && (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-cyan-500 to-teal-400 flex items-center justify-center mb-5">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-amber-500 to-teal-400 flex items-center justify-center mb-5">
                 <Check className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-xl font-bold text-foreground mb-2">Withdrawal Submitted!</h2>
               <p className="text-sm text-muted-foreground mb-5 max-w-xs">
-                Your request for <span className="text-cyan-400 font-semibold">{formatCurrency(parseFloat(amount), 'USDC')}</span> has been submitted.
+                Your request for <span className="text-amber-400 font-semibold">{formatCurrency(parseFloat(amount), 'USDC')}</span> has been submitted.
               </p>
 
               <div className="bg-secondary/50 rounded-xl border border-border p-4 w-full max-w-xs mb-5 space-y-2">
@@ -224,13 +224,13 @@ export function RedeemModal({ isOpen, onClose }: RedeemModalProps) {
                 </div>
                 <div className="flex justify-between text-sm border-t border-border pt-2">
                   <span className="text-muted-foreground">New Balance</span>
-                  <span className="font-bold text-cyan-400">{formatCurrency(usdcBalance, 'USDC')}</span>
+                  <span className="font-bold text-amber-400">{formatCurrency(usdcBalance, 'USDC')}</span>
                 </div>
               </div>
 
               <Button
                 onClick={handleClose}
-                className="bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-600 hover:to-teal-500"
+                className="bg-gradient-to-r from-amber-500 to-teal-400 hover:from-amber-600 hover:to-teal-500"
               >
                 Done
               </Button>

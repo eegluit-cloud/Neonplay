@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useIsMobile } from '@/hooks/use-mobile';
-import registerDealer from '@/assets/register-dealer.png';
+import mascotImage from '@/assets/mascot.jpeg';
 import { NeonPlayLogo } from '@/components/NeonPlayLogo';
 import { useAuth } from '@/contexts/AuthContext';
-import { SocialLoginButtons } from '@/components/auth/SocialLoginButtons';
 import { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 import { registerStepEmailSchema, registerStepUsernameSchema, registerStepPasswordSchema } from '@/lib/validations/auth';
 import { cn } from '@/lib/utils';
@@ -33,7 +32,7 @@ function StepDots({ stepIndex }: { stepIndex: number }) {
           key={s}
           className={cn(
             "w-2 h-2 rounded-full transition-all duration-300",
-            i <= stepIndex ? "bg-cyan-400 scale-110" : "bg-white/20"
+            i <= stepIndex ? "bg-amber-400 scale-110" : "bg-white/20"
           )}
         />
       ))}
@@ -79,7 +78,7 @@ function FormContent({
 }: FormContentProps) {
   const inputClass = variant === 'mobile'
     ? "h-14 bg-secondary/80 border-border text-foreground placeholder:text-muted-foreground"
-    : "h-11 bg-[#2a3038] border-[#3a4048] text-white placeholder:text-muted-foreground focus:border-cyan-400 text-sm";
+    : "h-11 bg-[#2a3038] border-[#3a4048] text-white placeholder:text-muted-foreground focus:border-amber-400 text-sm";
 
   const errorBorderClass = "border-red-500/50";
 
@@ -197,7 +196,7 @@ function FormContent({
               <Checkbox
                 checked={agreeTerms}
                 onCheckedChange={(checked) => { onAgreeTermsChange(checked === true); onClearFieldErrors(); }}
-                className="mt-0.5 border-border data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                className="mt-0.5 border-border data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
               />
               <span className={cn("text-xs leading-relaxed", fieldErrors.agreeTerms ? "text-red-400" : "text-muted-foreground group-hover:text-foreground transition-colors")}>
                 I agree to the Terms & Conditions and Privacy Policy
@@ -207,7 +206,7 @@ function FormContent({
               <Checkbox
                 checked={ageVerified}
                 onCheckedChange={(checked) => { onAgeVerifiedChange(checked === true); onClearFieldErrors(); }}
-                className="mt-0.5 border-border data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                className="mt-0.5 border-border data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500"
               />
               <span className={cn("text-xs leading-relaxed", fieldErrors.ageVerified ? "text-red-400" : "text-muted-foreground group-hover:text-foreground transition-colors")}>
                 I confirm that I am at least 18 years old
@@ -232,7 +231,7 @@ function FormContent({
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
+            className="flex-1 h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -258,7 +257,7 @@ function FormContent({
           <Button
             type="submit"
             disabled={isLoading}
-            className="flex-1 h-11 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm disabled:opacity-50"
+            className="flex-1 h-11 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-semibold text-sm disabled:opacity-50"
           >
             {isLoading ? (
               <span className="flex items-center gap-2">
@@ -466,24 +465,12 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegistration
 
             {/* Title Badge */}
             <div className="flex bg-secondary/50 rounded-full p-1 mb-4 w-fit">
-              <div className="px-5 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-cyan-500 to-blue-400 text-white shadow">
+              <div className="px-5 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-amber-500 to-blue-400 text-white shadow">
                 {STEP_LABELS[step]}
               </div>
             </div>
 
             <FormContent {...formProps} variant="mobile" />
-
-            {/* Divider */}
-            {step === 'email' && (
-              <>
-                <div className="flex items-center gap-3 my-4">
-                  <div className="flex-1 h-px bg-border" />
-                  <span className="text-muted-foreground text-xs">Or continue with</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-                <SocialLoginButtons mode="register" variant="mobile" className="mb-4" />
-              </>
-            )}
 
             {/* Footer */}
             <div className="text-center mt-4 pb-2">
@@ -519,6 +506,18 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegistration
           <ChevronRight className="w-4 h-4 text-muted-foreground" />
         </button>
 
+        {/* Golden Header */}
+        <div className="relative py-3.5 bg-gradient-to-r from-[#12161c] via-[#1a1510] to-[#12161c] border-b border-amber-500/20">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(245,158,11,0.08),transparent_70%)] pointer-events-none" />
+          <div className="relative flex items-center justify-center gap-2.5 [filter:drop-shadow(0_0_12px_rgba(245,158,11,0.35))]">
+            <span className="text-lg font-bold tracking-wide [text-shadow:0_0_20px_rgba(245,158,11,0.4)]">
+              <span className="text-amber-300/90">Welcome To </span>
+              <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">Phibet</span>
+            </span>
+            <NeonPlayLogo size="sm" showText={false} />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-2">
           {/* Left Side - Form */}
           <div className="relative p-5 order-2 md:order-1">
@@ -532,23 +531,12 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegistration
 
                 <FormContent {...formProps} variant="desktop" />
 
-                {step === 'email' && (
-                  <>
-                    <div className="flex items-center gap-3 my-4">
-                      <div className="flex-1 h-px bg-[#3a4048]" />
-                      <span className="text-muted-foreground text-xs">Or Via</span>
-                      <div className="flex-1 h-px bg-[#3a4048]" />
-                    </div>
-                    <SocialLoginButtons mode="register" />
-                  </>
-                )}
-
                 <div className="mt-4 text-center space-y-1">
                   <p className="text-muted-foreground text-xs">
                     Already registered?{' '}
                     <button
                       onClick={onSwitchToLogin}
-                      className="text-cyan-400 underline hover:text-cyan-300 transition-colors"
+                      className="text-amber-400 underline hover:text-amber-300 transition-colors"
                     >
                       Login
                     </button>
@@ -562,25 +550,15 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegistration
             </div>
           </div>
 
-          {/* Right Side - Visual */}
-          <div className="relative overflow-hidden min-h-[280px] order-1 md:order-2">
-            <div className="absolute inset-0 bg-gradient-to-br from-[#0f1520] via-[#0a1018] to-[#060a10]" />
-            <div className="relative z-10 flex h-full flex-col items-center pt-12 pb-4">
-              <div className="text-center">
-                <p className="text-white/80 text-base mb-1">Welcome To</p>
-                <div className="flex justify-center">
-                  <NeonPlayLogo size="lg" />
-                </div>
-              </div>
-              <div className="mt-auto w-full max-w-[380px] animate-glow-pulse rounded-full">
-                <img
-                  src={registerDealer}
-                  alt="Casino Dealer"
-                  className="w-full h-auto object-contain select-none pointer-events-none"
-                  loading="eager"
-                />
-              </div>
-            </div>
+          {/* Right Side - Mascot */}
+          <div className="relative overflow-hidden min-h-[320px] order-1 md:order-2">
+            <img
+              src={mascotImage}
+              alt="Phibet Mascot"
+              className="absolute inset-0 w-full h-full object-cover object-top select-none pointer-events-none"
+              loading="eager"
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/20" />
           </div>
         </div>
       </div>

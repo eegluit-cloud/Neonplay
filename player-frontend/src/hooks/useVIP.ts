@@ -67,7 +67,43 @@ export const useVipStatus = () => {
     setIsLoading(true);
     try {
       const response = await vipApi.getMyStatus();
-      setStatus(response.data);
+      const data = response.data;
+
+      // Transform backend response to match VipStatus interface
+      // Backend returns: { tier, xpCurrent, xpLifetime, nextTier, progress, cashbackAvailable, isGuest }
+      // Frontend expects: { currentLevel, nextLevel, currentXp, xpToNextLevel, progressPercent, totalWagered, lifetimeRewards }
+      if (data.isGuest) {
+        setStatus(null);
+      } else {
+        const transformed: VipStatus = {
+          currentLevel: data.tier ? {
+            id: data.tier.id,
+            level: data.tier.level,
+            name: data.tier.name,
+            requiredXp: parseInt(data.tier.minXp) || 0,
+            gcMultiplier: 1,
+            scMultiplier: 1,
+            benefits: data.tier.benefits || [],
+            iconUrl: data.tier.iconUrl,
+            color: data.tier.color,
+          } : { id: '', level: 1, name: 'Bronze', requiredXp: 0, gcMultiplier: 1, scMultiplier: 1, benefits: [] },
+          nextLevel: data.nextTier ? {
+            id: data.nextTier.id,
+            level: data.nextTier.level,
+            name: data.nextTier.name,
+            requiredXp: parseInt(data.nextTier.minXp) || 0,
+            gcMultiplier: 1,
+            scMultiplier: 1,
+            benefits: [],
+          } : undefined,
+          currentXp: parseInt(data.xpCurrent) || 0,
+          xpToNextLevel: data.progress?.xpToNextTier ? parseInt(data.progress.xpToNextTier) : 0,
+          progressPercent: data.progress?.percent ?? 0,
+          totalWagered: parseInt(data.xpLifetime) || 0,
+          lifetimeRewards: 0,
+        };
+        setStatus(transformed);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch VIP status');
       setStatus(null);
@@ -85,16 +121,36 @@ export const useVipStatus = () => {
 
 export const useVipRewards = () => {
   const [rewards, setRewards] = useState<VipReward[]>([]);
+  const [cashbackAvailable, setCashbackAvailable] = useState<string>('0');
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchRewards = useCallback(async () => {
     setIsLoading(true);
     try {
-      const response = await vipApi.getRewards();
-      setRewards(response.data);
+      const response = await vipApi.getBenefits();
+      const data = response.data;
+
+      // Transform backend benefits into VipReward-like structure
+      // Backend returns: { tierName, tierLevel, benefits, cashbackPercent, redemptionBonusPercent, exclusivePromotions, cashbackAvailable }
+      const benefitRewards: VipReward[] = [];
+
+      // Add cashback as a claimable reward if available
+      const cashback = parseFloat(data.cashbackAvailable || '0');
+      setCashbackAvailable(data.cashbackAvailable || '0');
+      if (cashback > 0) {
+        benefitRewards.push({
+          id: 'cashback',
+          name: `${data.tierName} Cashback`,
+          description: `${data.cashbackPercent}% cashback reward`,
+          gcAmount: cashback,
+          isClaimed: false,
+        });
+      }
+
+      setRewards(benefitRewards);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch VIP rewards');
+      setError(err.message || 'Failed to fetch VIP benefits');
       setRewards([]);
     } finally {
       setIsLoading(false);
@@ -105,15 +161,15 @@ export const useVipRewards = () => {
     fetchRewards();
   }, [fetchRewards]);
 
-  const claimReward = async (rewardId: string) => {
+  const claimReward = async (_rewardId: string) => {
     try {
-      await vipApi.claimReward(rewardId);
+      await vipApi.claimCashback();
       await fetchRewards();
       return true;
     } catch (err: any) {
-      throw new Error(err.response?.data?.message || 'Failed to claim reward');
+      throw new Error(err.response?.data?.message || 'Failed to claim cashback');
     }
   };
 
-  return { rewards, isLoading, error, claimReward, refetch: fetchRewards };
+  return { rewards, isLoading, error, claimReward, cashbackAvailable, refetch: fetchRewards };
 };

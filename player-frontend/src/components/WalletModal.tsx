@@ -145,6 +145,9 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
   const [pay247AccountDetails, setPay247AccountDetails] = useState<Pay247AccountDetails | null>(null);
   const [pay247Processing, setPay247Processing] = useState(false);
   const [pay247Error, setPay247Error] = useState<string | null>(null);
+  const [transactionId, setTransactionId] = useState<string | null>(null);
+  const [depositedAmount, setDepositedAmount] = useState<string | null>(null);
+  const [depositedCurrency, setDepositedCurrency] = useState<string | null>(null);
 
   // Pay247 withdrawal account detail fields
   const [upiId, setUpiId] = useState('');
@@ -238,7 +241,9 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
 
   const handleConfirmPurchase = () => {
     setStep('processing');
-    
+    setDepositedAmount(amount);
+    setDepositedCurrency('USD');
+
     setTimeout(() => {
       setStep('success');
       triggerConfetti();
@@ -257,6 +262,8 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
   const handleSuccessClose = () => {
     onClose();
     resetState();
+    // Refresh page to update wallet balance
+    window.location.reload();
   };
 
   const handlePay247Deposit = async () => {
@@ -269,6 +276,12 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
         currency: pay247Currency,
         paymentMethod: pay247DepositMethod,
       });
+
+      // Store transaction data from response
+      const { merchantOrderId, depositId } = response.data;
+      setTransactionId(merchantOrderId || depositId || null);
+      setDepositedAmount(amount);
+      setDepositedCurrency(pay247Currency);
 
       // Redirect to Pay247 payment URL
       if (response.data.paymentUrl) {
@@ -384,6 +397,9 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
     setWalletAddress('');
     setMobileNumber('');
     setAccountName('');
+    setTransactionId(null);
+    setDepositedAmount(null);
+    setDepositedCurrency(null);
   };
 
   const handleClose = () => {
@@ -402,7 +418,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
       />
       
       {/* Modal - Full width on mobile, slides up from bottom */}
-      <div className="relative w-full sm:max-w-xl sm:mx-4 bg-gradient-to-b from-card to-background border-t-2 sm:border-2 border-primary/50 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] sm:max-h-[85vh] overflow-y-auto scrollbar-hide animate-slide-up sm:animate-scale-in">
+      <div className="relative w-full sm:max-w-xl sm:mx-4 bg-gradient-to-b from-card to-background border-t-2 sm:border-2 border-primary/50 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] sm:max-h-[85vh] overflow-y-auto scrollbar-themed animate-slide-up sm:animate-scale-in">
         {/* Content */}
         <div className="p-4 sm:p-6 md:p-8 relative overflow-hidden">
           {/* Amount Step */}
@@ -429,7 +445,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                 onClick={() => setActiveTab('deposit')}
                 className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-all ${
                   activeTab === 'deposit'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-400 text-white shadow'
+                    ? 'bg-gradient-to-r from-amber-500 to-blue-400 text-white shadow'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -439,7 +455,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                 onClick={() => setActiveTab('withdraw')}
                 className={`flex-1 px-6 py-2 rounded-full text-sm font-medium transition-all ${
                   activeTab === 'withdraw'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-400 text-white shadow'
+                    ? 'bg-gradient-to-r from-amber-500 to-blue-400 text-white shadow'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
@@ -470,7 +486,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
               <Button
                 onClick={handleContinue}
                 disabled={!amount}
-                className="flex-1 h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
+                className="flex-1 h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
               >
                 {activeTab === 'deposit' ? 'Continue' : 'Withdraw'}
               </Button>
@@ -519,15 +535,15 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
               {/* Pay247 */}
               <button
                 onClick={() => handlePaymentSelect('pay247')}
-                className="w-full flex items-center gap-4 p-4 bg-gradient-to-r from-cyan-500/10 to-blue-400/10 hover:from-cyan-500/20 hover:to-blue-400/20 border-2 border-cyan-500/50 rounded-xl transition-all group"
+                className="w-full flex items-center gap-4 p-4 bg-gradient-to-r from-amber-500/10 to-blue-400/10 hover:from-amber-500/20 hover:to-blue-400/20 border-2 border-amber-500/50 rounded-xl transition-all group"
               >
-                <div className="w-12 h-12 bg-gradient-to-br from-cyan-500 to-blue-400 rounded-lg flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-500 to-blue-400 rounded-lg flex items-center justify-center">
                   <Wallet className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1 text-left">
                   <p className="font-semibold text-foreground flex items-center gap-2">
                     Pay247
-                    <span className="text-xs bg-cyan-500/20 text-cyan-400 px-2 py-0.5 rounded-full">Recommended</span>
+                    <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full">Recommended</span>
                   </p>
                   <p className="text-sm text-muted-foreground">USDT, INR, PHP, UPI, GCash & more</p>
                 </div>
@@ -748,7 +764,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             <Button
               onClick={handleConfirmPurchase}
               disabled={!cardMonth || !cardYear || !cardCvv || !cardName || !confirmCvv}
-              className="w-full h-14 mt-6 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold text-lg shadow-lg disabled:opacity-50"
+              className="w-full h-14 mt-6 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold text-lg shadow-lg disabled:opacity-50"
             >
               {activeTab === 'withdraw' ? `Confirm Withdrawal Of $${total}` : `Confirm Purchase Of $${total}`}
             </Button>
@@ -793,7 +809,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                   }}
                   className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap ${
                     selectedCrypto === crypto
-                      ? 'bg-cyan-500/20 border border-cyan-500 text-cyan-400'
+                      ? 'bg-amber-500/20 border border-amber-500 text-amber-400'
                       : 'bg-secondary/50 border border-border text-muted-foreground hover:text-foreground'
                   }`}
                 >
@@ -844,7 +860,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                           <span className="font-medium">{networkLabels[network]}</span>
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ml-4 ${
                             selectedNetwork === network 
-                              ? 'border-cyan-500 bg-cyan-500' 
+                              ? 'border-amber-500 bg-amber-500' 
                               : 'border-gray-500'
                           }`}>
                             {selectedNetwork === network && (
@@ -863,7 +879,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             <div className="flex justify-end mb-4">
               <button 
                 onClick={() => setShowHelpModal(true)}
-                className="flex items-center gap-1 text-sm text-cyan-400 hover:underline"
+                className="flex items-center gap-1 text-sm text-amber-400 hover:underline"
               >
                 <span>📖</span> How to deposit crypto?
               </button>
@@ -873,7 +889,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             <div className="flex items-center gap-3 p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-xl mb-6">
               <Gift className="w-8 h-8 text-yellow-400" />
               <p className="text-sm text-foreground">
-                Get extra <span className="text-yellow-400 font-bold">180%</span> bonus on minimum of <span className="text-cyan-400 font-bold">5 {selectedCrypto}</span> deposit
+                Get extra <span className="text-yellow-400 font-bold">180%</span> bonus on minimum of <span className="text-amber-400 font-bold">5 {selectedCrypto}</span> deposit
               </p>
             </div>
 
@@ -894,7 +910,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                   </div>
                   {/* Center icon */}
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-400 to-cyan-600 rounded-lg flex items-center justify-center shadow-md">
+                    <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-cyan-600 rounded-lg flex items-center justify-center shadow-md">
                       {selectedCrypto === 'USDT' && <TetherIcon className="w-6 h-6" />}
                       {selectedCrypto === 'ETH' && <EthereumIcon className="w-6 h-6" />}
                       {selectedCrypto === 'BTC' && <BitcoinIcon className="w-6 h-6" />}
@@ -911,20 +927,20 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Deposit address</p>
                   <div className="flex items-center gap-2 p-2 bg-secondary/50 rounded-lg">
-                    <p className="text-xs text-cyan-400 font-mono truncate flex-1">
+                    <p className="text-xs text-amber-400 font-mono truncate flex-1">
                       {cryptoAddresses[selectedCrypto]?.[selectedNetwork] || 'Address not available'}
                     </p>
                     <button 
                       onClick={copyAddress}
                       className="p-1.5 hover:bg-secondary rounded transition-colors"
                     >
-                      <Copy className={`w-4 h-4 ${addressCopied ? 'text-cyan-400' : 'text-muted-foreground'}`} />
+                      <Copy className={`w-4 h-4 ${addressCopied ? 'text-amber-400' : 'text-muted-foreground'}`} />
                     </button>
                   </div>
                 </div>
 
                 {/* Warning */}
-                <div className="flex items-start gap-2 p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                <div className="flex items-start gap-2 p-2 bg-amber-500/10 border border-amber-500/30 rounded-lg">
                   <AlertCircle className="w-4 h-4 text-yellow-400 flex-shrink-0 mt-0.5" />
                   <p className="text-xs text-muted-foreground">
                     Send only <span className="text-foreground">{selectedCrypto}</span> to this deposit address. Transfers below 1 {selectedCrypto} will not be credited.
@@ -997,8 +1013,8 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                     }}
                     className={`p-3 rounded-xl border-2 transition-all font-semibold ${
                       pay247Currency === currency
-                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
-                        : 'border-border bg-secondary/50 text-muted-foreground hover:border-cyan-500/50'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                        : 'border-border bg-secondary/50 text-muted-foreground hover:border-amber-500/50'
                     }`}
                   >
                     {currency}
@@ -1026,8 +1042,8 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                     }}
                     className={`p-3 rounded-xl border-2 transition-all text-left ${
                       (activeTab === 'deposit' ? pay247DepositMethod : pay247WithdrawalMethod) === method
-                        ? 'border-cyan-500 bg-cyan-500/10 text-cyan-400'
-                        : 'border-border bg-secondary/50 text-foreground hover:border-cyan-500/50'
+                        ? 'border-amber-500 bg-amber-500/10 text-amber-400'
+                        : 'border-border bg-secondary/50 text-foreground hover:border-amber-500/50'
                     }`}
                   >
                     <span className="font-medium">{PAY247_METHOD_NAMES[method]}</span>
@@ -1125,8 +1141,8 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             )}
 
             {/* Info Box */}
-            <div className="mb-6 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-xl flex items-start gap-2">
-              <AlertCircle className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+            <div className="mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-2">
+              <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
               <div className="text-sm text-foreground">
                 {activeTab === 'deposit' ? (
                   <p>You will be redirected to Pay247 to complete the payment securely.</p>
@@ -1148,7 +1164,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                   ((pay247WithdrawalMethod === Pay247WithdrawalMethod.GCASH || pay247WithdrawalMethod === Pay247WithdrawalMethod.MAYA) && (!mobileNumber || !accountName))
                 ))
               }
-              className="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold text-lg shadow-lg disabled:opacity-50"
+              className="w-full h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold text-lg shadow-lg disabled:opacity-50"
             >
               {pay247Processing ? (
                 <span className="flex items-center gap-2">
@@ -1194,26 +1210,30 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             }`}
           >
             <div className="flex flex-col items-center justify-center py-12">
-              <div className="w-20 h-20 bg-gradient-to-br from-cyan-500 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-cyan-500/30 animate-scale-in">
+              <div className="w-20 h-20 bg-gradient-to-br from-amber-500 to-blue-400 rounded-full flex items-center justify-center shadow-lg shadow-cyan-500/30 animate-scale-in">
                 <CheckCircle2 className="w-10 h-10 text-white" />
               </div>
               <h3 className="text-2xl font-bold text-foreground mt-6">{activeTab === 'withdraw' ? 'Withdrawal Successful!' : 'Payment Successful!'}</h3>
               <p className="text-muted-foreground mt-2 text-center">
-                Your {activeTab === 'withdraw' ? 'withdrawal' : 'deposit'} of <span className="text-primary font-semibold">${total}</span> has been processed successfully.
+                Your {activeTab === 'withdraw' ? 'withdrawal' : 'deposit'} of <span className="text-primary font-semibold">{depositedAmount || total} {depositedCurrency || 'USD'}</span> has been processed successfully.
               </p>
               <div className="bg-secondary/50 rounded-xl p-4 mt-6 w-full max-w-xs">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Transaction ID</span>
-                  <span className="text-foreground font-mono">TXN{Date.now().toString().slice(-8)}</span>
+                  <span className="text-foreground font-mono text-xs break-all ml-2">{transactionId || `TXN${Date.now().toString().slice(-8)}`}</span>
                 </div>
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-muted-foreground">Amount</span>
-                  <span className="text-cyan-400 font-semibold">${total}</span>
+                  <span className="text-amber-400 font-semibold">{depositedAmount || total} {depositedCurrency || 'USD'}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-muted-foreground">Currency</span>
+                  <span className="text-foreground font-semibold">{depositedCurrency || 'USD'}</span>
                 </div>
               </div>
               <Button
                 onClick={handleSuccessClose}
-                className="w-full max-w-xs h-14 mt-6 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg"
+                className="w-full max-w-xs h-14 mt-6 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg"
               >
                 Done
               </Button>
@@ -1228,7 +1248,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
   {showHelpModal && createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/80" onClick={() => setShowHelpModal(false)} />
-      <div className="relative bg-background border border-border rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-hide">
+      <div className="relative bg-background border border-border rounded-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto scrollbar-themed">
         <div className="sticky top-0 bg-background border-b border-border p-4 flex items-center justify-between z-10">
           <h2 className="text-xl font-bold text-foreground">How to Deposit Crypto</h2>
           <button onClick={() => setShowHelpModal(false)} className="w-8 h-8 rounded-lg bg-secondary flex items-center justify-center hover:bg-secondary/80 transition-colors">
@@ -1256,11 +1276,11 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
           <div>
             <h3 className="text-base font-bold text-foreground mb-2">Step 2: Choose the Network</h3>
             <p className="text-sm text-muted-foreground mb-2">For tokens like USDT, you'll need to select the correct network (e.g., ERC20, TRC20, BEP20).</p>
-            <p className="text-sm text-cyan-400 mb-3">Note: Make sure the network you choose matches the one used in your external wallet or exchange.</p>
+            <p className="text-sm text-amber-400 mb-3">Note: Make sure the network you choose matches the one used in your external wallet or exchange.</p>
             <div className="bg-secondary/50 border border-border rounded-xl p-3 space-y-2">
-              <div className="flex items-center justify-between p-2 bg-secondary rounded-lg border border-cyan-500/30">
+              <div className="flex items-center justify-between p-2 bg-secondary rounded-lg border border-amber-500/30">
                 <span className="text-sm">Tron (TRC20)</span>
-                <div className="w-4 h-4 rounded-full bg-cyan-500" />
+                <div className="w-4 h-4 rounded-full bg-amber-500" />
               </div>
               <div className="flex items-center justify-between p-2 bg-secondary rounded-lg">
                 <span className="text-sm text-muted-foreground">BNB Smart Chain (BEP20)</span>
@@ -1304,7 +1324,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
           </div>
         </div>
         <div className="sticky bottom-0 bg-background border-t border-border p-4">
-          <Button onClick={() => setShowHelpModal(false)} className="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-bold py-3">
+          <Button onClick={() => setShowHelpModal(false)} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3">
             Got it!
           </Button>
         </div>

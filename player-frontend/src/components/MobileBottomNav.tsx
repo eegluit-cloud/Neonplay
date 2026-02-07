@@ -36,12 +36,12 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
         width="12" 
         height="12" 
         rx="2" 
-        stroke={isActive ? "#22d3ee" : "currentColor"} 
+        stroke={isActive ? "#f59e0b" : "currentColor"} 
         strokeWidth="2"
         fill="none"
       />
-      <circle cx="12" cy="6" r="1" fill={isActive ? "#22d3ee" : "currentColor"}/>
-      <circle cx="18" cy="12" r="1" fill={isActive ? "#22d3ee" : "currentColor"}/>
+      <circle cx="12" cy="6" r="1" fill={isActive ? "#f59e0b" : "currentColor"}/>
+      <circle cx="18" cy="12" r="1" fill={isActive ? "#f59e0b" : "currentColor"}/>
       
       {/* Front dice */}
       <rect 
@@ -50,13 +50,13 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
         width="12" 
         height="12" 
         rx="2" 
-        stroke={isActive ? "#22d3ee" : "currentColor"} 
+        stroke={isActive ? "#f59e0b" : "currentColor"} 
         strokeWidth="2"
         fill={isActive ? "rgba(34, 211, 238, 0.1)" : "rgba(0,0,0,0.3)"}
       />
-      <circle cx="6" cy="12" r="1" fill={isActive ? "#22d3ee" : "currentColor"}/>
-      <circle cx="9" cy="15" r="1" fill={isActive ? "#22d3ee" : "currentColor"}/>
-      <circle cx="12" cy="18" r="1" fill={isActive ? "#22d3ee" : "currentColor"}/>
+      <circle cx="6" cy="12" r="1" fill={isActive ? "#f59e0b" : "currentColor"}/>
+      <circle cx="9" cy="15" r="1" fill={isActive ? "#f59e0b" : "currentColor"}/>
+      <circle cx="12" cy="18" r="1" fill={isActive ? "#f59e0b" : "currentColor"}/>
         </svg>
       ),
       href: '/casino',
@@ -100,7 +100,7 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
                   <Icon className="w-5 h-5" />
                 )}
               </div>
-              <span className={`text-[10px] font-medium ${isMenu ? 'text-primary' : item.isActive ? 'text-cyan-400' : 'text-muted-foreground'}`}>
+              <span className={`text-[10px] font-medium ${isMenu ? 'text-primary' : item.isActive ? 'text-amber-400' : 'text-muted-foreground'}`}>
                 {item.label}
               </span>
             </div>
@@ -126,7 +126,7 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
               onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })}
               onMouseEnter={() => prefetchRoute(item.href || '/')}
               onTouchStart={() => prefetchRoute(item.href || '/')}
-              className={`flex flex-col items-center justify-center flex-1 h-full min-h-[48px] rounded-lg tap-feedback nav-item-press ${item.isActive ? 'text-cyan-400' : 'text-muted-foreground'}`}
+              className={`flex flex-col items-center justify-center flex-1 h-full min-h-[48px] rounded-lg tap-feedback nav-item-press ${item.isActive ? 'text-amber-400' : 'text-muted-foreground'}`}
               aria-current={item.isActive ? 'page' : undefined}
             >
               {content}

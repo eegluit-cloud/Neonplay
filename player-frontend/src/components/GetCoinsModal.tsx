@@ -221,7 +221,7 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
       <div className="fixed inset-0 z-[80] flex items-center justify-center">
         <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
         <div className="relative bg-card p-8 rounded-2xl">
-          <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+          <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
         </div>
       </div>,
       document.body
@@ -234,15 +234,15 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
     return (
       <button
         onClick={() => handlePackSelect(pack)}
-        className="relative flex flex-col overflow-hidden rounded-xl border border-cyan-500/20 bg-gradient-to-b from-[#0a0a0a] to-[#0f1a1a] transition-all hover:scale-[1.02] hover:border-cyan-500/40 group"
+        className="relative flex flex-col overflow-hidden rounded-xl border border-amber-500/20 bg-gradient-to-b from-[#0a0a0a] to-[#0f1a1a] transition-all hover:scale-[1.02] hover:border-amber-500/40 group"
       >
         {/* Badge */}
         {badge && (
           <span className={cn(
             "absolute top-2 left-2 px-2 py-0.5 text-[10px] font-bold rounded z-10",
             badge === 'Featured' ? "bg-amber-700 text-amber-100" :
-            badge === 'Best Value' ? "bg-cyan-600 text-white" :
-            "bg-cyan-700 text-cyan-100"
+            badge === 'Best Value' ? "bg-amber-600 text-white" :
+            "bg-amber-700 text-cyan-100"
           )}>
             {badge}
           </span>
@@ -266,7 +266,7 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
         </div>
 
         {/* Bottom - Content */}
-        <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-3 border-t border-cyan-500/10">
+        <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-3 border-t border-amber-500/10">
           {/* Amount */}
           <div className="flex items-center gap-1 mb-0.5">
             <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-green-400" />
@@ -275,7 +275,7 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
           <p className="text-xs text-muted-foreground mb-2">USD Deposit</p>
 
           {/* Price button */}
-          <div className="w-full py-2 px-3 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-lg text-center">
+          <div className="w-full py-2 px-3 bg-gradient-to-r from-amber-500 to-yellow-500 rounded-lg text-center">
             <span className="font-bold text-white text-sm sm:text-base">${pack.priceUsd}</span>
           </div>
         </div>
@@ -472,7 +472,7 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
               <Button
                 onClick={handleConfirmPurchase}
                 disabled={!cardMonth || !cardYear || !cardCvv || !cardName || !confirmCvv || isProcessing}
-                className="w-full h-14 mt-6 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-bold text-lg shadow-lg"
+                className="w-full h-14 mt-6 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-blue-600 text-white font-bold text-lg shadow-lg"
               >
                 {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : `Confirm Purchase - $${selectedPack.priceUsd}`}
               </Button>
@@ -504,7 +504,7 @@ export function GetCoinsModal({ isOpen, onClose, onSuccess }: GetCoinsModalProps
               </p>
               <Button
                 onClick={handleClose}
-                className="w-full max-w-xs h-12 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 text-white font-semibold"
+                className="w-full max-w-xs h-12 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-blue-600 text-white font-semibold"
               >
                 Continue Playing
               </Button>

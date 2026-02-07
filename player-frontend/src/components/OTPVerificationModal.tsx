@@ -57,7 +57,7 @@ export function OTPVerificationModal({
 
             {/* Title Badge */}
             <div className="flex bg-secondary/50 rounded-full p-1 mb-6 w-fit">
-              <div className="px-6 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-cyan-500 to-blue-400 text-white shadow">
+              <div className="px-6 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-amber-500 to-blue-400 text-white shadow">
                 Verification
               </div>
             </div>
@@ -109,7 +109,7 @@ export function OTPVerificationModal({
               <Button
                 onClick={handleVerify}
                 disabled={otp.length !== 6}
-                className="flex-1 h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
+                className="flex-1 h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
               >
                 Verify
               </Button>
@@ -172,7 +172,7 @@ export function OTPVerificationModal({
                         <InputOTPSlot
                           key={index}
                           index={index}
-                          className="w-14 h-14 bg-[#2a3038] border-[#3a4048] text-white text-xl font-bold rounded-lg focus:border-cyan-400 focus:ring-cyan-400"
+                          className="w-14 h-14 bg-[#2a3038] border-[#3a4048] text-white text-xl font-bold rounded-lg focus:border-amber-400 focus:ring-cyan-400"
                         />
                       ))}
                     </InputOTPGroup>
@@ -181,7 +181,7 @@ export function OTPVerificationModal({
 
                 <Button 
                   onClick={handleVerify}
-                  className="w-full h-12 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold mb-5"
+                  className="w-full h-12 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-semibold mb-5"
                 >
                   Verify OTP
                 </Button>

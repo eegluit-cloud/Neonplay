@@ -43,7 +43,7 @@ export const ApiGameCard = memo(function ApiGameCard({
     >
       {/* Player Count Badge */}
       <div className="absolute top-1.5 md:top-2 left-1.5 md:left-2 z-10 flex items-center gap-1 bg-black/70 rounded-full px-1.5 md:px-2 py-0.5 md:py-1">
-        <span className="w-1.5 md:w-2 h-1.5 md:h-2 bg-cyan-400 rounded-full animate-slow-blink" />
+        <span className="w-1.5 md:w-2 h-1.5 md:h-2 bg-amber-400 rounded-full animate-slow-blink" />
         <span className="text-[10px] md:text-xs font-medium text-white">
           {game.playCount || Math.floor(Math.random() * 100) + 10}
         </span>
@@ -128,7 +128,7 @@ export const ApiGameGrid = memo(function ApiGameGrid({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-cyan-500" />
+        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
       </div>
     );
   }

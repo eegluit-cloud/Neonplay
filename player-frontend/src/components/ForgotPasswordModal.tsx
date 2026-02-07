@@ -60,7 +60,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin, onSendSucc
 
             {/* Title Badge */}
             <div className="flex bg-secondary/50 rounded-full p-1 mb-6 w-fit">
-              <div className="px-6 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-cyan-500 to-blue-400 text-white shadow">
+              <div className="px-6 py-2 rounded-full text-sm font-medium bg-gradient-to-r from-amber-500 to-blue-400 text-white shadow">
                 Reset Password
               </div>
             </div>
@@ -103,7 +103,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin, onSendSucc
                     <Button
                       type="submit"
                       disabled={!email.trim()}
-                      className="flex-1 h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
+                      className="flex-1 h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg disabled:opacity-50"
                     >
                       Send Link
                     </Button>
@@ -126,7 +126,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin, onSendSucc
 
                 <Button
                   onClick={handleBack}
-                  className="w-full h-14 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold shadow-lg"
+                  className="w-full h-14 bg-gradient-to-r from-amber-500 to-blue-400 hover:from-amber-600 hover:to-blue-500 text-white font-semibold shadow-lg"
                 >
                   Back to Login
                 </Button>
@@ -182,7 +182,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin, onSendSucc
                       placeholder="Enter Email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="h-11 bg-[#2a3038] border-[#3a4048] text-white placeholder:text-muted-foreground focus:border-cyan-400 text-sm"
+                      className="h-11 bg-[#2a3038] border-[#3a4048] text-white placeholder:text-muted-foreground focus:border-amber-400 text-sm"
                     />
 
                     <div className="flex gap-3">
@@ -196,7 +196,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin, onSendSucc
                       </Button>
                       <Button 
                         type="submit"
-                        className="flex-1 h-11 bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-600 hover:to-cyan-500 text-black font-semibold text-sm"
+                        className="flex-1 h-11 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-black font-semibold text-sm"
                       >
                         Verify
                       </Button>

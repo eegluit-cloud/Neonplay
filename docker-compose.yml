@@ -128,6 +128,10 @@ services:
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8000}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-32-character-encryption-key-here}
+      HUIDU_AGENCY_UID: ${HUIDU_AGENCY_UID:-}
+      HUIDU_AES_KEY: ${HUIDU_AES_KEY:-}
+      HUIDU_SERVER_URL: ${HUIDU_SERVER_URL:-https://jsgame.live}
+      HUIDU_CALLBACK_URL: ${HUIDU_CALLBACK_URL:-}
     ports:
       - "4000:4000"
     volumes:

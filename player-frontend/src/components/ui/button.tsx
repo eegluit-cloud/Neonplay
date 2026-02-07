@@ -9,15 +9,15 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-[0_0_20px_hsl(187,85%,53%,0.3)]",
+        default: "bg-gradient-to-r from-amber-500 to-blue-500 text-white hover:from-amber-600 hover:to-blue-600 shadow-[0_0_20px_hsl(187,85%,53%,0.3)]",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "border border-border bg-transparent text-foreground hover:bg-secondary hover:border-primary/50",
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-secondary hover:text-foreground",
         link: "text-primary underline-offset-4 hover:underline",
         gold: "bg-gradient-to-r from-[hsl(42,100%,50%)] to-[hsl(25,100%,55%)] text-[hsl(220,20%,7%)] hover:opacity-90 shadow-[0_0_20px_hsl(42,100%,50%,0.3)]",
-        hero: "bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:from-cyan-600 hover:to-blue-600 shadow-[0_0_30px_hsl(187,85%,53%,0.4)]",
-        signup: "bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold hover:from-cyan-600 hover:to-blue-600",
+        hero: "bg-gradient-to-r from-amber-500 to-blue-500 text-white hover:from-amber-600 hover:to-blue-600 shadow-[0_0_30px_hsl(187,85%,53%,0.4)]",
+        signup: "bg-gradient-to-r from-amber-500 to-blue-500 text-white font-bold hover:from-amber-600 hover:to-blue-600",
         social: "bg-secondary/80 hover:bg-secondary border border-border text-foreground",
       },
       size: {
