@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import phibetLogo from '@/assets/phibet-logo.png';
 
 interface NeonPlayLogoProps {
   className?: string;
@@ -18,38 +19,19 @@ export function NeonPlayLogo({ className, size = 'md', showText = true }: NeonPl
 
   return (
     <div className={cn('flex items-center', gap, className)}>
-      {/* N with Crown Icon */}
-      <div className={cn('relative flex-shrink-0', icon)}>
-        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-          {/* Crown on top - golden */}
-          <path
-            d="M14 14L18 8L24 12L30 8L34 14L32 16H16L14 14Z"
-            fill="#f59e0b"
-            stroke="#fcd34d"
-            strokeWidth="0.5"
-          />
-          {/* Crown jewels */}
-          <circle cx="18" cy="11" r="1.5" fill="#fef3c7" />
-          <circle cx="24" cy="9" r="1.5" fill="#fef3c7" />
-          <circle cx="30" cy="11" r="1.5" fill="#fef3c7" />
-
-          {/* Letter N - cyan/blue gradient approximation */}
-          <path
-            d="M14 42V18H20L28 34V18H34V42H28L20 26V42H14Z"
-            fill="#22d3ee"
-            stroke="#22d3ee"
-            strokeWidth="0.5"
-          />
-        </svg>
+      <div className={cn('flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center', icon)}>
+        <img
+          src={phibetLogo}
+          alt="Phibet"
+          className="w-full h-full object-cover"
+        />
       </div>
-
-      {/* Text */}
       {showText && (
         <span className={cn(
-          'font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent',
+          'font-bold bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent',
           text
         )}>
-          NeonPlay
+          Phibet
         </span>
       )}
     </div>
@@ -59,25 +41,12 @@ export function NeonPlayLogo({ className, size = 'md', showText = true }: NeonPl
 // Icon-only version for compact spaces
 export function NeonPlayIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className={cn('w-full h-full', className)}>
-      {/* Crown */}
-      <path
-        d="M14 14L18 8L24 12L30 8L34 14L32 16H16L14 14Z"
-        fill="#f59e0b"
-        stroke="#fcd34d"
-        strokeWidth="0.5"
+    <div className={cn('rounded-xl overflow-hidden flex items-center justify-center', className)}>
+      <img
+        src={phibetLogo}
+        alt="Phibet"
+        className="w-full h-full object-cover"
       />
-      <circle cx="18" cy="11" r="1.5" fill="#fef3c7" />
-      <circle cx="24" cy="9" r="1.5" fill="#fef3c7" />
-      <circle cx="30" cy="11" r="1.5" fill="#fef3c7" />
-
-      {/* N */}
-      <path
-        d="M14 42V18H20L28 34V18H34V42H28L20 26V42H14Z"
-        fill="#22d3ee"
-        stroke="#22d3ee"
-        strokeWidth="0.5"
-      />
-    </svg>
+    </div>
   );
 }

@@ -18,6 +18,18 @@ const routeModules: Record<string, () => Promise<unknown>> = {
   '/crash-games': () => import('@/pages/CrashGames'),
   '/casino': () => import('@/pages/Casino'),
   '/sports': () => import('@/pages/Sports'),
+  '/game-shows': () => import('@/pages/GameShows'),
+  '/table-games': () => import('@/pages/TableGames'),
+  '/blackjack': () => import('@/pages/Blackjack'),
+  '/roulette': () => import('@/pages/Roulette'),
+  '/new-releases': () => import('@/pages/NewReleases'),
+  '/burst-games': () => import('@/pages/BurstGames'),
+  '/featured': () => import('@/pages/Featured'),
+  '/terms': () => import('@/pages/TermsOfService'),
+  '/privacy': () => import('@/pages/PrivacyPolicy'),
+  '/responsible-gambling': () => import('@/pages/ResponsibleGambling'),
+  '/faq': () => import('@/pages/FAQ'),
+  '/provably-fair': () => import('@/pages/ProvablyFair'),
 };
 
 // Cache of prefetched routes

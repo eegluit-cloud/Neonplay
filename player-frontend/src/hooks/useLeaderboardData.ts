@@ -157,15 +157,17 @@ export const setPeriodData = (period: LeaderboardPeriod) => {
   notifyListeners();
 };
 
-// Start the interval once
+// Start the interval once, with proper references for cleanup
 let intervalsStarted = false;
+let amountIntervalId: ReturnType<typeof setInterval> | null = null;
+let positionIntervalId: ReturnType<typeof setInterval> | null = null;
 
 const startIntervals = () => {
   if (intervalsStarted) return;
   intervalsStarted = true;
 
   // Update amounts periodically
-  setInterval(() => {
+  amountIntervalId = setInterval(() => {
     sharedWinners = sharedWinners
       .map((w) => ({
         ...w,
@@ -175,10 +177,10 @@ const startIntervals = () => {
 
     syncPlayerWager();
     notifyListeners();
-  }, Math.random() * 4000 + 3000);
+  }, 5000);
 
   // Update player position periodically
-  setInterval(() => {
+  positionIntervalId = setInterval(() => {
     const change = Math.floor(Math.random() * 5) - 2;
     const newPosition = sharedPlayerPosition + change;
     const maxPos = Math.min(50, sharedWinners.length);
@@ -186,7 +188,15 @@ const startIntervals = () => {
 
     syncPlayerWager();
     notifyListeners();
-  }, Math.random() * 5000 + 4000);
+  }, 7000);
+};
+
+const stopIntervals = () => {
+  if (amountIntervalId) clearInterval(amountIntervalId);
+  if (positionIntervalId) clearInterval(positionIntervalId);
+  amountIntervalId = null;
+  positionIntervalId = null;
+  intervalsStarted = false;
 };
 
 export const useLeaderboardData = (period?: LeaderboardPeriod) => {
@@ -230,6 +240,10 @@ export const useLeaderboardData = (period?: LeaderboardPeriod) => {
     listeners.add(listener);
     return () => {
       listeners.delete(listener);
+      // Stop intervals when no components are listening
+      if (listeners.size === 0) {
+        stopIntervals();
+      }
     };
   }, [isApiLoaded]);
 

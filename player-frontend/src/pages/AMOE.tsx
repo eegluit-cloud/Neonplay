@@ -8,7 +8,8 @@ import { MobilePageHeader } from '@/components/MobilePageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { AuthModals } from '@/components/AuthModals';
+import { LoginModal } from '@/components/LoginModal';
+import { RegisterModal } from '@/components/RegisterModal';
 
 const AMOE = () => {
   const { sidebarOpen, toggleSidebar } = useSidebar();
@@ -99,8 +100,8 @@ const AMOE = () => {
                   </p>
                   
                   <div className="text-muted-foreground text-sm space-y-1 mb-4">
-                    <p>1. Enter your NeonPlay username. It must match your profile.</p>
-                    <p>2. Enter the email address associated with your NeonPlay account. It must match your profile.</p>
+                    <p>1. Enter your Phibet username. It must match your profile.</p>
+                    <p>2. Enter the email address associated with your Phibet account. It must match your profile.</p>
                   </div>
                   
                   <p className="text-muted-foreground text-sm mb-6">
@@ -371,13 +372,15 @@ const AMOE = () => {
       
       <MobileBottomNav onMenuClick={toggleSidebar} />
       
-      <AuthModals 
-        isSignInOpen={signInOpen} 
-        isSignUpOpen={signUpOpen} 
-        onCloseSignIn={() => setSignInOpen(false)} 
-        onCloseSignUp={() => setSignUpOpen(false)} 
-        onSwitchToSignUp={() => { setSignInOpen(false); setSignUpOpen(true); }} 
-        onSwitchToSignIn={() => { setSignUpOpen(false); setSignInOpen(true); }} 
+      <LoginModal
+        isOpen={signInOpen}
+        onClose={() => setSignInOpen(false)}
+        onSwitchToRegister={() => { setSignInOpen(false); setSignUpOpen(true); }}
+      />
+      <RegisterModal
+        isOpen={signUpOpen}
+        onClose={() => setSignUpOpen(false)}
+        onSwitchToLogin={() => { setSignUpOpen(false); setSignInOpen(true); }}
       />
     </div>
   );

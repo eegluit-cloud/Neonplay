@@ -53,7 +53,7 @@ interface AuthContextType {
   wallet: Wallet | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -99,45 +99,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Check for existing session on mount
   useEffect(() => {
     const initAuth = async () => {
-      // Check if we have a refresh token but no access token (page was refreshed)
-      const hasRefreshToken = tokenManager.hasSession();
-      const hasAccessToken = tokenManager.getAccessToken() !== null;
-
-      if (hasRefreshToken && !hasAccessToken) {
-        try {
-          // Proactively refresh the access token
-          const refreshToken = tokenManager.getRefreshToken();
-          if (refreshToken) {
-            const response = await authApi.refreshToken(refreshToken);
-            const { accessToken, refreshToken: newRefreshToken } = response.data;
-            tokenManager.setTokens(accessToken, newRefreshToken);
-          }
-        } catch (error) {
-          console.error('Token refresh failed:', error);
-          tokenManager.clearTokens();
-    
-    // Redirect to home page after logout
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
-    }
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Now fetch user profile if we have a session
+      // Check if we have a session (refresh token exists)
       if (tokenManager.hasSession()) {
         try {
           await refreshUser();
           await refreshWallet();
-        } catch (error) {
-          console.error('Failed to load user profile:', error);
+        } catch {
           tokenManager.clearTokens();
-    
-    // Redirect to home page after logout
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
-    }
         }
       }
       setIsLoading(false);
@@ -146,14 +114,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initAuth();
   }, [refreshUser, refreshWallet]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, rememberMe: boolean = false) => {
     const response = await authApi.login({ email, password });
     const { accessToken, refreshToken, user: userData } = response.data;
 
+    tokenManager.setRememberMe(rememberMe);
     tokenManager.setTokens(accessToken, refreshToken);
     setUser(userData);
 
-    await refreshWallet();
+    // Fetch wallet separately - don't let wallet failure block login
+    try {
+      await refreshWallet();
+    } catch {
+      // Wallet fetch failed but user is logged in; wallet will retry on next access
+    }
   };
 
   const register = async (data: RegisterData) => {
@@ -163,23 +137,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     tokenManager.setTokens(accessToken, refreshToken);
     setUser(userData);
 
-    await refreshWallet();
+    try {
+      await refreshWallet();
+    } catch {
+      // Wallet fetch failed but registration succeeded
+    }
   };
 
   const logout = async () => {
+    // Clear local state first for instant UI feedback
+    tokenManager.clearTokens();
+    setUser(null);
+    setWallet(null);
     try {
       await authApi.logout();
     } catch {
-      // Ignore errors on logout
+      // Server logout failed but local session is already cleared
     }
-    tokenManager.clearTokens();
-    
-    // Redirect to home page after logout
-    if (typeof window !== "undefined") {
-      window.location.href = "/";
-    }
-    setUser(null);
-    setWallet(null);
   };
 
   return (

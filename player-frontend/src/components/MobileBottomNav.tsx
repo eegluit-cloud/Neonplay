@@ -1,4 +1,4 @@
-import { Menu, Heart, List, Home } from 'lucide-react';
+import { Menu, Heart, List, Volleyball } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { prefetchRoute } from '@/hooks/useRoutePrefetch';
 
@@ -18,36 +18,12 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
       isActive: false 
     },
     {
-      id: 'explore',
-      label: 'Explore',
-      icon: ({ isActive }: { isActive?: boolean }) => (
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle 
-            cx="11" 
-            cy="11" 
-            r="7" 
-            stroke={isActive ? "#22d3ee" : "currentColor"} 
-            strokeWidth="2"
-            fill="none"
-          />
-          <path 
-            d="M16 16L20 20" 
-            stroke={isActive ? "#22d3ee" : "currentColor"} 
-            strokeWidth="2" 
-            strokeLinecap="round"
-          />
-      {/* Plus sign */}
-      <path 
-        d="M11 8V14M8 11H14" 
-        stroke={isActive ? "#22d3ee" : "currentColor"} 
-        strokeWidth="2" 
-        strokeLinecap="round"
-      />
-    </svg>
-  ),
-  href: '/search',
-  isActive: location.pathname === '/search'
-},
+      id: 'sports',
+      label: 'Sports',
+      icon: Volleyball,
+      href: '/sports',
+      isActive: location.pathname === '/sports'
+    },
 {
   id: 'casino',
   label: 'Casino',
@@ -118,7 +94,7 @@ export function MobileBottomNav({ onMenuClick }: MobileBottomNavProps) {
                     <div className="w-5 h-[3px] bg-primary rounded-full" />
                     <div className="w-5 h-[3px] bg-primary rounded-full" />
                   </div>
-                ) : item.id === 'casino' || item.id === 'explore' ? (
+                ) : item.id === 'casino' ? (
                   <Icon isActive={item.isActive} />
                 ) : (
                   <Icon className="w-5 h-5" />

@@ -110,7 +110,7 @@ export function Header({
                 setBalanceDropdownOpen(false);
                 setWalletModalOpen(true);
               }}
-              className="relative w-7 h-7 flex items-center justify-center rounded-lg"
+              className="relative w-7 h-7 flex items-center justify-center rounded-lg header-icon-btn"
             >
               <Wallet className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
             </button>
@@ -123,7 +123,7 @@ export function Header({
                 setBalanceDropdownOpen(false);
                 navigate('/leaderboard');
               }}
-              className="relative w-7 h-7 flex items-center justify-center rounded-lg"
+              className="relative w-7 h-7 flex items-center justify-center rounded-lg header-icon-btn"
             >
               <span className="text-sm font-semibold text-muted-foreground">{playerPosition}</span>
             </button>
@@ -136,10 +136,10 @@ export function Header({
                 setBalanceDropdownOpen(false);
                 setNotificationsOpen(true);
               }}
-              className="relative w-7 h-7 flex items-center justify-center rounded-lg"
+              className="relative w-7 h-7 flex items-center justify-center rounded-lg header-icon-btn"
             >
               <Bell className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-cyan-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white shadow-lg">1</span>
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-cyan-500 rounded-full text-[10px] font-bold flex items-center justify-center text-white shadow-lg badge-pulse">1</span>
             </button>
           </div>
 
@@ -171,7 +171,7 @@ export function Header({
             {/* Wallet Icon */}
             <button
               onClick={() => setWalletModalOpen(true)}
-              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full hover:bg-secondary/50 transition-colors"
+              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full header-icon-btn"
             >
               <Wallet className="w-4 lg:w-5 h-4 lg:h-5 text-muted-foreground" strokeWidth={1.5} />
             </button>
@@ -181,7 +181,7 @@ export function Header({
             {/* League Position */}
             <button
               onClick={() => navigate('/leaderboard')}
-              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full"
+              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full header-icon-btn"
             >
               <span className="text-sm lg:text-base font-medium text-muted-foreground">{playerPosition}</span>
             </button>
@@ -191,10 +191,10 @@ export function Header({
             {/* Gift Icon */}
             <button
               onClick={() => navigate('/promotions')}
-              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full"
+              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full header-icon-btn"
             >
               <Gift className="w-4 lg:w-5 h-4 lg:h-5 text-muted-foreground" strokeWidth={1.5} />
-              <span className="absolute -top-0.5 lg:-top-1 -right-0 lg:-right-0.5 min-w-4 lg:min-w-5 h-4 lg:h-5 px-0.5 lg:px-1 bg-cyan-500 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center text-white shadow-lg">1</span>
+              <span className="absolute -top-0.5 lg:-top-1 -right-0 lg:-right-0.5 min-w-4 lg:min-w-5 h-4 lg:h-5 px-0.5 lg:px-1 bg-cyan-500 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center text-white shadow-lg badge-pulse">1</span>
             </button>
 
             <div className="w-px h-5 lg:h-6 bg-white/20 mx-0.5 lg:mx-1" />
@@ -202,17 +202,17 @@ export function Header({
             {/* Notification Bell */}
             <button
               onClick={() => setNotificationsOpen(true)}
-              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full"
+              className="relative w-8 lg:w-9 h-8 lg:h-9 flex items-center justify-center rounded-full header-icon-btn"
             >
               <Bell className="w-4 lg:w-5 h-4 lg:h-5 text-muted-foreground" strokeWidth={1.5} />
-              <span className="absolute -top-0.5 lg:-top-1 -right-0 lg:-right-0.5 min-w-4 lg:min-w-5 h-4 lg:h-5 px-0.5 lg:px-1 bg-red-500 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center text-white shadow-lg">11</span>
+              <span className="absolute -top-0.5 lg:-top-1 -right-0 lg:-right-0.5 min-w-4 lg:min-w-5 h-4 lg:h-5 px-0.5 lg:px-1 bg-red-500 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center text-white shadow-lg badge-pulse">11</span>
             </button>
           </div>
 
           {/* User Avatar */}
           <button
             onClick={() => navigate('/profile')}
-            className="w-9 lg:w-11 h-9 lg:h-11 hover:opacity-80 rounded-full transition-opacity overflow-hidden shrink-0"
+            className="w-9 lg:w-11 h-9 lg:h-11 rounded-full transition-all overflow-hidden shrink-0 ring-2 ring-transparent hover:ring-cyan-500/40 active:scale-95"
           >
             <img src={userAvatar} alt="User" className="w-full h-full rounded-full object-cover" />
           </button>

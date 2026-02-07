@@ -60,13 +60,13 @@ setup:
 	@echo "✅ Databases started!"
 	@echo ""
 	@echo "Step 2/4: Running Prisma migrations..."
-	@docker run --rm --network neonplay_neonplay-network \
+	@docker run --rm --network neonplay-main_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
 		sh -c "npm install prisma @prisma/client && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db push --accept-data-loss"
 	@echo "✅ Migrations complete!"
 	@echo ""
 	@echo "Step 3/4: Seeding database with demo data..."
-	@docker run --rm --network neonplay_neonplay-network \
+	@docker run --rm --network neonplay-main_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
 		sh -c "rm -rf node_modules/bcrypt && npm install bcrypt && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db seed"
 	@echo "✅ Database seeded!"
@@ -187,7 +187,7 @@ clean:
 # Run Prisma migrations (via Docker)
 migrate:
 	@echo "Running Prisma migrations..."
-	@docker run --rm --network neonplay_neonplay-network \
+	@docker run --rm --network neonplay-main_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
 		sh -c "npm install prisma @prisma/client && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db push --accept-data-loss"
 	@echo "Migrations complete!"
@@ -200,7 +200,7 @@ prisma-generate:
 # Seed databases (via Docker)
 seed:
 	@echo "Seeding databases..."
-	@docker run --rm --network neonplay_neonplay-network \
+	@docker run --rm --network neonplay-main_neonplay-network \
 		-v $(shell pwd)/player-backend:/app -w /app node:20 \
 		sh -c "rm -rf node_modules/bcrypt && npm install bcrypt && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma db seed"
 	@echo "Database seeded!"
@@ -209,7 +209,7 @@ seed:
 studio:
 	@echo "Starting Prisma Studio..."
 	@docker rm -f prisma-studio 2>/dev/null || true
-	@docker run -d --name prisma-studio --network neonplay_neonplay-network \
+	@docker run -d --name prisma-studio --network neonplay-main_neonplay-network \
 		-p 5555:5555 -v $(shell pwd)/player-backend:/app -w /app node:20 \
 		sh -c "npm install -g prisma && DATABASE_URL='postgresql://postgres:password@postgres:5432/neonplay' npx prisma studio --port 5555 --hostname 0.0.0.0"
 	@echo "Waiting for Prisma Studio to start..."

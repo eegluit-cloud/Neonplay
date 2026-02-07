@@ -1,19 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import phibetLogo from '../assets/phibet-logo.png';
+
+const getSectionForPath = (path) => {
+  if (path === '/dashboard') return 'overview';
+  if (['/players', '/kyc', '/games', '/bonuses', '/vip', '/casino-management'].some(p => path.startsWith(p))) return 'management';
+  if (path === '/reports') return 'analytics';
+  if (path === '/admins') return 'settings';
+  return null;
+};
 
 const Layout = () => {
   const { admin, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Collapsible sections state - all expanded by default
-  const [expandedSections, setExpandedSections] = useState({
-    overview: true,
-    management: true,
-    analytics: true,
-    settings: true
+  // Mobile sidebar state
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Collapsible sections state - persisted in localStorage
+  const [expandedSections, setExpandedSections] = useState(() => {
+    try {
+      const saved = localStorage.getItem('admin_sidebar_sections');
+      return saved ? JSON.parse(saved) : { overview: true, management: true, analytics: true, settings: true };
+    } catch { return { overview: true, management: true, analytics: true, settings: true }; }
   });
+
+  // Persist collapsed state
+  useEffect(() => {
+    localStorage.setItem('admin_sidebar_sections', JSON.stringify(expandedSections));
+  }, [expandedSections]);
+
+  // Auto-expand section for active route
+  useEffect(() => {
+    const activeSection = getSectionForPath(location.pathname);
+    if (activeSection && !expandedSections[activeSection]) {
+      setExpandedSections(prev => ({ ...prev, [activeSection]: true }));
+    }
+  }, [location.pathname]);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setMobileSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Escape key closes mobile sidebar
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && mobileSidebarOpen) {
+        setMobileSidebarOpen(false);
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobileSidebarOpen]);
+
+  // Body scroll lock when mobile sidebar is open
+  useEffect(() => {
+    document.body.style.overflow = mobileSidebarOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [mobileSidebarOpen]);
 
   const toggleSection = (section) => {
     setExpandedSections(prev => ({
@@ -41,21 +88,21 @@ const Layout = () => {
     return 'Admin Panel';
   };
 
+  const closeMobileSidebar = () => setMobileSidebarOpen(false);
+
   return (
     <div className="admin-layout">
+      {/* Mobile Sidebar Overlay */}
+      {mobileSidebarOpen && <div className="sidebar-overlay" onClick={closeMobileSidebar} />}
+
       {/* Sidebar */}
-      <aside className="sidebar">
+      <aside className={`sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <div className="sidebar-logo-icon">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <path d="M9 12h6M12 9v6"/>
-              </svg>
-            </div>
-            Admin Panel
+            <img src={phibetLogo} alt="Phibet" className="sidebar-logo-img" />
+            Phibet
           </div>
-          <div className="sidebar-subtitle">Backoffice</div>
+          <div className="sidebar-subtitle">Admin Backoffice</div>
         </div>
 
         <nav className="sidebar-nav">
@@ -70,7 +117,7 @@ const Layout = () => {
               </svg>
             </button>
             <div className={`sidebar-section-content ${expandedSections.overview ? 'expanded' : ''}`}>
-              <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/dashboard" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="3" y="3" width="7" height="7"/>
@@ -95,7 +142,7 @@ const Layout = () => {
               </svg>
             </button>
             <div className={`sidebar-section-content ${expandedSections.management ? 'expanded' : ''}`}>
-              <NavLink to="/players" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/players" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/players/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -106,7 +153,7 @@ const Layout = () => {
                 </span>
                 Players
               </NavLink>
-              <NavLink to="/kyc" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/kyc" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -115,7 +162,7 @@ const Layout = () => {
                 </span>
                 KYC Verification
               </NavLink>
-              <NavLink to="/games" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/games" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <circle cx="12" cy="12" r="10"/>
@@ -124,7 +171,7 @@ const Layout = () => {
                 </span>
                 Games
               </NavLink>
-              <NavLink to="/bonuses" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/bonuses" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 12 20 22 4 22 4 12"/>
@@ -136,7 +183,7 @@ const Layout = () => {
                 </span>
                 Bonuses
               </NavLink>
-              <NavLink to="/vip" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/vip" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M12 2L15 8L22 9L17 14L18 21L12 18L6 21L7 14L2 9L9 8L12 2Z"/>
@@ -144,7 +191,7 @@ const Layout = () => {
                 </span>
                 VIP
               </NavLink>
-              <NavLink to="/casino-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/casino-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="2" y="3" width="20" height="14" rx="2"/>
@@ -168,7 +215,7 @@ const Layout = () => {
               </svg>
             </button>
             <div className={`sidebar-section-content ${expandedSections.analytics ? 'expanded' : ''}`}>
-              <NavLink to="/reports" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/reports" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="20" x2="18" y2="10"/>
@@ -193,7 +240,7 @@ const Layout = () => {
                 </svg>
               </button>
               <div className={`sidebar-section-content ${expandedSections.settings ? 'expanded' : ''}`}>
-                <NavLink to="/admins" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+                <NavLink to="/admins" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                   <span className="sidebar-link-icon">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <circle cx="12" cy="12" r="3"/>
@@ -211,6 +258,13 @@ const Layout = () => {
       {/* Main Content */}
       <main className="main-content">
         <div className="topbar">
+          <button className="mobile-menu-btn" onClick={() => setMobileSidebarOpen(true)}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <line x1="3" y1="12" x2="21" y2="12"/>
+              <line x1="3" y1="18" x2="21" y2="18"/>
+            </svg>
+          </button>
           <div className="topbar-title">{getPageTitle()}</div>
           <div className="topbar-user">
             <div className="topbar-user-info">

@@ -13,9 +13,9 @@ import { useLeaderboardData, formatAmount, LeaderboardPeriod } from "@/hooks/use
 import { useUserAvatar } from "@/hooks/useUserAvatar";
 
 const getPositionStyle = (position: number) => {
-  if (position === 1) return "text-yellow-400 border-yellow-400/50";
-  if (position === 2) return "text-gray-400 border-gray-400/50";
-  if (position === 3) return "text-orange-400 border-orange-400/50";
+  if (position === 1) return "text-yellow-400 border-yellow-400/50 rank-gold";
+  if (position === 2) return "text-gray-400 border-gray-400/50 rank-silver";
+  if (position === 3) return "text-orange-400 border-orange-400/50 rank-bronze";
   if (position === 4) return "text-cyan-400 border-cyan-400/50";
   if (position === 5) return "text-cyan-400 border-cyan-400/50";
   return "text-purple-400 border-purple-400/50";

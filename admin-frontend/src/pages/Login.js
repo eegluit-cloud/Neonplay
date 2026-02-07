@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import phibetLogo from '../assets/phibet-logo.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -31,12 +32,7 @@ const Login = () => {
       {/* Left Side - Features */}
       <div className="auth-left">
         <div className="auth-logo">
-          <div className="auth-logo-icon">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <rect x="3" y="3" width="18" height="18" rx="2"/>
-              <path d="M9 12h6M12 9v6"/>
-            </svg>
-          </div>
+          <img src={phibetLogo} alt="Phibet" className="auth-logo-img" />
           <span className="auth-logo-text">ADMIN BACKOFFICE</span>
         </div>
 

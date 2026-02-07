@@ -18,10 +18,10 @@ const socialIconsRow1 = [
 
 // Consistent footer styles - matching main site
 const footerStyles = {
-  title: 'font-semibold text-xs text-foreground mb-2',
-  link: 'text-[11px] text-muted-foreground hover:text-foreground transition-colors leading-relaxed',
+  title: 'font-semibold text-xs sm:text-sm text-foreground mb-2',
+  link: 'footer-link text-[11px] text-muted-foreground hover:text-foreground transition-colors leading-relaxed',
   linkList: 'space-y-1.5',
-  iconButton: 'w-10 h-10 flex items-center justify-center transition-opacity hover:opacity-80',
+  iconButton: 'w-10 h-10 flex items-center justify-center social-hover transition-all',
   icon: 'w-8 h-8',
   section: 'space-y-2',
 };
@@ -31,7 +31,7 @@ export function Footer() {
     { title: 'Casino', links: ['Casino Home', 'Slots', 'Live Casino', 'New Releases', 'Recommended', 'Table Game', 'BlackJack', 'Roulette', 'Baccarat'] },
     { title: 'Sports', links: ['Sports Home', 'Live', 'Rules', 'Sport Betting Insights'] },
     { title: 'Promo', links: ['VIP Club', 'Affiliate', 'Promotions', 'Lottery', 'Refer a friend', 'AMOE'] },
-    { title: 'Support/Legal', links: ['Help center', 'Important Announcement', 'Gamble Aware', 'Fairness', 'FAQ', 'Privacy Policy', 'Terms Of Service'] },
+    { title: 'Support/Legal', links: ['Help center', 'Important Announcement', 'Responsible Gambling', 'Gamble Aware', 'Fairness', 'FAQ', 'Privacy Policy', 'Terms Of Service'] },
     { title: 'About us', links: ['News', 'Work with us', 'Business Contacts', 'Help Desk', 'Verify Representative'] },
   ];
 
@@ -46,7 +46,7 @@ export function Footer() {
         
         {/* Description */}
         <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-4">
-          Discover top-rated online casinos and Betting with massive bonuses, secure gameplay, and fast payouts.
+          Discover top-rated online casino and sports betting with massive bonuses, secure gameplay, and fast payouts. Play responsibly.
         </p>
         
         {/* Social Icons - same style as main site */}
@@ -71,26 +71,47 @@ export function Footer() {
             <h4 className={footerStyles.title}>{col.title}</h4>
             <ul className={footerStyles.linkList}>
               {col.links.map((link) => {
-                // Special routing for specific links
                 const linkRoutes: Record<string, string> = {
-                  'AMOE': '/amoe',
+                  'Casino Home': '/casino',
+                  'Slots': '/slots',
+                  'Live Casino': '/live-casino',
+                  'New Releases': '/new-releases',
+                  'Recommended': '/featured',
+                  'Table Game': '/table-games',
+                  'BlackJack': '/blackjack',
+                  'Roulette': '/roulette',
+                  'Baccarat': '/table-games',
+                  'Sports Home': '/sports',
+                  'Live': '/sports',
+                  'Rules': '/faq',
+                  'Sport Betting Insights': '/sports',
                   'VIP Club': '/vip',
+                  'Affiliate': '/refer-friend',
                   'Promotions': '/promotions',
+                  'Lottery': '/promotions',
                   'Refer a friend': '/refer-friend',
+                  'AMOE': '/amoe',
+                  'Help center': '/faq',
+                  'Important Announcement': '/promotions',
+                  'Responsible Gambling': '/responsible-gambling',
+                  'Gamble Aware': '/responsible-gambling',
+                  'Fairness': '/provably-fair',
+                  'FAQ': '/faq',
+                  'Privacy Policy': '/privacy',
+                  'Terms Of Service': '/terms',
+                  'News': '/lobby',
+                  'Work with us': '/faq',
+                  'Business Contacts': '/faq',
+                  'Help Desk': '/faq',
+                  'Verify Representative': '/faq',
                 };
-                const route = linkRoutes[link];
-                
+                const route = linkRoutes[link] || '/faq';
+
                 return (
                   <li key={link}>
-                    {route ? (
-                      <Link to={route} className={footerStyles.link}>
-                        {link}
-                      </Link>
-                    ) : (
-                      <a href="#" className={footerStyles.link}>
-                        {link}
-                      </a>
-                    )}
+                    <Link to={route} className={footerStyles.link}>
+                      {link}
+                    </Link>
                   </li>
                 );
               })}

@@ -54,7 +54,7 @@ services:
       target: development
     container_name: neonplay-migrations
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}?connection_limit=50&pool_timeout=60
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
     volumes:
       - ./shared:/app/shared:ro
     depends_on:
@@ -79,7 +79,7 @@ services:
       dockerfile: ./admin-backend/Dockerfile
     container_name: neonplay-admin-migrations
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}?connection_limit=50&pool_timeout=60
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
     volumes:
       - ./shared:/app/shared:ro
     depends_on:
@@ -118,7 +118,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV:-development}
       PORT: 4000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}?connection_limit=50&pool_timeout=60
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -126,7 +126,7 @@ services:
       JWT_ACCESS_EXPIRY: ${JWT_ACCESS_EXPIRY:-15m}
       JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-your-refresh-secret-change-in-production}
       JWT_REFRESH_EXPIRY: ${JWT_REFRESH_EXPIRY:-7d}
-      FRONTEND_URL: ${FRONTEND_URL:-http://13.228.114.152:8000}
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:8000}
       ENCRYPTION_KEY: ${ENCRYPTION_KEY:-32-character-encryption-key-here}
     ports:
       - "4000:4000"
@@ -163,8 +163,8 @@ services:
       - ./player-frontend/public:/app/public
       - /app/node_modules
     environment:
-      - VITE_API_URL=${VITE_API_URL:-http://13.228.114.152:4000/api/v1}
-      - VITE_SOCKET_URL=${VITE_SOCKET_URL:-http://13.228.114.152:4000}
+      - VITE_API_URL=${VITE_API_URL:-http://localhost:4000/api/v1}
+      - VITE_SOCKET_URL=${VITE_SOCKET_URL:-http://localhost:4000}
     depends_on:
       - player-backend
     stdin_open: true
@@ -192,14 +192,12 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=8002
-      - HOST=0.0.0.0
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@postgres:5432/${POSTGRES_DB:-neonplay}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD=${REDIS_PASSWORD:-}
       - JWT_SECRET=docker-jwt-secret-change-in-production
       - JWT_EXPIRES_IN=24h
-      - ADMIN_FRONTEND_URL=http://13.228.114.152:8003
     depends_on:
       postgres:
         condition: service_healthy
@@ -224,7 +222,7 @@ services:
       - ./admin-frontend/public:/app/public
     environment:
       - PORT=8003
-      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://13.228.114.152:8002/api}
+      - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:8002/api}
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     depends_on:

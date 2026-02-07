@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
-import { AuthModals } from '@/components/AuthModals';
+import { LoginModal } from '@/components/LoginModal';
+import { RegisterModal } from '@/components/RegisterModal';
 import { SpinGiftModal } from '@/components/SpinGiftModal';
 import { Footer } from '@/components/Footer';
 import { MobileBottomNav } from '@/components/MobileBottomNav';
@@ -133,13 +134,15 @@ const Providers = () => {
         </main>
       </div>
 
-      <AuthModals
-        isSignInOpen={signInOpen}
-        isSignUpOpen={signUpOpen}
-        onCloseSignIn={() => setSignInOpen(false)}
-        onCloseSignUp={() => setSignUpOpen(false)}
-        onSwitchToSignUp={() => { setSignInOpen(false); setSignUpOpen(true); }}
-        onSwitchToSignIn={() => { setSignUpOpen(false); setSignInOpen(true); }}
+      <LoginModal
+        isOpen={signInOpen}
+        onClose={() => setSignInOpen(false)}
+        onSwitchToRegister={() => { setSignInOpen(false); setSignUpOpen(true); }}
+      />
+      <RegisterModal
+        isOpen={signUpOpen}
+        onClose={() => setSignUpOpen(false)}
+        onSwitchToLogin={() => { setSignUpOpen(false); setSignInOpen(true); }}
       />
 
       <SpinGiftModal isOpen={spinGiftOpen} onClose={() => setSpinGiftOpen(false)} />

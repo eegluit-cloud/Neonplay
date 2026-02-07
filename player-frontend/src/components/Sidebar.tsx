@@ -10,7 +10,6 @@ import { cn } from '@/lib/utils';
 import crownImg from '@/assets/crown.png';
 import freeCoinsImg from '@/assets/claim-new.png';
 import levelUpImg from '@/assets/level-up.png';
-import neonplayTvIcon from '@/assets/neonplay-tv-icon.png';
 import { NeonPlayLogo } from '@/components/NeonPlayLogo';
 import { useLeaderboardData, formatAmount } from '@/hooks/useLeaderboardData';
 import { useUserVIP } from '@/hooks/useUserVIP';
@@ -62,7 +61,14 @@ const navigationConfig: NavSection[] = [
     title: 'Sports',
     collapsible: true,
     icon: Volleyball,
-    items: [],
+    items: [
+      { id: 'live-sports', label: 'Live', icon: Globe, href: '/sports?filter=live' },
+      { id: 'soccer', label: 'Soccer', icon: Target, href: '/sports?filter=soccer' },
+      { id: 'basketball', label: 'Basketball', icon: Trophy, href: '/sports?filter=basketball' },
+      { id: 'tennis', label: 'Tennis', icon: Target, href: '/sports?filter=tennis' },
+      { id: 'esports', label: 'Esports', icon: Gamepad2, href: '/sports?filter=esports' },
+      { id: 'my-bets', label: 'My Bets', icon: Star, href: '/profile' },
+    ],
   },
   {
     id: 'casino',
@@ -83,12 +89,11 @@ const navigationConfig: NavSection[] = [
     title: 'Promotions',
     collapsible: true,
     icon: Gift,
-    items: [],
-  },
-  {
-    id: 'neonplay-tv-standalone',
     items: [
-      { id: 'neonplay-tv', label: 'NeonPlay TV', icon: Tv, href: '/neonplay-tv', highlight: true },
+      { id: 'all-promotions', label: 'All Promotions', icon: Gift, href: '/promotions' },
+      { id: 'vip-club', label: 'VIP Club', icon: Crown, href: '/vip' },
+      { id: 'refer-friend', label: 'Refer a Friend', icon: Share2, href: '/refer-friend' },
+      { id: 'prizes-promo', label: 'Prizes', icon: Trophy, href: '/prizes' },
     ],
   },
   {
@@ -98,8 +103,8 @@ const navigationConfig: NavSection[] = [
       { id: 'referral', label: 'Referral', icon: Share2, href: '/refer-friend' },
       { id: 'leaderboard', label: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
       { id: 'prizes', label: 'Prizes', icon: Trophy, href: '/prizes' },
-      { id: 'provably-fair', label: 'Provably Fair', icon: Scale, href: '#' },
-      { id: 'responsible', label: 'Responsible Gambling', icon: ShieldCheck, href: '#' },
+      { id: 'provably-fair', label: 'Provably Fair', icon: Scale, href: '/provably-fair' },
+      { id: 'responsible', label: 'Responsible Gambling', icon: ShieldCheck, href: '/responsible-gambling' },
     ],
   },
   {
@@ -108,9 +113,9 @@ const navigationConfig: NavSection[] = [
     collapsible: true,
     icon: Headphones,
     items: [
-      { id: 'live-chat', label: 'Live Chat', icon: MessageCircle, href: '#' },
-      { id: 'telegram', label: 'Telegram', icon: Send, href: '#' },
-      { id: 'whatsapp', label: 'WhatsApp', icon: Phone, href: '#' },
+      { id: 'live-chat', label: 'Live Chat', icon: MessageCircle, href: '/faq' },
+      { id: 'telegram', label: 'Telegram', icon: Send, href: 'https://t.me/phibet' },
+      { id: 'whatsapp', label: 'WhatsApp', icon: Phone, href: 'https://wa.me/phibet' },
     ],
   },
   {
@@ -119,7 +124,8 @@ const navigationConfig: NavSection[] = [
     collapsible: true,
     icon: FileText,
     items: [
-      { id: 'terms', label: 'Terms & Conditions', icon: FileText, href: '#' },
+      { id: 'terms', label: 'Terms & Conditions', icon: FileText, href: '/terms' },
+      { id: 'privacy', label: 'Privacy Policy', icon: FileText, href: '/privacy' },
     ],
   },
   {
@@ -322,10 +328,11 @@ const ThemeToggle = () => {
     localStorage.setItem('theme', dark ? 'dark' : 'light');
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     toggleTheme(savedTheme !== 'light');
-  }, []);
+  }, []); // intentionally empty - sync theme once on mount
 
   return (
     <div className="flex items-center bg-background rounded-full p-1">
@@ -364,50 +371,6 @@ const SettingsWidget = () => (
 // NAVIGATION COMPONENTS
 // ============================================
 
-// Custom NeonPlay TV Button with special styling
-interface NeonPlayTVButtonProps {
-  isActive: boolean;
-  isOpen: boolean;
-  onClick: () => void;
-}
-
-const NeonPlayTVButton = ({ isActive, isOpen, onClick }: NeonPlayTVButtonProps) => {
-  if (!isOpen) {
-    return (
-      <button
-        onClick={onClick}
-        aria-label="NeonPlay TV"
-        className={cn(
-          "w-full aspect-square flex items-center justify-center rounded-xl transition-colors tap-feedback",
-          isActive
-            ? "bg-rose-500/20"
-            : "hover:bg-sidebar-accent active:bg-sidebar-accent"
-        )}
-      >
-        <img src={neonplayTvIcon} alt="NeonPlay TV" className="w-9 h-9 object-contain" />
-      </button>
-    );
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => prefetchRoute('/neonplay-tv')}
-      onFocus={() => prefetchRoute('/neonplay-tv')}
-      className={cn(
-        "w-full flex items-center gap-3 px-3 h-12 rounded-xl transition-all tap-feedback border border-white/5",
-        isActive
-          ? "bg-card"
-          : "bg-card hover:bg-card/80"
-      )}
-    >
-      <img src={neonplayTvIcon} alt="NeonPlay TV" className="w-9 h-9 rounded-lg flex-shrink-0 -ml-1" />
-      <span className="flex-1 text-left text-sm font-semibold text-foreground">NeonPlay TV</span>
-      <ChevronDown className="w-4 h-4 text-muted-foreground rotate-[-90deg]" />
-    </button>
-  );
-};
-
 interface NavItemButtonProps {
   item: NavItem;
   isActive: boolean;
@@ -417,11 +380,6 @@ interface NavItemButtonProps {
 
 const NavItemButton = ({ item, isActive, isOpen, onClick }: NavItemButtonProps) => {
   const Icon = item.icon;
-
-  // Special handling for NeonPlay TV
-  if (item.id === 'neonplay-tv') {
-    return <NeonPlayTVButton isActive={isActive} isOpen={isOpen} onClick={onClick} />;
-  }
 
   if (!isOpen) {
     return (
@@ -486,13 +444,11 @@ const CollapsibleSection = ({ section, isOpen, isActive, onNavigate }: Collapsib
   // If section should act as a direct link
   const hasItems = section.items.length > 0;
   const directLink =
-    section.id === 'promotions'
-      ? '/promotions'
-      : section.id === 'casino'
-        ? '/casino'
-        : section.id === 'sports'
-          ? '/sports'
-          : null;
+    section.id === 'casino'
+      ? '/casino'
+      : section.id === 'sports'
+        ? '/sports'
+        : null;
 
   // Check if any item in this section is currently active
   const hasActiveChild = section.items.some(item => isActive(item.href));
@@ -635,17 +591,26 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
   const isActive = (href: string) => {
     if (href === '/') return location.pathname === '/';
     if (href === '#') return false;
-    return location.pathname.startsWith(href);
+    if (href.startsWith('http')) return false;
+    // Strip query params for pathname comparison
+    const cleanHref = href.split('?')[0];
+    return location.pathname.startsWith(cleanHref);
   };
 
   const handleNavigate = (href: string) => {
     // Handle logout - navigate to home page (logged out state)
     if (href === '#logout') {
-      window.location.href = '/register';
+      window.location.href = '/';
       return;
     }
     
     if (href === '#') return;
+
+    // Handle external links
+    if (href.startsWith('http')) {
+      window.open(href, '_blank', 'noopener,noreferrer');
+      return;
+    }
 
     // Close sidebar on mobile only (not tablet/desktop)
     if (window.innerWidth < 768) {
@@ -653,9 +618,10 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
     }
 
     // Special case for home route - must be exact match
-    const isAlreadyOnRoute = href === '/' 
-      ? location.pathname === '/' 
-      : location.pathname.startsWith(href);
+    const cleanHref = href.split('?')[0];
+    const isAlreadyOnRoute = href === '/'
+      ? location.pathname === '/'
+      : location.pathname.startsWith(cleanHref) && !href.includes('?');
       
     if (isAlreadyOnRoute) {
       // Already on route - just scroll to top
@@ -783,20 +749,6 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
               />
             ))}
 
-            {/* NeonPlay TV - Special standalone item with integrated gradient border */}
-            <div className="space-y-1.5">
-
-              {staticSections.filter(s => s.id === 'neonplay-tv-standalone').map(section => (
-                <StaticSection
-                  key={section.id}
-                  section={section}
-                  isOpen={isOpen}
-                  isActive={isActive}
-                  onNavigate={handleNavigate}
-                />
-              ))}
-            </div>
-
             {/* Support & Legal - skip first 3 (sports, casino, promotions) */}
             <nav className="space-y-1.5" aria-label="Support navigation">
               {collapsibleSections.slice(3).map(section => (
@@ -834,7 +786,7 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
             {isOpen && (
               <div className="flex flex-col items-center text-center py-4">
                 <NeonPlayLogo size="lg" />
-                <p className="text-xs text-muted-foreground">Play Smart. Win Big.</p>
+                <p className="text-xs text-muted-foreground">Your Game. Your Bet.</p>
               </div>
             )}
           </div>

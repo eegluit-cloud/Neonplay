@@ -76,7 +76,16 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         tokenManager.clearTokens();
-        window.location.href = '/';
+        // Show session expiry notification before redirecting
+        try {
+          const { toast } = await import('sonner');
+          toast.error('Session expired', { description: 'Please log in again.' });
+        } catch {
+          // toast not available, that's ok
+        }
+        // Brief delay so user sees the toast
+        setTimeout(() => { window.location.href = '/'; }, 1500);
+        return new Promise(() => {}); // prevent further processing
       }
     }
 
@@ -260,7 +269,7 @@ export const amoeApi = {
   getHistory: () => api.get('/amoe/history'),
 };
 
-// Content API (NeonPlay TV)
+// Content API
 export const contentApi = {
   getVideos: (params?: { page?: number; limit?: number; category?: string; sortBy?: string }) =>
     api.get('/content/videos', { params }),

@@ -56,7 +56,7 @@ export const GameCard = memo(function GameCard({
       {/* Favorite Button */}
       <button
         onClick={handleFavoriteClick}
-        className="absolute top-1.5 md:top-2 right-1.5 md:right-2 z-10 w-6 md:w-7 h-6 md:h-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+        className="absolute top-1.5 md:top-2 right-1.5 md:right-2 z-10 w-6 md:w-7 h-6 md:h-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 hover:scale-110 transition-all active:scale-95"
         aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
       >
         <Heart
@@ -77,8 +77,8 @@ export const GameCard = memo(function GameCard({
 
       {/* Play Overlay */}
       <div className="game-overlay rounded-lg md:rounded-xl">
-        <button 
-          className="w-10 md:w-14 h-10 md:h-14 rounded-full bg-primary flex items-center justify-center hover:scale-110 transition-transform"
+        <button
+          className="w-10 md:w-14 h-10 md:h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center hover:scale-110 transition-all shadow-[0_0_20px_hsl(187_85%_53%/0.4)] hover:shadow-[0_0_30px_hsl(187_85%_53%/0.6)]"
           aria-label={`Play ${game.name}`}
         >
           <Play className="w-5 md:w-7 h-5 md:h-7 text-black fill-current" />
@@ -122,7 +122,7 @@ export const MiniGameCard = memo(function MiniGameCard({
           e.stopPropagation();
           setIsFavorite(!isFavorite);
         }}
-        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 transition-colors"
+        className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full bg-black/50 flex items-center justify-center hover:bg-black/70 hover:scale-110 transition-all active:scale-95"
       >
         <Heart className={cn("w-4 h-4", isFavorite ? "fill-red-500 text-red-500" : "text-white")} />
       </button>
@@ -136,7 +136,7 @@ export const MiniGameCard = memo(function MiniGameCard({
 
       {/* Play Overlay */}
       <div className="game-overlay rounded-xl">
-        <button className="w-14 h-14 rounded-full bg-primary flex items-center justify-center hover:scale-110 transition-transform">
+        <button className="w-14 h-14 rounded-full bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center hover:scale-110 transition-all shadow-[0_0_20px_hsl(187_85%_53%/0.4)] hover:shadow-[0_0_30px_hsl(187_85%_53%/0.6)]">
           <Play className="w-7 h-7 text-black fill-current" />
         </button>
       </div>

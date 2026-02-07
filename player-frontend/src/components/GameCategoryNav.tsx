@@ -1,9 +1,11 @@
-import { Home, Flame, Sparkles, Tv, Heart, TrendingUp, Package, Clapperboard, Spade, CircleDot, Layers, Rocket, Zap, Star } from 'lucide-react';
+import { useMemo } from 'react';
+import { Home, Flame, Sparkles, Tv, Heart, TrendingUp, Package, Clapperboard, Spade, CircleDot, Layers, Rocket, Zap, Star, Volleyball, Wifi, Gamepad2, Trophy, Target } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import type { LobbyMode } from './LobbyModeSwitcher';
 
-const categoryTabs = [
-  { id: 'lobby', label: 'Lobby', icon: Home, path: '/' },
+const casinoCategoryTabs = [
+  { id: 'lobby', label: 'Lobby', icon: Home, path: '/lobby' },
   { id: 'favorites', label: 'Favorites', icon: Heart, path: '/favorites' },
   { id: 'hot', label: 'Hot Games', icon: Flame, path: '/hot-games' },
   { id: 'slots', label: 'Slots', icon: Sparkles, path: '/slots' },
@@ -19,14 +21,42 @@ const categoryTabs = [
   { id: 'providers', label: 'Providers', icon: Package, path: '/providers' },
 ];
 
+const sportsCategoryTabs = [
+  { id: 'sports-home', label: 'Sports Home', icon: Volleyball, path: '/sports' },
+  { id: 'live-sports', label: 'Live', icon: Wifi, path: '/sports?filter=live' },
+  { id: 'soccer', label: 'Soccer', icon: Target, path: '/sports?filter=soccer' },
+  { id: 'basketball', label: 'Basketball', icon: Trophy, path: '/sports?filter=basketball' },
+  { id: 'tennis', label: 'Tennis', icon: Target, path: '/sports?filter=tennis' },
+  { id: 'esports', label: 'Esports', icon: Gamepad2, path: '/sports?filter=esports' },
+  { id: 'hockey', label: 'Ice Hockey', icon: Target, path: '/sports?filter=hockey' },
+  { id: 'american-football', label: 'American Football', icon: Trophy, path: '/sports?filter=american-football' },
+];
+
 interface GameCategoryNavProps {
   activeTab?: string;
+  mode?: LobbyMode;
 }
 
-export function GameCategoryNav({ activeTab = 'lobby' }: GameCategoryNavProps) {
+export function GameCategoryNav({ activeTab = 'lobby', mode = 'all' }: GameCategoryNavProps) {
   const navigate = useNavigate();
 
-  const handleTabClick = (e: React.MouseEvent, tab: typeof categoryTabs[0]) => {
+  const tabs = useMemo(() => {
+    switch (mode) {
+      case 'casino':
+        return casinoCategoryTabs;
+      case 'sports':
+        return sportsCategoryTabs;
+      case 'all':
+      default:
+        return [
+          casinoCategoryTabs[0], // Lobby
+          ...sportsCategoryTabs.slice(0, 4), // Sports Home, Live, Soccer, Basketball
+          ...casinoCategoryTabs.slice(1), // Everything after Lobby
+        ];
+    }
+  }, [mode]);
+
+  const handleTabClick = (e: React.MouseEvent, tab: typeof casinoCategoryTabs[0]) => {
     e.preventDefault();
     e.stopPropagation();
     if (tab.id !== activeTab) {
@@ -40,7 +70,7 @@ export function GameCategoryNav({ activeTab = 'lobby' }: GameCategoryNavProps) {
       style={{ WebkitOverflowScrolling: 'touch' }}
     >
       <div className="inline-flex items-center bg-card border border-border rounded-full p-1 h-12 min-w-max">
-        {categoryTabs.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button
@@ -61,4 +91,4 @@ export function GameCategoryNav({ activeTab = 'lobby' }: GameCategoryNavProps) {
   );
 }
 
-export { categoryTabs };
+export { casinoCategoryTabs as categoryTabs };

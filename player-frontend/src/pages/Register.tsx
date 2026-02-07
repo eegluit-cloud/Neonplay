@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { MessageCircle, Coins, Shield, Smartphone, Trophy, Gamepad2, Star, CheckCircle2, Dice5, ChevronDown } from 'lucide-react';
 
@@ -7,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { DiamondIcon } from '@/components/icons/DiamondIcon';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Footer } from '@/components/Footer';
-import { AuthModals } from '@/components/AuthModals';
 import { RegisterModal } from '@/components/RegisterModal';
 import { LoginModal } from '@/components/LoginModal';
 import { ForgotPasswordModal } from '@/components/ForgotPasswordModal';
@@ -99,7 +97,7 @@ const faqData = [
   },
   {
     question: 'How do I contact customer support?',
-    answer: 'You can reach our 24/7 customer support team via live chat, email at support@neonplay.com, or through our help center in the app.'
+    answer: 'You can reach our 24/7 customer support team via live chat, email at support@phibet.io, or through our help center in the app.'
   },
   {
     question: 'What should I do if I forget my password?',
@@ -316,14 +314,6 @@ const perks = [
 
 export default function Register() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth();
-
-  // Redirect to lobby if already authenticated
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      navigate("/lobby");
-    }
-  }, [isAuthenticated, isLoading, navigate]);
   const [activeTab, setActiveTab] = useState<'daily' | 'weekly' | 'monthly'>('daily');
   
   // Slot machine state
@@ -502,10 +492,10 @@ export default function Register() {
 
           {/* Right - Auth Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               size="sm"
-              onClick={() => navigate('/lobby')}
+              onClick={() => setLoginModalOpen(true)}
               className="border-border hover:bg-secondary h-8 sm:h-9 px-2.5 sm:px-3 text-xs sm:text-sm"
             >
               Login
@@ -657,15 +647,15 @@ export default function Register() {
             <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white mb-2 sm:mb-3 -mt-28 sm:-mt-8 md:-mt-12 relative z-20 px-2">
               Social Casino{" "}
               <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                #1 in America
+                #1 in Asia
               </span>
             </h1>
             <p className="text-muted-foreground text-sm sm:text-base mb-4 sm:mb-6 relative z-20 px-4">
               Millions in prizes waiting your big win could be just one spin away.
             </p>
 
-            <Button 
-              onClick={() => navigate('/lobby')}
+            <Button
+              onClick={() => setLoginModalOpen(true)}
               className="relative z-20 bg-primary hover:bg-primary/90 shadow-[0_0_20px_hsl(var(--primary)/0.5)] px-6 py-3 text-sm font-medium rounded-full mt-2"
             >
               Play Now
@@ -785,7 +775,7 @@ export default function Register() {
               padding: '1px'
             }} />
             <div className="text-center mb-3 sm:mb-4">
-              <h2 className="text-base sm:text-lg font-bold text-white mb-1">NeonPlay Champions Live Board</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white mb-1">Phibet Champions Live Board</h2>
               <p className="text-muted-foreground text-[10px] sm:text-[11px]">Earn points, rise through the levels, and Get Your Rewards.</p>
             </div>
 
@@ -1454,16 +1444,6 @@ export default function Register() {
       <div className="container mx-auto px-3 sm:px-4">
         <Footer />
       </div>
-
-      {/* Auth Modals */}
-      <AuthModals
-        isSignInOpen={signInOpen}
-        isSignUpOpen={signUpOpen}
-        onCloseSignIn={() => setSignInOpen(false)}
-        onCloseSignUp={() => setSignUpOpen(false)}
-        onSwitchToSignUp={() => { setSignInOpen(false); setSignUpOpen(true); }}
-        onSwitchToSignIn={() => { setSignUpOpen(false); setSignInOpen(true); }}
-      />
 
       {/* Register Modal */}
       <RegisterModal

@@ -10,7 +10,7 @@ prisma.$connect()
   .then(() => console.log('Admin backend connected to PostgreSQL via Prisma'))
   .catch((err) => {
     console.error('Admin backend Prisma connection error:', err);
-    console.log('⚠️  App will continue without database connection for now');
+    process.exit(1);
   });
 
 // Graceful shutdown

@@ -26,7 +26,7 @@ const ReferFriend = () => {
   const [copied, setCopied] = useState(false);
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const { avatar: userAvatar } = useUserAvatar();
-  const referralLink = "www.neonplay.com/referral/625372";
+  const referralLink = "www.phibet.io/referral/625372";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(referralLink);

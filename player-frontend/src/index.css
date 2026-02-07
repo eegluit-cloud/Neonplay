@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Ivontx Dark Theme - Deep Black with Cyan */
+    /* Phibet Dark Theme - Deep Black with Cyan */
     --background: 220 20% 4%;
     --foreground: 0 0% 98%;
 
@@ -38,7 +38,7 @@
 
     --radius: 0.75rem;
 
-    /* Custom Ivontx Colors */
+    /* Custom Phibet Colors */
     --casino-gold: 42 100% 50%;
     --casino-orange: 25 100% 55%;
     --casino-green: 187 85% 53%;
@@ -1299,4 +1299,112 @@ img {
 
 .animate-shimmer {
   animation: shimmer 1.5s infinite;
+}
+
+/* Shake animation for error states */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+  20%, 40%, 60%, 80% { transform: translateX(4px); }
+}
+
+.animate-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Subtle glow pulse for modal panels */
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: inset 0 0 30px hsl(187 85% 53% / 0.05); }
+  50% { box-shadow: inset 0 0 60px hsl(187 85% 53% / 0.12); }
+}
+
+.animate-glow-pulse {
+  animation: glow-pulse 4s ease-in-out infinite;
+}
+
+/* ========== ACCESSIBILITY: Reduced Motion ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========== ENHANCED UI POLISH ========== */
+
+/* Neon glow effect for logo */
+.neon-glow {
+  filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.3));
+  transition: filter 0.3s ease;
+}
+.neon-glow:hover {
+  filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.5));
+}
+
+/* Enhanced game card play button glow */
+.game-overlay button {
+  box-shadow: 0 0 20px hsl(187 85% 53% / 0.4);
+  transition: all 0.2s ease;
+}
+.game-overlay button:hover {
+  box-shadow: 0 0 30px hsl(187 85% 53% / 0.6);
+}
+
+/* Better active/pressed feedback for buttons */
+.tap-feedback:active {
+  transform: scale(0.97);
+}
+
+/* Header icon button hover enhancement */
+.header-icon-btn {
+  transition: all 0.2s ease;
+}
+.header-icon-btn:hover {
+  background-color: hsl(var(--secondary) / 0.5);
+  color: hsl(var(--foreground));
+}
+.header-icon-btn:active {
+  transform: scale(0.93);
+}
+
+/* Notification badge pulse */
+.badge-pulse {
+  animation: badge-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes badge-ping {
+  0% { box-shadow: 0 0 0 0 currentColor; }
+  75%, 100% { box-shadow: 0 0 0 6px transparent; }
+}
+
+/* Footer link underline animation */
+.footer-link {
+  position: relative;
+}
+.footer-link::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: hsl(var(--primary));
+  transition: width 0.2s ease;
+}
+.footer-link:hover::after {
+  width: 100%;
+}
+
+/* Leaderboard rank badge glow for top 3 */
+.rank-gold { box-shadow: 0 0 8px hsl(42 100% 50% / 0.3); }
+.rank-silver { box-shadow: 0 0 8px hsl(0 0% 70% / 0.3); }
+.rank-bronze { box-shadow: 0 0 8px hsl(25 100% 55% / 0.3); }
+
+/* Social icon hover color effects */
+.social-hover:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
 }

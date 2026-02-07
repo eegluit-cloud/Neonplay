@@ -9,7 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { SupportButton } from "@/components/SupportButton";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageLoadingState } from "@/components/PageLoadingState";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 // Eagerly load Register (landing page) for fast initial render
 import Register from "./pages/Register";
@@ -34,8 +34,19 @@ const GameDetail = lazy(() => import("./pages/GameDetail"));
 const Sports = lazy(() => import("./pages/Sports"));
 const Index = lazy(() => import("./pages/Index"));
 const AMOE = lazy(() => import("./pages/AMOE"));
-const NeonPlayTV = lazy(() => import("./pages/NeonPlayTV"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const GameShows = lazy(() => import("./pages/GameShows"));
+const TableGames = lazy(() => import("./pages/TableGames"));
+const Blackjack = lazy(() => import("./pages/Blackjack"));
+const Roulette = lazy(() => import("./pages/Roulette"));
+const NewReleases = lazy(() => import("./pages/NewReleases"));
+const BurstGames = lazy(() => import("./pages/BurstGames"));
+const Featured = lazy(() => import("./pages/Featured"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const ResponsibleGambling = lazy(() => import("./pages/ResponsibleGambling"));
+const FAQPage = lazy(() => import("./pages/FAQ"));
+const ProvablyFair = lazy(() => import("./pages/ProvablyFair"));
 
 // Optimized QueryClient with aggressive caching strategy
 const queryClient = new QueryClient({
@@ -66,37 +77,46 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
           <ScrollToTop />
+          <ErrorBoundary>
           <Suspense fallback={<PageLoadingState />}>
             <Routes>
-              {/* Public routes */}
               <Route path="/" element={<Register />} />
-              
-              {/* Protected routes */}
-              <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/providers" element={<ProtectedRoute><Providers /></ProtectedRoute>} />
-              <Route path="/providers/:providerId" element={<ProtectedRoute><ProviderGames /></ProtectedRoute>} />
-              <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
-              <Route path="/live-casino" element={<ProtectedRoute><LiveCasino /></ProtectedRoute>} />
-              <Route path="/promotions" element={<ProtectedRoute><Promotions /></ProtectedRoute>} />
-              <Route path="/refer-friend" element={<ProtectedRoute><ReferFriend /></ProtectedRoute>} />
-              <Route path="/vip" element={<ProtectedRoute><VIP /></ProtectedRoute>} />
-              <Route path="/leaderboard" element={<ProtectedRoute><LeaderboardPage /></ProtectedRoute>} />
-              <Route path="/prizes" element={<ProtectedRoute><Prizes /></ProtectedRoute>} />
-              <Route path="/search" element={<ProtectedRoute><Search /></ProtectedRoute>} />
-              <Route path="/hot-games" element={<ProtectedRoute><HotGames /></ProtectedRoute>} />
-              <Route path="/slots" element={<ProtectedRoute><Slots /></ProtectedRoute>} />
-              <Route path="/crash-games" element={<ProtectedRoute><CrashGames /></ProtectedRoute>} />
-              <Route path="/casino" element={<ProtectedRoute><Casino /></ProtectedRoute>} />
-              <Route path="/game/:gameId" element={<ProtectedRoute><GameDetail /></ProtectedRoute>} />
-              <Route path="/sports" element={<ProtectedRoute><Sports /></ProtectedRoute>} />
-              <Route path="/lobby" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/amoe" element={<ProtectedRoute><AMOE /></ProtectedRoute>} />
-              <Route path="/neonplay-tv" element={<ProtectedRoute><NeonPlayTV /></ProtectedRoute>} />
-              
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/providers" element={<Providers />} />
+              <Route path="/providers/:providerId" element={<ProviderGames />} />
+              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/live-casino" element={<LiveCasino />} />
+              <Route path="/promotions" element={<Promotions />} />
+              <Route path="/refer-friend" element={<ReferFriend />} />
+              <Route path="/vip" element={<VIP />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/prizes" element={<Prizes />} />
+              <Route path="/search" element={<Search />} />
+              <Route path="/hot-games" element={<HotGames />} />
+              <Route path="/slots" element={<Slots />} />
+              <Route path="/crash-games" element={<CrashGames />} />
+              <Route path="/casino" element={<Casino />} />
+              <Route path="/game/:gameId" element={<GameDetail />} />
+              <Route path="/sports" element={<Sports />} />
+              <Route path="/lobby" element={<Index />} />
+              <Route path="/amoe" element={<AMOE />} />
+              <Route path="/game-shows" element={<GameShows />} />
+              <Route path="/table-games" element={<TableGames />} />
+              <Route path="/blackjack" element={<Blackjack />} />
+              <Route path="/roulette" element={<Roulette />} />
+              <Route path="/new-releases" element={<NewReleases />} />
+              <Route path="/burst-games" element={<BurstGames />} />
+              <Route path="/featured" element={<Featured />} />
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/responsible-gambling" element={<ResponsibleGambling />} />
+              <Route path="/faq" element={<FAQPage />} />
+              <Route path="/provably-fair" element={<ProvablyFair />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>
+          </ErrorBoundary>
             <SupportButton />
           </BrowserRouter>
         </TooltipProvider>
