@@ -13,6 +13,7 @@ import levelUpImg from '@/assets/level-up.png';
 import { NeonPlayLogo } from '@/components/NeonPlayLogo';
 import { useLeaderboardData, formatAmount } from '@/hooks/useLeaderboardData';
 import { useUserVIP } from '@/hooks/useUserVIP';
+import { useAuth } from '@/contexts/AuthContext';
 import { prefetchRoute } from '@/hooks/useRoutePrefetch';
 
 
@@ -575,6 +576,7 @@ const StaticSection = ({ section, isOpen, isActive, onNavigate }: StaticSectionP
 export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
   
   const isActive = (href: string) => {
     if (href === '/') return location.pathname === '/';
@@ -586,9 +588,11 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
   };
 
   const handleNavigate = (href: string) => {
-    // Handle logout - navigate to home page (logged out state)
+    // Handle logout - clear session then navigate to home page
     if (href === '#logout') {
-      window.location.href = '/';
+      logout().then(() => {
+        navigate('/', { replace: true });
+      });
       return;
     }
     

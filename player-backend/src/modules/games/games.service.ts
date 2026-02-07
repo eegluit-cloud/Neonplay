@@ -396,9 +396,9 @@ export class GamesService {
     return game;
   }
 
-  async launchGame(userId: string, gameSlug: string, currency: Currency = 'USDC') {
+  async launchGame(userId: string, gameSlug: string, currency: Currency = 'INR') {
     // Validate currency
-    const validCurrencies: Currency[] = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE'];
+    const validCurrencies: Currency[] = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE', 'INR'];
     if (!validCurrencies.includes(currency)) {
       throw new BadRequestException(`Invalid currency. Must be one of: ${validCurrencies.join(', ')}`);
     }
@@ -407,7 +407,9 @@ export class GamesService {
     const game = await this.prisma.game.findUnique({
       where: { slug: gameSlug },
       include: {
-        provider: true,
+        provider: {
+          include: { aggregator: true },
+        },
       },
     });
 

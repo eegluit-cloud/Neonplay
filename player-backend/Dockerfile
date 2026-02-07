@@ -15,9 +15,6 @@ COPY player-backend/prisma ./prisma/
 
 RUN npm ci
 
-# Rebuild bcrypt for Alpine Linux
-RUN npm rebuild bcrypt
-
 # Generate Prisma client with correct binary targets
 RUN npx prisma generate
 

@@ -1,9 +1,29 @@
 const express = require('express');
+const multer = require('multer');
 const { authenticateAdmin, requireRole, logAction } = require('../middleware/auth');
 const huiduController = require('../controllers/huiduController');
 
 const router = express.Router();
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB for Excel files
+  fileFilter: (req, file, cb) => {
+    if (!file.originalname.match(/\.xlsx$/i)) {
+      return cb(new Error('Only .xlsx files are allowed'));
+    }
+    cb(null, true);
+  },
+});
+
+// Import games from Huidu Excel spreadsheet (open - no auth required)
+router.post(
+  '/import/excel',
+  upload.single('file'),
+  huiduController.importExcelGames,
+);
+
+// All routes below require authentication
 router.use(authenticateAdmin);
 
 // Sync providers from Huidu API

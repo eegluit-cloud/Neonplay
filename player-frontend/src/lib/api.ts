@@ -175,6 +175,9 @@ export const gamesApi = {
   getNew: () => api.get('/games', { params: { new: true, limit: 10 } }),
 
   getHot: () => api.get('/games', { params: { hot: true, limit: 10 } }),
+
+  launchGame: (slug: string, currency?: string) =>
+    api.post(`/games/${slug}/launch`, { currency }),
 };
 
 // Wallet API

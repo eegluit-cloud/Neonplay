@@ -35,7 +35,11 @@ export class HuiduApiUtil {
     // Request logging
     this.axiosInstance.interceptors.request.use(
       (config: InternalAxiosRequestConfig) => {
-        this.logger.debug(`Huidu API Request: ${config.method?.toUpperCase()} ${config.url}`);
+        this.logger.log(`Huidu API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+        this.logger.log(`Huidu API Request Body: ${JSON.stringify(config.data)}`);
+        if (config.params) {
+          this.logger.log(`Huidu API Request Params: ${JSON.stringify(config.params)}`);
+        }
         return config;
       },
       (error) => {
@@ -47,8 +51,8 @@ export class HuiduApiUtil {
     // Response logging
     this.axiosInstance.interceptors.response.use(
       (response: AxiosResponse) => {
-        this.logger.debug(
-          `Huidu API Response: ${response.status} ${response.config.url} code=${response.data?.code}`,
+        this.logger.log(
+          `Huidu API Response: ${response.status} ${response.config.url} => ${JSON.stringify(response.data)}`,
         );
         return response;
       },
@@ -56,6 +60,9 @@ export class HuiduApiUtil {
         this.logger.error(
           `Huidu API Error: ${error.response?.status || 'N/A'} ${error.config?.url} - ${error.message}`,
         );
+        if (error.response?.data) {
+          this.logger.error(`Huidu API Error Body: ${JSON.stringify(error.response.data)}`);
+        }
         return Promise.reject(error);
       },
     );
@@ -65,6 +72,7 @@ export class HuiduApiUtil {
    * POST /game/v1 -- Get game launch URL (Seamless wallet mode)
    */
   async getGameUrl(payload: HuiduLaunchPayload): Promise<string> {
+    this.logger.log(`Huidu getGameUrl plaintext payload: ${JSON.stringify(payload)}`);
     const encryptedPayload = this.crypto.encryptJson(payload);
     const response = await this.axiosInstance.post('/game/v1', {
       agency_uid: this.agencyUid,
