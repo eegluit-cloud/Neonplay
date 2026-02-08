@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useEmblaCarousel from 'embla-carousel-react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import heroBannerMobile from '@/assets/hero-banner-mobile.png';
 import promoHeroBanner from '@/assets/promo-hero-banner.png';
 import promoDailyBonus from '@/assets/promo-daily-bonus.png';
@@ -30,9 +32,9 @@ const MOBILE_INTERACTION_PAUSE = 8000; // 8 seconds pause after interaction
 
 // Mobile carousel banner data
 const mobileCarouselBanners = [
-  { id: 'brand', video: heroVideo, textType: 'brand' as const },
-  { id: 'platform', video: bannerSecondVideo, textType: 'platform' as const },
-  { id: 'winners', video: bannerThirdVideo, textType: 'winners' as const },
+  { id: 'brand', video: heroVideo, textType: 'brand' as const, videoFit: '' },
+  { id: 'platform', video: bannerSecondVideo, textType: 'platform' as const, videoFit: 'object-contain object-right' },
+  { id: 'winners', video: bannerThirdVideo, textType: 'winners' as const, videoFit: '' },
 ];
 
 export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
@@ -166,9 +168,68 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
     }
   }, [emblaApi, pauseAutoplay]);
 
+  // GSAP animation refs
+  const heroSectionRef = useRef<HTMLElement>(null);
+  const desktopGridRef = useRef<HTMLDivElement>(null);
+  const tabletContainerRef = useRef<HTMLDivElement>(null);
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const jackpotGridRef = useRef<HTMLDivElement>(null);
+
+  const prefersReducedMotion =
+    typeof window !== 'undefined'
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+
+  // Hero on-load entrance animations
+  useGSAP(() => {
+    if (prefersReducedMotion) return;
+
+    // Desktop: staggered banner entrance
+    if (desktopGridRef.current) {
+      const banners = desktopGridRef.current.children;
+      gsap.from(banners, {
+        opacity: 0,
+        scale: 0.92,
+        y: 20,
+        duration: 0.5,
+        stagger: 0.15,
+        ease: 'power3.out',
+      });
+    }
+
+    // Tablet: container fade-in
+    if (tabletContainerRef.current) {
+      gsap.from(tabletContainerRef.current, {
+        opacity: 0,
+        duration: 0.4,
+        ease: 'power2.out',
+      });
+    }
+
+    // Mobile: carousel + jackpot grid entrance
+    if (mobileContainerRef.current) {
+      gsap.from(mobileContainerRef.current, {
+        opacity: 0,
+        y: 15,
+        duration: 0.4,
+        ease: 'power2.out',
+      });
+    }
+    if (jackpotGridRef.current) {
+      gsap.from(jackpotGridRef.current, {
+        opacity: 0,
+        y: 10,
+        scale: 0.97,
+        duration: 0.4,
+        delay: 0.2,
+        ease: 'power2.out',
+      });
+    }
+  }, { scope: heroSectionRef });
+
   const desktopBanners = [
     { src: null, video: heroVideo, alt: 'Build Your Brand', hasText: true, textType: 'brand' },
-    { src: null, video: bannerSecondVideo, alt: 'Ready to Launch', hasText: true, textType: 'platform' },
+    { src: null, video: bannerSecondVideo, alt: 'Ready to Launch', hasText: true, textType: 'platform', videoFit: 'object-contain object-right' },
     { src: null, video: bannerThirdVideo, alt: 'Win Amazing Prizes', hasText: true, textType: 'winners' },
   ];
 
@@ -300,24 +361,24 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
 
   // Render single banner content
   const renderBanner = (banner: typeof desktopBanners[0], index: number) => (
-    <div 
+    <div
       key={index}
-      className="relative overflow-hidden rounded-xl group w-full h-full"
+      className={`relative overflow-hidden rounded-xl group w-full h-full ${banner.videoFit ? 'bg-gray-900' : ''}`}
       style={{ aspectRatio: '352/172' }}
     >
       {banner.video ? (
-        <video 
+        <video
           src={banner.video}
-          autoPlay 
-          loop 
-          muted 
+          autoPlay
+          loop
+          muted
           playsInline
-          className="w-full h-full object-cover"
+          className={`w-full h-full ${banner.videoFit || 'object-cover'}`}
         />
       ) : (
-        <img 
-          src={banner.src!} 
-          alt={banner.alt} 
+        <img
+          src={banner.src!}
+          alt={banner.alt}
           className="w-full h-full object-cover"
         />
       )}
@@ -333,14 +394,14 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
   );
 
   return (
-    <section className="relative overflow-hidden">
+    <section ref={heroSectionRef} className="relative overflow-hidden">
       {/* Desktop - 3 Banners Grid */}
-      <div className="hidden lg:grid grid-cols-3 gap-3">
+      <div ref={desktopGridRef} className="hidden lg:grid grid-cols-3 gap-3">
         {desktopBanners.map((banner, index) => renderBanner(banner, index))}
       </div>
 
       {/* Tablet - Carousel showing 2 banners at a time */}
-      <div className="hidden md:block lg:hidden relative">
+      <div ref={tabletContainerRef} className="hidden md:block lg:hidden relative">
         <div className="overflow-hidden">
           <div 
             className={`flex ${isTransitioning ? 'transition-transform duration-500 ease-out' : ''}`}
@@ -380,7 +441,7 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
       {/* Mobile Layout */}
       <div className="md:hidden space-y-2">
         {/* Main Hero Banner - Infinite Autoplay Carousel */}
-        <div className="relative">
+        <div ref={mobileContainerRef} className="relative">
           <div 
             ref={emblaRef} 
             className="overflow-hidden rounded-xl border border-border"
@@ -388,19 +449,19 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
           >
             <div className="flex h-full">
               {mobileCarouselBanners.map((banner, index) => (
-                <div 
+                <div
                   key={banner.id}
-                  className="flex-[0_0_100%] min-w-0 relative h-full cursor-pointer"
+                  className={`flex-[0_0_100%] min-w-0 relative h-full cursor-pointer ${banner.videoFit ? 'bg-gray-900' : ''}`}
                   onClick={onOpenSignUp}
                 >
-                  <video 
+                  <video
                     src={banner.video}
-                    autoPlay 
-                    loop 
-                    muted 
+                    autoPlay
+                    loop
+                    muted
                     playsInline
                     preload="auto"
-                    className="w-full h-full object-cover"
+                    className={`w-full h-full ${banner.videoFit || 'object-cover'}`}
                     onCanPlay={(e) => {
                       const video = e.currentTarget;
                       video.play().catch(() => {});
@@ -423,7 +484,7 @@ export function HeroSection({ onOpenSignUp }: HeroSectionProps) {
         </div>
 
         {/* 2/3 Jackpot + 1/3 Bonus Grid */}
-        <div className="grid grid-cols-3 gap-2 h-24">
+        <div ref={jackpotGridRef} className="grid grid-cols-3 gap-2 h-24">
           {/* Jackpot Banner - 2/3 width */}
           <div 
             className="col-span-2 relative overflow-hidden rounded-xl cursor-pointer border border-border h-full"

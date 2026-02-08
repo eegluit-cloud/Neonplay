@@ -1,4 +1,7 @@
+import { useRef } from 'react';
 import { Home, Gamepad2, Volleyball } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import { cn } from '@/lib/utils';
 
 export type LobbyMode = 'all' | 'casino' | 'sports';
@@ -15,8 +18,34 @@ const modes = [
 ];
 
 export function LobbyModeSwitcher({ activeMode, onModeChange }: LobbyModeSwitcherProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!containerRef.current) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    gsap.from(containerRef.current, {
+      opacity: 0,
+      y: 8,
+      duration: 0.3,
+      delay: 0.4,
+      ease: 'power2.out',
+    });
+
+    const buttons = containerRef.current.querySelectorAll('button');
+    gsap.from(buttons, {
+      opacity: 0,
+      scale: 0.95,
+      duration: 0.25,
+      stagger: 0.08,
+      delay: 0.5,
+      ease: 'power2.out',
+    });
+  }, { scope: containerRef });
+
   return (
-    <div className="flex items-center gap-1.5 sm:gap-2">
+    <div ref={containerRef} className="flex items-center gap-1.5 sm:gap-2">
       {modes.map((mode) => {
         const isActive = activeMode === mode.id;
         return (

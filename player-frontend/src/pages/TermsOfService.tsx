@@ -9,8 +9,8 @@ const TermsOfService = () => (
         title: '1. Acceptance of Terms',
         content: (
           <div className="space-y-3">
-            <p>By accessing or using the Phibet platform ("Platform"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree with any part of these Terms, you must not use the Platform.</p>
-            <p>These Terms constitute a legally binding agreement between you and Phibet. We reserve the right to modify these Terms at any time, and your continued use of the Platform constitutes acceptance of any changes.</p>
+            <p>By accessing or using the PhiBet.io platform ("Platform"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree with any part of these Terms, you must not use the Platform.</p>
+            <p>These Terms constitute a legally binding agreement between you and PhiBet.io. We reserve the right to modify these Terms at any time, and your continued use of the Platform constitutes acceptance of any changes.</p>
           </div>
         ),
       },
@@ -36,7 +36,7 @@ const TermsOfService = () => (
         title: '4. Virtual Currency & Sweepstakes',
         content: (
           <div className="space-y-3">
-            <p>Phibet operates using virtual currencies including Gold Coins (for entertainment purposes only) and Sweepstakes Coins (which may be redeemed for prizes where legally permitted).</p>
+            <p>PhiBet.io operates using virtual currencies including Gold Coins (for entertainment purposes only) and Sweepstakes Coins (which may be redeemed for prizes where legally permitted).</p>
             <p>Gold Coins have no monetary value and cannot be exchanged for cash or prizes. Sweepstakes Coins are subject to specific redemption rules detailed in our Sweepstakes Rules.</p>
           </div>
         ),
@@ -61,25 +61,25 @@ const TermsOfService = () => (
       {
         title: '6. Intellectual Property',
         content: (
-          <p>All content on the Platform, including but not limited to text, graphics, logos, icons, images, audio clips, software, and the compilation thereof, is the property of Phibet or its content suppliers and is protected by international copyright laws.</p>
+          <p>All content on the Platform, including but not limited to text, graphics, logos, icons, images, audio clips, software, and the compilation thereof, is the property of PhiBet.io or its content suppliers and is protected by international copyright laws.</p>
         ),
       },
       {
         title: '7. Disclaimer of Warranties',
         content: (
-          <p>The Platform is provided "as is" and "as available" without any warranties of any kind, either express or implied. Phibet does not warrant that the Platform will be uninterrupted, error-free, or free of viruses or other harmful components.</p>
+          <p>The Platform is provided "as is" and "as available" without any warranties of any kind, either express or implied. PhiBet.io does not warrant that the Platform will be uninterrupted, error-free, or free of viruses or other harmful components.</p>
         ),
       },
       {
         title: '8. Limitation of Liability',
         content: (
-          <p>To the fullest extent permitted by law, Phibet shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or relating to your use of the Platform, including but not limited to loss of profits, data, or other intangible losses.</p>
+          <p>To the fullest extent permitted by law, PhiBet.io shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising out of or relating to your use of the Platform, including but not limited to loss of profits, data, or other intangible losses.</p>
         ),
       },
       {
         title: '9. Governing Law',
         content: (
-          <p>These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which Phibet is registered, without regard to its conflict of law provisions. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the courts in that jurisdiction.</p>
+          <p>These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which PhiBet.io is registered, without regard to its conflict of law provisions. Any disputes arising under these Terms shall be subject to the exclusive jurisdiction of the courts in that jurisdiction.</p>
         ),
       },
       {

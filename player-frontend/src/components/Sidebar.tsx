@@ -146,18 +146,18 @@ const navigationConfig: NavSection[] = [
 
 const useCountdown = (initialSeconds: number) => {
   const [seconds, setSeconds] = useState(initialSeconds);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       setSeconds(prev => (prev > 0 ? prev - 1 : initialSeconds));
     }, 1000);
     return () => clearInterval(interval);
   }, [initialSeconds]);
-  
+
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
   const secs = seconds % 60;
-  
+
   return { hours, minutes, secs, formatted: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}` };
 };
 
@@ -179,7 +179,7 @@ const ClaimableCoinsWidget = ({ onClaim }: { onClaim?: () => void }) => {
       {/* Background with gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-amber-900/80 via-[#3a2a1a]/70 to-[#1a1a1a]/60" />
       <div className="absolute right-0 top-1/2 -translate-y-1/2 w-32 h-32 bg-gradient-radial from-amber-500/20 via-yellow-500/10 to-transparent rounded-full blur-xl" />
-      
+
       {/* Glass overlay left panel */}
       <div className="relative">
         <div className="backdrop-blur-md bg-black/30 border-r border-white/10 p-3">
@@ -189,7 +189,7 @@ const ClaimableCoinsWidget = ({ onClaim }: { onClaim?: () => void }) => {
             <span className="text-green-400">$</span>
             <span className="text-white">100</span>
           </p>
-          
+
           {/* Timer */}
           <div className="flex items-center gap-1 mb-2">
             <div className="flex items-center gap-1">
@@ -209,9 +209,9 @@ const ClaimableCoinsWidget = ({ onClaim }: { onClaim?: () => void }) => {
               </div>
             </div>
           </div>
-          
+
           {/* Claim button */}
-          <button 
+          <button
             onClick={handleClaim}
             className="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-white font-semibold rounded-lg text-xs transition-all shadow-lg shadow-amber-500/20"
           >
@@ -256,7 +256,7 @@ const DailyWinnersWidget = () => {
           </div>
         </div>
       </div>
-      
+
       <div className="space-y-3">
         {winners.slice(0, 5).map((winner, i) => (
           <div key={`${winner.name}-${i}`} className="flex items-center gap-3">
@@ -279,7 +279,7 @@ const DailyWinnersWidget = () => {
 
 const VIPStatusWidget = ({ onNavigate }: { onNavigate: (path: string) => void }) => {
   const vip = useUserVIP();
-  
+
   return (
     <div className="p-3 bg-sidebar-accent rounded-xl shadow-[0_0_20px_rgba(251,191,36,0.15)]">
       {/* Top Row: VIP Badge + VIP Level + Badge + VIP Club Button */}
@@ -291,7 +291,7 @@ const VIPStatusWidget = ({ onNavigate }: { onNavigate: (path: string) => void })
             {vip.tierName}
           </span>
         </div>
-        <button 
+        <button
           onClick={() => onNavigate('/vip')}
           className="ml-auto text-amber-400 text-sm font-medium hover:text-amber-300 transition-colors flex items-center gap-1 flex-shrink-0"
         >
@@ -299,10 +299,10 @@ const VIPStatusWidget = ({ onNavigate }: { onNavigate: (path: string) => void })
           <ChevronDown className="w-4 h-4 rotate-[-90deg]" />
         </button>
       </div>
-      
+
       {/* Progress Bar */}
       <div className="w-full h-2 bg-background rounded-full overflow-hidden">
-        <div 
+        <div
           className="h-full bg-gradient-to-r from-amber-500 to-yellow-500 rounded-full relative"
           style={{ width: `${vip.progressPercent}%` }}
         >
@@ -346,7 +346,7 @@ const ThemeToggle = () => {
           className={cn(
             "flex-1 px-4 py-2 text-xs font-semibold rounded-full transition-all duration-200 capitalize",
             (mode === 'dark' ? isDark : !isDark)
-              ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white" 
+              ? "bg-gradient-to-r from-amber-500 to-yellow-500 text-white"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
@@ -391,8 +391,8 @@ const NavItemButton = ({ item, isActive, isOpen, onClick }: NavItemButtonProps) 
         aria-label={item.label}
         className={cn(
           "w-full flex items-center justify-center p-2 sm:p-3 rounded-xl transition-colors tap-feedback",
-          isActive 
-            ? "bg-amber-500/20 text-amber-400" 
+          isActive
+            ? "bg-amber-500/20 text-amber-400"
             : "hover:bg-sidebar-accent active:bg-sidebar-accent text-muted-foreground hover:text-foreground"
         )}
       >
@@ -455,7 +455,7 @@ const CollapsibleSection = ({ section, isOpen, isActive, onNavigate }: Collapsib
 
   // Check if any item in this section is currently active
   const hasActiveChild = section.items.some(item => isActive(item.href));
-  
+
   // Check if the section itself is active (for sections with directLink)
   const isSectionActive = directLink ? location.pathname === directLink || location.pathname.startsWith(directLink + '/') : false;
 
@@ -510,7 +510,7 @@ const CollapsibleSection = ({ section, isOpen, isActive, onNavigate }: Collapsib
           </div>
         )}
       </button>
-      
+
       {/* Dropdown items with smooth expand */}
       {hasItems && expanded && (
         <div className="mt-0.5 ml-2 space-y-0.5 animate-fade-in">
@@ -577,7 +577,7 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
-  
+
   const isActive = (href: string) => {
     if (href === '/') return location.pathname === '/';
     if (href === '#') return false;
@@ -595,7 +595,7 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
       });
       return;
     }
-    
+
     if (href === '#') return;
 
     // Handle external links
@@ -614,7 +614,7 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
     const isAlreadyOnRoute = href === '/'
       ? location.pathname === '/'
       : location.pathname.startsWith(cleanHref) && !href.includes('?');
-      
+
     if (isAlreadyOnRoute) {
       // Already on route - just scroll to top
       window.scrollTo({ top: 0, behavior: 'auto' });
@@ -645,18 +645,18 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
     }, 0);
   };
 
-  const collapsibleSections = useMemo(() => 
+  const collapsibleSections = useMemo(() =>
     navigationConfig.filter(s => s.collapsible), []);
-  
-  const staticSections = useMemo(() => 
+
+  const staticSections = useMemo(() =>
     navigationConfig.filter(s => !s.collapsible), []);
 
   return (
     <>
       {/* Mobile Overlay - only on mobile, not tablet */}
       {isOpen && (
-        <div 
-          className="fixed inset-0 bg-black/70 z-40 md:hidden animate-fade-in" 
+        <div
+          className="fixed inset-0 bg-black/70 z-40 md:hidden animate-fade-in"
           onClick={onToggle}
           aria-hidden="true"
           role="button"
@@ -664,9 +664,9 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
           onKeyDown={(e) => e.key === 'Escape' && onToggle()}
         />
       )}
-      
+
       {/* Sidebar - responsive for mobile, tablet, and desktop */}
-      <aside 
+      <aside
         className={cn(
           "fixed left-0 bg-sidebar z-40",
           "top-0 h-full",
@@ -681,16 +681,14 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
           !isOpen && "-translate-x-full md:translate-x-0"
         )}
         aria-label="Main navigation"
-        role="dialog"
-        aria-modal="true"
       >
         <div className="flex flex-col h-full overflow-hidden">
-          
+
           {/* Mobile Header - hidden on tablet and desktop */}
           {isOpen && (
             <div className="md:hidden flex items-center justify-between px-4 py-4 border-b border-border/50 safe-top">
               <NeonPlayLogo size="sm" />
-              <button 
+              <button
                 onClick={onToggle}
                 aria-label="Close sidebar"
                 className="w-10 h-10 flex items-center justify-center bg-[#2a2a2a] hover:bg-[#3a3a3a] active:bg-[#1a1a1a] rounded-xl transition-colors tap-feedback"
@@ -699,10 +697,10 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
               </button>
             </div>
           )}
-          
+
           {/* Scrollable Content */}
           <div className="flex-1 overflow-y-auto scrollbar-themed-autohide scroll-smooth-mobile px-3 py-3 md:py-4 lg:py-6 space-y-1.5">
-            
+
             {/* VIP Status */}
             {isOpen && <VIPStatusWidget onNavigate={handleNavigate} />}
 

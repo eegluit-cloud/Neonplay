@@ -110,7 +110,7 @@ export class GamesController {
         },
       };
     }
-    return this.gamesService.getUserFavorites(userId, query);
+    return this.gamesService.getUserFavorites(userId, query ?? { page: 1, limit: 20 });
   }
 
   @UseGuards(JwtAuthGuard)

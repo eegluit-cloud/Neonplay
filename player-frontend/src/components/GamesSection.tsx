@@ -1,6 +1,9 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, Heart, ChevronRight, ChevronLeft, Grid3X3, X, Sparkles, Tv, Search, User, LayoutGrid, Check, Loader2 } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cn } from '@/lib/utils';
 import { ApiGameCard } from './ApiGameCard';
 import { useGames, useGameProviders, Game } from '@/hooks/useGames';
@@ -37,6 +40,53 @@ const GameSectionRow = memo(function GameSectionRow({
   onToggleFavorite,
   isAuthenticated
 }: GameSectionRowProps) {
+  const rowRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!rowRef.current) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Header fadeUp
+    if (headerRef.current) {
+      gsap.from(headerRef.current, {
+        opacity: 0,
+        y: 15,
+        duration: 0.4,
+        ease: 'power2.out',
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: rowRef.current,
+          start: 'top 88%',
+          once: true,
+        },
+      });
+    }
+
+    // Card stagger
+    const cards = rowRef.current.querySelectorAll('.game-card-item');
+    if (cards.length === 0) return;
+
+    ScrollTrigger.create({
+      trigger: rowRef.current,
+      start: 'top 88%',
+      once: true,
+      onEnter: () => {
+        const cardArray = Array.from(cards) as HTMLElement[];
+        const viewportWidth = window.innerWidth;
+        const visible = cardArray.filter(el => el.getBoundingClientRect().left < viewportWidth + 100);
+
+        if (visible.length > 0) {
+          gsap.fromTo(visible,
+            { opacity: 0, y: 25, scale: 0.93 },
+            { opacity: 1, y: 0, scale: 1, duration: 0.4, stagger: 0.06, delay: 0.2, ease: 'power2.out' },
+          );
+        }
+      },
+    });
+  }, { scope: rowRef });
+
   const scrollLeft = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollBy({ left: -300, behavior: 'smooth' });
@@ -52,8 +102,8 @@ const GameSectionRow = memo(function GameSectionRow({
   if (games.length === 0) return null;
 
   return (
-    <div>
-      <div className="mt-1 sm:mt-2 md:mt-4 h-6 sm:h-7 md:h-8 flex items-center justify-between mb-1.5 sm:mb-2 md:mb-4 min-h-0">
+    <div ref={rowRef}>
+      <div ref={headerRef} className="mt-1 sm:mt-2 md:mt-4 h-6 sm:h-7 md:h-8 flex items-center justify-between mb-1.5 sm:mb-2 md:mb-4 min-h-0">
         <h2 className="text-sm sm:text-base font-semibold flex items-center gap-1 sm:gap-1.5 md:gap-2">
           {icon}
           {title}
@@ -73,7 +123,7 @@ const GameSectionRow = memo(function GameSectionRow({
 
       <div ref={scrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
         {games.map((game, index) => (
-          <div key={game.id} className="flex-shrink-0 w-[28vw] md:w-[calc((100%-24px)/4.5)] lg:w-[calc((100%-56px)/8)]">
+          <div key={game.id} className="game-card-item flex-shrink-0 w-[28vw] md:w-[calc((100%-24px)/4.5)] lg:w-[calc((100%-56px)/8)]">
             <ApiGameCard
               game={game}
               priority={index < 4}
@@ -100,6 +150,27 @@ export function GamesSection() {
   const slotsScrollRef = useRef<HTMLDivElement>(null);
   const newGamesScrollRef = useRef<HTMLDivElement>(null);
   const liveCasinoScrollRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const searchBarRef = useRef<HTMLDivElement>(null);
+
+  // Search bar fadeUp animation
+  useGSAP(() => {
+    if (!searchBarRef.current) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    gsap.from(searchBarRef.current, {
+      opacity: 0,
+      y: 15,
+      duration: 0.4,
+      ease: 'power2.out',
+      scrollTrigger: {
+        trigger: searchBarRef.current,
+        start: 'top 85%',
+        once: true,
+      },
+    });
+  }, { scope: sectionRef });
 
   const { isAuthenticated } = useAuth();
   const { favoriteIds, toggleFavorite } = useFavorites();
@@ -150,9 +221,9 @@ export function GamesSection() {
   }, [isAuthenticated, toggleFavorite]);
 
   return (
-    <section className="space-y-4 !mt-0 sm:!-mt-1 lg:!-mt-1">
+    <section ref={sectionRef} className="space-y-4 !mt-0 sm:!-mt-1 lg:!-mt-1">
       {/* Search Bar Row */}
-      <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
+      <div ref={searchBarRef} className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input

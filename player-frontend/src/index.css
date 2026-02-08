@@ -149,7 +149,7 @@
     /* Prevent horizontal scroll */
     overflow-x: hidden;
   }
-  
+
   /* Prevent layout shift when scrollbar appears/disappears - desktop only */
   @media (min-width: 768px) {
     html {
@@ -157,38 +157,38 @@
       scrollbar-width: thin;
       scrollbar-color: hsl(187 85% 53% / 0.5) hsl(220 20% 8%);
     }
-    
+
     html::-webkit-scrollbar {
       width: 8px;
     }
-    
+
     html::-webkit-scrollbar-track {
       background: hsl(220 20% 8%);
     }
-    
+
     html::-webkit-scrollbar-thumb {
       background: hsl(187 85% 53% / 0.5);
       border-radius: 10px;
       border: 1px solid hsl(220 20% 8%);
     }
-    
+
     html::-webkit-scrollbar-thumb:hover {
       background: hsl(187 85% 53% / 0.8);
     }
-    
+
     html.light::-webkit-scrollbar-track {
       background: hsl(210 15% 94%);
     }
-    
+
     html.light::-webkit-scrollbar-thumb {
       background: hsl(187 85% 45% / 0.4);
       border: 1px solid hsl(210 15% 94%);
     }
-    
+
     html.light::-webkit-scrollbar-thumb:hover {
       background: hsl(187 85% 45% / 0.7);
     }
-    
+
     html.light {
       scrollbar-color: hsl(187 85% 45% / 0.4) hsl(210 15% 94%);
     }
@@ -201,23 +201,29 @@
     min-height: 100vh;
     min-height: 100dvh;
     /* Prevent overscroll/bounce on iOS */
-    overscroll-behavior: none;
+    overscroll-behavior: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Force override any scroll locks - High Specificity */
+  html:root body.antigravity-scroll-lock {
+    overflow: auto !important;
+    overflow-y: auto !important;
   }
 
   /* Safe area support for notched devices */
   .safe-top {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  
+
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
-  
+
   .safe-left {
     padding-left: env(safe-area-inset-left, 0px);
   }
-  
+
   .safe-right {
     padding-right: env(safe-area-inset-right, 0px);
   }
@@ -236,17 +242,19 @@
   /* Tablet Portrait: 768px - 834px */
   /* Tablet Landscape: 834px - 1024px */
   /* Uses md: (768px) and lg: (1024px) breakpoints */
-  
+
   @media (min-width: 768px) and (max-width: 1023px) {
+
     /* Tablet-specific app shell */
     #root {
       display: flex;
       flex-direction: column;
       min-height: 100dvh;
     }
-    
+
     /* Tablet container max-width */
-    .container, .container-tablet {
+    .container,
+    .container-tablet {
       max-width: 100%;
       padding-left: 1.5rem;
       padding-right: 1.5rem;
@@ -255,7 +263,7 @@
 
   /* ========== MOBILE-FIRST TYPOGRAPHY SYSTEM ========== */
   /* Based on Home page design - consistent across all pages */
-  
+
   h1 {
     font-family: 'Inter', sans-serif;
     font-weight: 700;
@@ -284,7 +292,8 @@
     @apply text-sm sm:text-base md:text-lg;
   }
 
-  h5, h6 {
+  h5,
+  h6 {
     font-family: 'Inter', sans-serif;
     font-weight: 600;
     line-height: 1.4;
@@ -297,22 +306,33 @@
   }
 
   /* Small/caption text */
-  small, .text-caption {
+  small,
+  .text-caption {
     @apply text-xs sm:text-sm;
     line-height: 1.5;
   }
 
   /* ========== TAP TARGETS - 44px minimum ========== */
-  button, a, [role="button"] {
+  button,
+  a,
+  [role="button"] {
     min-height: 44px;
     min-width: 44px;
   }
 
   /* Allow smaller elements with explicit class */
-  .btn-sm, .tap-sm, 
-  [class*="h-6"], [class*="h-7"], [class*="h-8"], [class*="h-9"], 
-  [class*="w-6"], [class*="w-7"], [class*="w-8"], [class*="w-9"],
-  .text-xs, .text-sm {
+  .btn-sm,
+  .tap-sm,
+  [class*="h-6"],
+  [class*="h-7"],
+  [class*="h-8"],
+  [class*="h-9"],
+  [class*="w-6"],
+  [class*="w-7"],
+  [class*="w-8"],
+  [class*="w-9"],
+  .text-xs,
+  .text-sm {
     min-height: auto;
     min-width: auto;
   }
@@ -324,16 +344,9 @@
   /* Padding: px-4 mobile, px-6 desktop */
   /* Font: text-sm font-semibold */
   /* Radius: rounded-lg (0.5rem) */
-  
+
   .btn-base {
-    @apply inline-flex items-center justify-center gap-2 
-           h-11 md:h-12 px-4 md:px-6 
-           text-sm font-semibold 
-           rounded-lg 
-           whitespace-nowrap 
-           transition-all duration-200
-           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-           disabled:pointer-events-none disabled:opacity-50;
+    @apply inline-flex items-center justify-center gap-2 h-11 md:h-12 px-4 md:px-6 text-sm font-semibold rounded-lg whitespace-nowrap transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50;
   }
 
   .btn-primary {
@@ -407,7 +420,7 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(0,0,0,0.15) 0%, transparent 50%);
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.15) 0%, transparent 50%);
     border-radius: inherit;
     pointer-events: none;
     z-index: 1;
@@ -492,13 +505,11 @@
   }
 
   .light .hero-light-overlay {
-    background: linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.1) 0%,
-      transparent 40%,
-      transparent 60%,
-      rgba(255, 255, 255, 0.05) 100%
-    );
+    background: linear-gradient(135deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        transparent 40%,
+        transparent 60%,
+        rgba(255, 255, 255, 0.05) 100%);
     border: 1px solid rgba(255, 255, 255, 0.3);
     border-radius: inherit;
   }
@@ -546,7 +557,7 @@
   }
 
   /* ========== LIGHT MODE GLOBAL STYLES ========== */
-  
+
   /* Text colors for light mode */
   .light h1,
   .light h2,
@@ -629,7 +640,7 @@
   }
 
   /* Dropdown menus light mode */
-  .light [data-radix-popper-content-wrapper] > div {
+  .light [data-radix-popper-content-wrapper]>div {
     background-color: hsl(0 0% 100%);
     border-color: hsl(220 15% 88%);
   }
@@ -805,97 +816,105 @@
 
   /* ========== CUSTOM THEMED SCROLLBAR ========== */
   /* Thin, dark-themed scrollbar with cyan accent for desktop */
-  
+
   /* Webkit browsers (Chrome, Safari, Edge) */
   .scrollbar-themed::-webkit-scrollbar {
     width: 6px;
   }
-  
+
   .scrollbar-themed::-webkit-scrollbar-track {
     background: hsl(220 20% 8%);
     border-radius: 10px;
   }
-  
+
   .scrollbar-themed::-webkit-scrollbar-thumb {
     background: hsl(187 85% 53% / 0.5);
     border-radius: 10px;
   }
-  
+
   .scrollbar-themed::-webkit-scrollbar-thumb:hover {
     background: hsl(187 85% 53% / 0.8);
   }
-  
+
   /* Firefox */
   .scrollbar-themed {
     scrollbar-width: thin;
     scrollbar-color: hsl(187 85% 53% / 0.5) hsl(220 20% 8%);
   }
-  
+
   /* Auto-hide variant: scrollbar visible only on container hover */
   .scrollbar-themed-autohide::-webkit-scrollbar {
     width: 5px;
   }
-  
+
   .scrollbar-themed-autohide::-webkit-scrollbar-track {
     background: transparent;
   }
-  
+
   .scrollbar-themed-autohide::-webkit-scrollbar-thumb {
     background: transparent;
     border-radius: 10px;
     transition: background 0.3s ease;
   }
-  
+
   .scrollbar-themed-autohide:hover::-webkit-scrollbar-thumb {
     background: hsl(187 85% 53% / 0.5);
   }
-  
+
   .scrollbar-themed-autohide:hover::-webkit-scrollbar-thumb:hover {
     background: hsl(187 85% 53% / 0.8);
   }
-  
+
   /* Firefox auto-hide */
   .scrollbar-themed-autohide {
     scrollbar-width: thin;
     scrollbar-color: transparent transparent;
   }
-  
+
   .scrollbar-themed-autohide:hover {
     scrollbar-color: hsl(187 85% 53% / 0.5) transparent;
   }
-  
+
   /* Hide themed scrollbars on mobile for app-like feel */
   @media (max-width: 767px) {
+
     .scrollbar-themed::-webkit-scrollbar,
     .scrollbar-themed-autohide::-webkit-scrollbar {
       display: none;
     }
+
     .scrollbar-themed,
     .scrollbar-themed-autohide {
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
   }
-  
+
   /* Light mode scrollbar variants */
   .light .scrollbar-themed::-webkit-scrollbar-track {
     background: hsl(210 15% 94%);
   }
+
   .light .scrollbar-themed::-webkit-scrollbar-thumb {
     background: hsl(187 85% 45% / 0.4);
   }
+
   .light .scrollbar-themed::-webkit-scrollbar-thumb:hover {
     background: hsl(187 85% 45% / 0.7);
   }
+
   .light .scrollbar-themed {
     scrollbar-color: hsl(187 85% 45% / 0.4) hsl(210 15% 94%);
   }
+
   .light .scrollbar-themed-autohide:hover::-webkit-scrollbar-thumb {
     background: hsl(187 85% 45% / 0.4);
   }
+
   .light .scrollbar-themed-autohide:hover::-webkit-scrollbar-thumb:hover {
     background: hsl(187 85% 45% / 0.7);
   }
+
   .light .scrollbar-themed-autohide:hover {
     scrollbar-color: hsl(187 85% 45% / 0.4) transparent;
   }
@@ -905,6 +924,7 @@
     from {
       transform: rotate(0deg);
     }
+
     to {
       transform: rotate(360deg);
     }
@@ -916,9 +936,12 @@
 
   /* Floating Animation */
   @keyframes float {
-    0%, 100% {
+
+    0%,
+    100% {
       transform: translateY(0);
     }
+
     50% {
       transform: translateY(-10px);
     }
@@ -934,6 +957,7 @@
       transform: translateY(100%);
       opacity: 0;
     }
+
     to {
       transform: translateY(0);
       opacity: 1;
@@ -946,9 +970,12 @@
 
   /* Pulse Glow */
   @keyframes pulse-glow {
-    0%, 100% {
+
+    0%,
+    100% {
       box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
     }
+
     50% {
       box-shadow: 0 0 40px hsl(var(--primary) / 0.6);
     }
@@ -963,6 +990,7 @@
     0% {
       background-position: -200% 0;
     }
+
     100% {
       background-position: 200% 0;
     }
@@ -979,6 +1007,7 @@
     0% {
       left: -100%;
     }
+
     100% {
       left: 100%;
     }
@@ -996,12 +1025,10 @@
     left: -100%;
     width: 50%;
     height: 100%;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.4) 50%,
-      transparent 100%
-    );
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%);
     animation: light-sweep 4s ease-in-out infinite;
   }
 }
@@ -1079,23 +1106,23 @@
   .grid-games-tablet {
     @apply grid grid-cols-3 gap-2;
   }
-  
+
   @media (min-width: 834px) and (max-width: 1023px) {
     .grid-games-tablet {
       @apply grid-cols-4;
     }
   }
-  
+
   /* Promotional cards: 2 cols tablet */
   .grid-promos-tablet {
     @apply grid grid-cols-2 gap-4;
   }
-  
+
   /* Form layouts: 2 cols on tablet */
   .grid-form-tablet {
     @apply grid grid-cols-1 gap-4;
   }
-  
+
   @media (min-width: 768px) {
     .grid-form-tablet {
       @apply grid-cols-2;
@@ -1130,17 +1157,17 @@
       font-size: 1rem;
       line-height: 1.5;
     }
-    
+
     .text-tablet-lg {
       font-size: 1.125rem;
       line-height: 1.4;
     }
-    
+
     .text-tablet-xl {
       font-size: 1.25rem;
       line-height: 1.35;
     }
-    
+
     .text-tablet-2xl {
       font-size: 1.5rem;
       line-height: 1.3;
@@ -1153,16 +1180,16 @@
     .tablet-hide-bottom-nav {
       display: none;
     }
-    
+
     .tablet-show-sidebar {
       display: block;
     }
-    
+
     /* Tablet sidebar width */
     .tablet-sidebar-width {
       width: 14rem;
     }
-    
+
     .tablet-sidebar-collapsed {
       width: 4rem;
     }
@@ -1174,7 +1201,7 @@
       max-width: 80vw;
       max-height: 85vh;
     }
-    
+
     .tablet-modal-lg {
       max-width: 90vw;
       max-height: 90vh;
@@ -1184,9 +1211,12 @@
 
 /* Jackpot glow animation */
 @keyframes jackpot-glow {
-  0%, 100% {
+
+  0%,
+  100% {
     filter: drop-shadow(0 0 2px rgba(255, 215, 0, 0.3));
   }
+
   50% {
     filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7)) drop-shadow(0 0 12px rgba(255, 180, 0, 0.5));
   }
@@ -1194,9 +1224,12 @@
 
 /* Slow blink animation for player dots */
 @keyframes slow-blink {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.4;
   }
@@ -1211,6 +1244,7 @@
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
@@ -1221,9 +1255,12 @@
 }
 
 @keyframes bounce-slow {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-4px);
   }
@@ -1234,9 +1271,12 @@
 }
 
 @keyframes pulse-subtle {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.95;
   }
@@ -1285,6 +1325,7 @@
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1300,6 +1341,7 @@
   from {
     transform: translateX(-100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -1309,6 +1351,7 @@
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(-100%);
   }
@@ -1324,22 +1367,26 @@
 
 /* Prevent text selection on interactive elements (app-like) */
 @media (max-width: 767px) {
-  button, a, [role="button"], .no-select {
+
+  button,
+  a,
+  [role="button"],
+  .no-select {
     -webkit-user-select: none;
     user-select: none;
   }
-  
+
   /* Smooth momentum scrolling */
   .scroll-smooth-mobile {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
   }
-  
+
   /* Hide scrollbars on mobile for cleaner look */
   .scrollbar-hide-mobile::-webkit-scrollbar {
     display: none;
   }
-  
+
   .scrollbar-hide-mobile {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -1381,8 +1428,13 @@ img {
 
 /* Smooth fade-in for lazy loaded content */
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .animate-fade-in {
@@ -1391,18 +1443,23 @@ img {
 
 /* Optimized skeleton pulse animation */
 @keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .skeleton-loading {
   animation: skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  background: linear-gradient(
-    90deg,
-    hsl(var(--muted)) 0%,
-    hsl(var(--muted) / 0.5) 50%,
-    hsl(var(--muted)) 100%
-  );
+  background: linear-gradient(90deg,
+      hsl(var(--muted)) 0%,
+      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted)) 100%);
   background-size: 200% 100%;
 }
 
@@ -1426,9 +1483,19 @@ img {
 
 /* Shimmer animation for slot machine win effect */
 @keyframes shimmer {
-  0% { transform: translateX(-100%); opacity: 0; }
-  50% { opacity: 1; }
-  100% { transform: translateX(100%); opacity: 0; }
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
 }
 
 .animate-shimmer {
@@ -1437,9 +1504,26 @@ img {
 
 /* Shake animation for error states */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
-  20%, 40%, 60%, 80% { transform: translateX(4px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-4px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 .animate-shake {
@@ -1448,8 +1532,15 @@ img {
 
 /* Subtle glow pulse for modal panels */
 @keyframes glow-pulse {
-  0%, 100% { box-shadow: inset 0 0 30px hsl(187 85% 53% / 0.05); }
-  50% { box-shadow: inset 0 0 60px hsl(187 85% 53% / 0.12); }
+
+  0%,
+  100% {
+    box-shadow: inset 0 0 30px hsl(187 85% 53% / 0.05);
+  }
+
+  50% {
+    box-shadow: inset 0 0 60px hsl(187 85% 53% / 0.12);
+  }
 }
 
 .animate-glow-pulse {
@@ -1458,6 +1549,7 @@ img {
 
 /* ========== ACCESSIBILITY: Reduced Motion ========== */
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -1475,6 +1567,7 @@ img {
   filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.3));
   transition: filter 0.3s ease;
 }
+
 .neon-glow:hover {
   filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.5));
 }
@@ -1484,6 +1577,7 @@ img {
   box-shadow: 0 0 20px hsl(187 85% 53% / 0.4);
   transition: all 0.2s ease;
 }
+
 .game-overlay button:hover {
   box-shadow: 0 0 30px hsl(187 85% 53% / 0.6);
 }
@@ -1497,10 +1591,12 @@ img {
 .header-icon-btn {
   transition: all 0.2s ease;
 }
+
 .header-icon-btn:hover {
   background-color: hsl(var(--secondary) / 0.5);
   color: hsl(var(--foreground));
 }
+
 .header-icon-btn:active {
   transform: scale(0.93);
 }
@@ -1509,15 +1605,23 @@ img {
 .badge-pulse {
   animation: badge-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
+
 @keyframes badge-ping {
-  0% { box-shadow: 0 0 0 0 currentColor; }
-  75%, 100% { box-shadow: 0 0 0 6px transparent; }
+  0% {
+    box-shadow: 0 0 0 0 currentColor;
+  }
+
+  75%,
+  100% {
+    box-shadow: 0 0 0 6px transparent;
+  }
 }
 
 /* Footer link underline animation */
 .footer-link {
   position: relative;
 }
+
 .footer-link::after {
   content: '';
   position: absolute;
@@ -1528,14 +1632,23 @@ img {
   background: hsl(var(--primary));
   transition: width 0.2s ease;
 }
+
 .footer-link:hover::after {
   width: 100%;
 }
 
 /* Leaderboard rank badge glow for top 3 */
-.rank-gold { box-shadow: 0 0 8px hsl(42 100% 50% / 0.3); }
-.rank-silver { box-shadow: 0 0 8px hsl(0 0% 70% / 0.3); }
-.rank-bronze { box-shadow: 0 0 8px hsl(25 100% 55% / 0.3); }
+.rank-gold {
+  box-shadow: 0 0 8px hsl(42 100% 50% / 0.3);
+}
+
+.rank-silver {
+  box-shadow: 0 0 8px hsl(0 0% 70% / 0.3);
+}
+
+.rank-bronze {
+  box-shadow: 0 0 8px hsl(25 100% 55% / 0.3);
+}
 
 /* Social icon hover color effects */
 .social-hover:hover {

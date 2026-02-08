@@ -25,7 +25,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use('/uploads', express.static(path.join(__dirname, '..', 'player-backend', 'uploads')));
+
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -37,6 +37,10 @@ app.use('/api/reports', reportsRoutes);
 app.use('/api/admins', adminsRoutes);
 app.use('/api/vip', vipRoutes);
 app.use('/api/huidu', huiduRoutes);
+app.use('/api/upload', require('./routes/upload'));
+
+// Serve static files from public directory
+app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
 // Health check
 app.get('/health', (req, res) => {

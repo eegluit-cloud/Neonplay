@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import phibetLogo from '@/assets/phibet-logo.png';
+import phibetLogoIcon from '@/assets/phibet-logo-icon.svg';
 
 interface NeonPlayLogoProps {
   className?: string;
@@ -19,19 +19,19 @@ export function NeonPlayLogo({ className, size = 'md', showText = true }: NeonPl
 
   return (
     <div className={cn('flex items-center', gap, className)}>
-      <div className={cn('flex-shrink-0 rounded-xl overflow-hidden flex items-center justify-center', icon)}>
+      <div className={cn('flex-shrink-0 overflow-hidden flex items-center justify-center', icon)}>
         <img
-          src={phibetLogo}
-          alt="Phibet"
-          className="w-full h-full object-cover"
+          src={phibetLogoIcon}
+          alt="PhiBet.io"
+          className="w-full h-full object-contain"
         />
       </div>
       {showText && (
         <span className={cn(
-          'font-bold bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent',
+          'font-bold text-amber-500 dark:text-amber-400',
           text
         )}>
-          Phibet
+          PhiBet.io
         </span>
       )}
     </div>
@@ -41,11 +41,11 @@ export function NeonPlayLogo({ className, size = 'md', showText = true }: NeonPl
 // Icon-only version for compact spaces
 export function NeonPlayIcon({ className }: { className?: string }) {
   return (
-    <div className={cn('rounded-xl overflow-hidden flex items-center justify-center', className)}>
+    <div className={cn('flex items-center justify-center', className)}>
       <img
-        src={phibetLogo}
-        alt="Phibet"
-        className="w-full h-full object-cover"
+        src={phibetLogoIcon}
+        alt="PhiBet.io"
+        className="w-full h-full object-contain"
       />
     </div>
   );

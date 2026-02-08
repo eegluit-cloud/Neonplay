@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Calendar, CalendarDays, CalendarRange, DollarSign } from "lucide-react";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
@@ -36,6 +38,80 @@ const Leaderboard = () => {
   const [activeTab, setActiveTab] = useState("leaderboard");
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Animation refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const statsBarRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLDivElement>(null);
+  const paginationRef = useRef<HTMLDivElement>(null);
+
+  // 5-phase orchestrated reveal
+  useGSAP(() => {
+    if (!containerRef.current) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: containerRef.current,
+        start: 'top 80%',
+        once: true,
+      },
+    });
+
+    // Phase 1: Container entrance
+    tl.from(containerRef.current, {
+      opacity: 0, y: 30, scale: 0.97,
+      duration: 0.5, ease: 'power3.out',
+    });
+
+    // Phase 2: Header reveal
+    if (headerRef.current) {
+      const buttons = headerRef.current.querySelectorAll('button, .flex');
+      tl.from(headerRef.current.children, {
+        opacity: 0, y: 10,
+        duration: 0.3, stagger: 0.06, ease: 'power2.out',
+      }, '-=0.2');
+    }
+
+    // Phase 3: Stats bar
+    if (statsBarRef.current) {
+      tl.from(statsBarRef.current, {
+        opacity: 0, x: -20,
+        duration: 0.4, ease: 'power2.out',
+      }, '-=0.1');
+    }
+
+    // Phase 4: Table rows
+    if (tableRef.current) {
+      const rows = tableRef.current.querySelectorAll('tr');
+      if (rows.length > 0) {
+        tl.from(rows, {
+          opacity: 0, x: -15,
+          duration: 0.3, stagger: 0.05, ease: 'power2.out',
+        }, '-=0.1');
+
+        // Top 3 glow pulse
+        const topRows = Array.from(rows).slice(1, 4); // skip header
+        if (topRows.length > 0) {
+          tl.fromTo(topRows,
+            { boxShadow: '0 0 0px hsl(42 100% 50% / 0)' },
+            { boxShadow: '0 0 15px hsl(42 100% 50% / 0.2)',
+              duration: 0.5, yoyo: true, repeat: 1, stagger: 0.1 },
+            '-=0.3'
+          );
+        }
+      }
+    }
+
+    // Phase 5: Pagination
+    if (paginationRef.current) {
+      tl.from(paginationRef.current, {
+        opacity: 0, duration: 0.3,
+      }, '-=0.2');
+    }
+  }, { scope: containerRef });
+
   useEffect(() => {
     changePeriod(period);
   }, [period, changePeriod]);
@@ -57,9 +133,9 @@ const Leaderboard = () => {
   };
 
   return (
-    <div className="w-full bg-card rounded-xl p-4 md:p-6 border border-border">
+    <div ref={containerRef} className="w-full bg-card rounded-xl p-4 md:p-6 border border-border">
       {/* Header with tabs and period selector on same line */}
-      <div className="flex items-center justify-between gap-2 sm:gap-4 mb-6">
+      <div ref={headerRef} className="flex items-center justify-between gap-2 sm:gap-4 mb-6">
         <div className="relative flex items-center bg-[#1a1a1a] rounded-full p-1 border border-amber-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)] h-11">
           {tabs.map((tab) => (
             <button
@@ -96,7 +172,7 @@ const Leaderboard = () => {
       </div>
 
       {/* User Stats Bar - Mobile optimized */}
-      <div className="bg-[#1a1a1a] rounded-xl p-2.5 mb-4 border border-amber-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
+      <div ref={statsBarRef} className="bg-[#1a1a1a] rounded-xl p-2.5 mb-4 border border-amber-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
         <div className="flex items-center gap-2.5 md:gap-5">
           <div className="flex items-center gap-2">
             <Avatar className="w-7 h-7">
@@ -124,7 +200,7 @@ const Leaderboard = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="overflow-x-auto md:overflow-visible">
+      <div ref={tableRef} className="overflow-x-auto md:overflow-visible">
         {activeTab === "leaderboard" && (
           <Table>
             <TableHeader>
@@ -246,7 +322,7 @@ const Leaderboard = () => {
       </div>
 
       {/* Pagination */}
-      <div className="flex items-center justify-center gap-2 mt-6">
+      <div ref={paginationRef} className="flex items-center justify-center gap-2 mt-6">
         <button className="w-8 h-8 flex items-center justify-center rounded-lg bg-card border border-border text-muted-foreground hover:bg-amber-500/10 hover:border-amber-500/50 transition-colors">
           <ChevronLeft className="w-4 h-4" />
         </button>

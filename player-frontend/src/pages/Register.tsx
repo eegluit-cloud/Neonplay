@@ -782,7 +782,7 @@ export default function Register() {
               padding: '1px'
             }} />
             <div className="text-center mb-3 sm:mb-4">
-              <h2 className="text-base sm:text-lg font-bold text-white mb-1">Phibet Champions Live Board</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white mb-1">PhiBet.io Champions Live Board</h2>
               <p className="text-muted-foreground text-[10px] sm:text-[11px]">Earn points, rise through the levels, and Get Your Rewards.</p>
             </div>
 

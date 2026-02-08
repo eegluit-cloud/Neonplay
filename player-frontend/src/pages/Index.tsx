@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -42,6 +43,13 @@ const Index = () => {
 
   // Prefetch common routes after initial load for instant navigation
   usePrefetchCommonRoutes(['/casino', '/sports', '/promotions', '/profile', '/favorites']);
+
+  // Refresh ScrollTrigger after layout stabilizes to fix position calculations
+  // This prevents sections from staying invisible when triggers fire too early
+  useEffect(() => {
+    const timer = setTimeout(() => ScrollTrigger.refresh(), 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   const showCasino = lobbyMode === 'all' || lobbyMode === 'casino';
   const showSports = lobbyMode === 'all' || lobbyMode === 'sports';

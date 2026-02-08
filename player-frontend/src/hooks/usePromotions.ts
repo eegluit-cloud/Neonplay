@@ -42,9 +42,9 @@ export const usePromotions = () => {
     fetchPromotions();
   }, [fetchPromotions]);
 
-  const claimPromotion = async (promotionId: string) => {
+  const claimPromotion = async (slug: string) => {
     try {
-      await promotionsApi.claim(promotionId);
+      await promotionsApi.claim(slug);
       await fetchPromotions();
       return true;
     } catch (err: any) {

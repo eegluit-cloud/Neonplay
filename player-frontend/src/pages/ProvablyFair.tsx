@@ -9,8 +9,8 @@ const ProvablyFair = () => (
         title: 'What is Provably Fair?',
         content: (
           <div className="space-y-3">
-            <p>Provably Fair is a cryptographic technology that allows you to independently verify the fairness of every game outcome on Phibet. Unlike traditional online casinos where you must trust that the platform is fair, Provably Fair provides mathematical proof that game results have not been tampered with.</p>
-            <p>This system ensures that neither Phibet nor the player can predict or manipulate the outcome of any game before it occurs.</p>
+            <p>Provably Fair is a cryptographic technology that allows you to independently verify the fairness of every game outcome on PhiBet.io. Unlike traditional online casinos where you must trust that the platform is fair, Provably Fair provides mathematical proof that game results have not been tampered with.</p>
+            <p>This system ensures that neither PhiBet.io nor the player can predict or manipulate the outcome of any game before it occurs.</p>
           </div>
         ),
       },
@@ -81,7 +81,7 @@ const ProvablyFair = () => (
       {
         title: 'Transparency Commitment',
         content: (
-          <p>Phibet is committed to full transparency in all gaming operations. We believe that trust is built through verifiable proof, not promises. If you have any questions about our Provably Fair system or want assistance verifying a game result, our support team is available 24/7 to help.</p>
+          <p>PhiBet.io is committed to full transparency in all gaming operations. We believe that trust is built through verifiable proof, not promises. If you have any questions about our Provably Fair system or want assistance verifying a game result, our support team is available 24/7 to help.</p>
         ),
       },
     ]}

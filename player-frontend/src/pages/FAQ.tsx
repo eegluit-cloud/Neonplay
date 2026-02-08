@@ -45,7 +45,7 @@ const FAQ = () => (
             </div>
             <div>
               <p className="font-medium text-foreground mb-1">Are there withdrawal fees?</p>
-              <p>Phibet does not charge withdrawal fees. However, your payment provider or bank may apply their own fees for certain transaction types.</p>
+              <p>PhiBet.io does not charge withdrawal fees. However, your payment provider or bank may apply their own fees for certain transaction types.</p>
             </div>
           </div>
         ),
@@ -64,7 +64,7 @@ const FAQ = () => (
             </div>
             <div>
               <p className="font-medium text-foreground mb-1">Can I play on mobile?</p>
-              <p>Yes! Phibet is fully optimized for mobile browsers on both iOS and Android. No app download is required - simply visit our website from your mobile browser.</p>
+              <p>Yes! PhiBet.io is fully optimized for mobile browsers on both iOS and Android. No app download is required - simply visit our website from your mobile browser.</p>
             </div>
             <div>
               <p className="font-medium text-foreground mb-1">What is RTP?</p>

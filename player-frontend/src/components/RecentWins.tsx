@@ -1,5 +1,8 @@
 import { memo, useRef, useState, useCallback, useMemo } from 'react';
 import { DollarSign } from 'lucide-react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { BetSlipModal } from './BetSlipModal';
 import { Skeleton } from './ui/skeleton';
 
@@ -117,10 +120,60 @@ const WinCard = memo(function WinCard({
 
 export const RecentWins = memo(function RecentWins() {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [scrollStarted, setScrollStarted] = useState(false);
   const [selectedBet, setSelectedBet] = useState<WinItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const animationRef = useRef<number>();
+
+  // Scroll-triggered entrance animation
+  useGSAP(() => {
+    if (!sectionRef.current) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setScrollStarted(true);
+      return;
+    }
+
+    // Header fadeUp
+    if (headerRef.current) {
+      gsap.from(headerRef.current, {
+        opacity: 0,
+        y: 15,
+        duration: 0.5,
+        ease: 'power2.out',
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 88%',
+          once: true,
+        },
+      });
+    }
+
+    // Carousel fade in + start auto-scroll
+    if (carouselRef.current) {
+      gsap.from(carouselRef.current, {
+        opacity: 0,
+        scale: 0.98,
+        duration: 0.4,
+        delay: 0.2,
+        ease: 'power2.out',
+        immediateRender: false,
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 88%',
+          once: true,
+        },
+        onComplete: () => {
+          setScrollStarted(true);
+        },
+      });
+    }
+  }, { scope: sectionRef });
 
   const handleBetClick = useCallback((win: WinItem) => {
     setSelectedBet(win);
@@ -136,9 +189,9 @@ export const RecentWins = memo(function RecentWins() {
 
   return (
     <>
-      <section className="!mt-0 sm:!-mt-1 lg:!-mt-1 py-2 sm:py-3 md:py-4 px-3 md:px-6">
+      <section ref={sectionRef} className="!mt-0 sm:!-mt-1 lg:!-mt-1 py-2 sm:py-3 md:py-4 px-3 md:px-6">
         {/* Header - compact on mobile */}
-        <div className="h-8 flex items-center gap-2 mb-2 md:mb-4">
+        <div ref={headerRef} className="h-8 flex items-center gap-2 mb-2 md:mb-4">
           <div className="relative flex items-center justify-center">
             <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
             <div className="absolute w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
@@ -148,7 +201,7 @@ export const RecentWins = memo(function RecentWins() {
         </div>
 
         {/* Carousel with CSS animation for smooth scrolling */}
-        <div className="overflow-hidden">
+        <div ref={carouselRef} className="overflow-hidden">
           <div
             ref={scrollRef}
             className="flex gap-1.5 md:gap-2 animate-scroll-wins"
@@ -157,7 +210,7 @@ export const RecentWins = memo(function RecentWins() {
             onTouchStart={() => setIsPaused(true)}
             onTouchEnd={() => setIsPaused(false)}
             style={{
-              animationPlayState: isPaused ? 'paused' : 'running',
+              animationPlayState: isPaused || !scrollStarted ? 'paused' : 'running',
             }}
           >
             {duplicatedWins.map((win, index) => (

@@ -1,4 +1,7 @@
+import { useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 import discordIcon from '@/assets/social/discord.png';
 import twitterIcon from '@/assets/social/twitter.png';
 import instagramIcon from '@/assets/social/instagram.png';
@@ -27,6 +30,45 @@ const footerStyles = {
 };
 
 export function Footer() {
+  const footerRef = useRef<HTMLElement>(null);
+  const topSectionRef = useRef<HTMLDivElement>(null);
+  const socialRef = useRef<HTMLDivElement>(null);
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    if (!footerRef.current) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Top section fade
+    if (topSectionRef.current) {
+      gsap.from(topSectionRef.current, {
+        opacity: 0, y: 15, duration: 0.4, ease: 'power2.out',
+        scrollTrigger: { trigger: footerRef.current, start: 'top 90%', once: true },
+      });
+    }
+
+    // Social icons bounce-in
+    if (socialRef.current) {
+      const icons = socialRef.current.children;
+      gsap.from(icons, {
+        scale: 0, opacity: 0, duration: 0.3, stagger: 0.05, delay: 0.15,
+        ease: 'back.out(1.7)',
+        scrollTrigger: { trigger: footerRef.current, start: 'top 90%', once: true },
+      });
+    }
+
+    // Link columns stagger
+    if (gridRef.current) {
+      const columns = gridRef.current.children;
+      gsap.from(columns, {
+        opacity: 0, y: 10, duration: 0.3, stagger: 0.08, delay: 0.3,
+        ease: 'power2.out',
+        scrollTrigger: { trigger: footerRef.current, start: 'top 90%', once: true },
+      });
+    }
+  }, { scope: footerRef });
+
   const columns = [
     { title: 'Casino', links: ['Casino Home', 'Slots', 'Live Casino', 'New Releases', 'Recommended', 'Table Game', 'BlackJack', 'Roulette', 'Baccarat'] },
     { title: 'Sports', links: ['Sports Home', 'Live', 'Rules', 'Sport Betting Insights'] },
@@ -36,24 +78,24 @@ export function Footer() {
   ];
 
   return (
-    <footer className="hidden md:block border-t border-border py-6 px-4 md:py-8 md:px-0 pb-16 md:pb-8">
-      {/* Top Section - Logo and Social */}
-      <div className="mb-8">
+    <footer ref={footerRef} className="border-t border-border py-6 px-4 md:py-8 md:px-0 pb-20 md:pb-8">
+      {/* Top Section - Logo and Social (desktop only) */}
+      <div ref={topSectionRef} className="hidden md:block mb-8">
         {/* Logo */}
         <div className="flex items-center gap-2 mb-3">
           <NeonPlayLogo size="lg" />
         </div>
-        
+
         {/* Description */}
         <p className="text-muted-foreground text-sm leading-relaxed max-w-sm mb-4">
           Discover top-rated online casino and sports betting with massive bonuses, secure gameplay, and fast payouts. Play responsibly.
         </p>
-        
+
         {/* Social Icons - same style as main site */}
-        <div className="flex items-center gap-2">
+        <div ref={socialRef} className="flex items-center gap-2">
           {socialIconsRow1.map((icon) => (
-            <a 
-              key={icon.alt} 
+            <a
+              key={icon.alt}
               href={icon.href}
               className={footerStyles.iconButton}
               aria-label={icon.alt}
@@ -64,8 +106,8 @@ export function Footer() {
         </div>
       </div>
 
-      {/* Links Grid */}
-      <div className="grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-3 lg:grid-cols-5">
+      {/* Links Grid (desktop only) */}
+      <div ref={gridRef} className="hidden md:grid grid-cols-2 gap-4 md:gap-6 md:grid-cols-3 lg:grid-cols-5">
         {columns.map((col) => (
           <div key={col.title} className={footerStyles.section}>
             <h4 className={footerStyles.title}>{col.title}</h4>
@@ -118,6 +160,13 @@ export function Footer() {
             </ul>
           </div>
         ))}
+      </div>
+
+      {/* Copyright */}
+      <div className="md:mt-8 pt-4 md:border-t border-border text-center">
+        <p className="text-xs text-muted-foreground">
+          &copy; {new Date().getFullYear()} PhiBet.io &mdash; Powered by EEGLUSOFT. All rights reserved.
+        </p>
       </div>
     </footer>
   );

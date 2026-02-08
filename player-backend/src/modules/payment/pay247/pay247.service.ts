@@ -78,7 +78,7 @@ export class Pay247Service {
         currency as any,
         amount,
         'pay247',
-        null, // No package
+        undefined, // No package
       );
 
       // 2. Generate unique merchant order ID
@@ -91,10 +91,10 @@ export class Pay247Service {
         amount,
         currency,
         payment_method: paymentMethod,
-        callback_url: this.configService.get<string>('PAY247_DEPOSIT_WEBHOOK_URL'),
+        callback_url: this.configService.get<string>('PAY247_DEPOSIT_WEBHOOK_URL') || '',
         client_ip: normalizedIp,
         return_url: returnUrl,
-        theme,
+        theme: theme as 'link' | 'custom' | undefined,
       });
 
       // 4. Update deposit with Pay247-specific fields
@@ -135,7 +135,7 @@ export class Pay247Service {
     // STEP 1: SIGNATURE VERIFICATION
     const isValid = SignatureUtil.verify(
       webhookData,
-      this.configService.get<string>('PAY247_WEBHOOK_SECRET'),
+      this.configService.get<string>('PAY247_WEBHOOK_SECRET') || '',
     );
 
     if (!isValid) {
@@ -307,7 +307,16 @@ export class Pay247Service {
     userId: string,
     createWithdrawalDto: CreateWithdrawalDto,
   ): Promise<Pay247WithdrawalResponse> {
-    const { amount, currency, paymentMethod, accountDetails } = createWithdrawalDto;
+    const { amount, currency, paymentMethod, ...accountFields } = createWithdrawalDto;
+    const accountDetails = {
+      upiId: accountFields.upiId,
+      accountHolder: accountFields.accountHolder,
+      accountNumber: accountFields.accountNumber,
+      ifscCode: accountFields.ifscCode,
+      walletAddress: accountFields.walletAddress,
+      mobileNumber: accountFields.mobileNumber,
+      accountName: accountFields.accountName,
+    };
 
     try {
       // 1. Create withdrawal using EXISTING wallet service
@@ -330,7 +339,7 @@ export class Pay247Service {
         currency,
         payment_method: paymentMethod,
         account_details: accountDetails,
-        callback_url: this.configService.get<string>('PAY247_WITHDRAWAL_WEBHOOK_URL'),
+        callback_url: this.configService.get<string>('PAY247_WITHDRAWAL_WEBHOOK_URL') || '',
       });
 
       // 4. Update withdrawal with Pay247-specific fields
@@ -370,7 +379,7 @@ export class Pay247Service {
     // STEP 1: SIGNATURE VERIFICATION
     const isValid = SignatureUtil.verify(
       webhookData,
-      this.configService.get<string>('PAY247_WEBHOOK_SECRET'),
+      this.configService.get<string>('PAY247_WEBHOOK_SECRET') || '',
     );
 
     if (!isValid) {

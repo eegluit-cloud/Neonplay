@@ -9,7 +9,7 @@ const ResponsibleGambling = () => (
         title: 'Our Commitment',
         content: (
           <div className="space-y-3">
-            <p>At Phibet, we are committed to promoting responsible gambling and providing a safe, enjoyable experience for all our users. We believe that gambling should always be a form of entertainment, never a way to make money or escape problems.</p>
+            <p>At PhiBet.io, we are committed to promoting responsible gambling and providing a safe, enjoyable experience for all our users. We believe that gambling should always be a form of entertainment, never a way to make money or escape problems.</p>
             <p>We provide a range of tools and resources to help you stay in control of your gambling activity.</p>
           </div>
         ),
@@ -51,7 +51,7 @@ const ResponsibleGambling = () => (
         title: 'Self-Exclusion',
         content: (
           <div className="space-y-3">
-            <p>If you feel you need a break from gambling, you can self-exclude from Phibet for a period of your choosing:</p>
+            <p>If you feel you need a break from gambling, you can self-exclude from PhiBet.io for a period of your choosing:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>Cool-Off Period:</strong> 24 hours, 7 days, or 30 days</li>
               <li><strong>Self-Exclusion:</strong> 6 months, 1 year, or 5 years</li>

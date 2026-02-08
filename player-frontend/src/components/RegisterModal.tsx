@@ -512,7 +512,7 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegistration
           <div className="relative flex items-center justify-center gap-2.5 [filter:drop-shadow(0_0_12px_rgba(245,158,11,0.35))]">
             <span className="text-lg font-bold tracking-wide [text-shadow:0_0_20px_rgba(245,158,11,0.4)]">
               <span className="text-amber-300/90">Welcome To </span>
-              <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">Phibet</span>
+              <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">PhiBet.io</span>
             </span>
             <NeonPlayLogo size="sm" showText={false} />
           </div>
@@ -554,7 +554,7 @@ export function RegisterModal({ isOpen, onClose, onSwitchToLogin, onRegistration
           <div className="relative overflow-hidden min-h-[320px] order-1 md:order-2">
             <img
               src={mascotImage}
-              alt="Phibet Mascot"
+              alt="PhiBet.io Mascot"
               className="absolute inset-0 w-full h-full object-cover object-top select-none pointer-events-none"
               loading="eager"
             />

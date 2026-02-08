@@ -100,8 +100,8 @@ const AMOE = () => {
                   </p>
                   
                   <div className="text-muted-foreground text-sm space-y-1 mb-4">
-                    <p>1. Enter your Phibet username. It must match your profile.</p>
-                    <p>2. Enter the email address associated with your Phibet account. It must match your profile.</p>
+                    <p>1. Enter your PhiBet.io username. It must match your profile.</p>
+                    <p>2. Enter the email address associated with your PhiBet.io account. It must match your profile.</p>
                   </div>
                   
                   <p className="text-muted-foreground text-sm mb-6">

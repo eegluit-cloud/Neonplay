@@ -1,5 +1,8 @@
-import { memo, useRef, useCallback, useMemo } from 'react';
+import { memo, useRef, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { prefetchRoute } from '@/hooks/useRoutePrefetch';
 
 // Provider logos
@@ -64,24 +67,82 @@ const ProviderItem = memo(function ProviderItem({
 export const ProvidersCarousel = memo(function ProvidersCarousel() {
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const logoRowRef = useRef<HTMLDivElement>(null);
+  const [scrollStarted, setScrollStarted] = useState(false);
 
   const handleProviderClick = useCallback((providerSlug: string) => {
     navigate(`/providers/${providerSlug}`);
   }, [navigate]);
 
+  // Scroll-triggered animations
+  useGSAP(() => {
+    if (!sectionRef.current) return;
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) {
+      setScrollStarted(true);
+      return;
+    }
+
+    // Title fadeUp
+    if (titleRef.current) {
+      gsap.from(titleRef.current, {
+        opacity: 0,
+        y: 20,
+        duration: 0.5,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 85%',
+          once: true,
+        },
+      });
+    }
+
+    // Logo row fade + start auto-scroll
+    if (logoRowRef.current) {
+      gsap.from(logoRowRef.current, {
+        opacity: 0,
+        duration: 0.4,
+        delay: 0.3,
+        ease: 'power2.out',
+        scrollTrigger: {
+          trigger: sectionRef.current,
+          start: 'top 85%',
+          once: true,
+        },
+        onComplete: () => setScrollStarted(true),
+      });
+    }
+
+    // Subtle parallax on desktop
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile && logoRowRef.current) {
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: 'top bottom',
+        end: 'bottom top',
+        scrub: 0.5,
+        animation: gsap.to(logoRowRef.current, { y: -20, ease: 'none' }),
+      });
+    }
+  }, { scope: sectionRef });
+
   // Duplicate providers for seamless loop - memoized
   const duplicatedProviders = useMemo(() => [...providers, ...providers], []);
 
   return (
-    <section className="py-4 md:py-6 overflow-hidden">
-      <h2 className="text-lg md:text-xl font-bold mb-4 px-1">Providers</h2>
+    <section ref={sectionRef} className="py-4 md:py-6 overflow-hidden">
+      <h2 ref={titleRef} className="text-lg md:text-xl font-bold mb-4 px-1">Providers</h2>
 
-      <div className="relative overflow-hidden">
+      <div ref={logoRowRef} className="relative overflow-hidden">
         <div
           ref={scrollRef}
           className="flex items-center animate-scroll-providers"
           style={{
             width: 'max-content',
+            animationPlayState: scrollStarted ? 'running' : 'paused',
           }}
         >
           {duplicatedProviders.map((provider, index) => (

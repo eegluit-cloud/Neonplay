@@ -116,7 +116,7 @@ export class Pay247Controller {
   // ==========================================
 
   @Post('webhook/deposit')
-  @Throttle(100, 60) // 100 requests per minute per IP
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 requests per minute per IP
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Pay247 deposit webhook (called by Pay247)' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })
@@ -151,7 +151,7 @@ export class Pay247Controller {
   }
 
   @Post('webhook/withdrawal')
-  @Throttle(100, 60) // 100 requests per minute per IP
+  @Throttle({ default: { limit: 100, ttl: 60000 } }) // 100 requests per minute per IP
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Pay247 withdrawal webhook (called by Pay247)' })
   @ApiResponse({ status: 200, description: 'Webhook processed' })

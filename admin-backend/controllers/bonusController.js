@@ -49,6 +49,7 @@ const getBonuses = async (req, res) => {
         currentClaims: p._count.userPromotions,
         description: p.description,
         terms: p.terms,
+        imageUrl: p.imageUrl,
         status: p.isActive ? 'active' : 'inactive',
         createdAt: p.createdAt
       })),
@@ -115,6 +116,7 @@ const getBonus = async (req, res) => {
         currentClaims: promotion.userPromotions.length,
         description: promotion.description,
         terms: promotion.terms,
+        imageUrl: promotion.imageUrl,
         status: promotion.isActive ? 'active' : 'inactive',
         createdAt: promotion.createdAt
       },
@@ -136,7 +138,7 @@ const createBonus = async (req, res) => {
   try {
     const {
       name, code, type, amount, percentage, wageringReq, minDeposit, maxCap,
-      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms
+      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, imageUrl
     } = req.body;
 
     // Check for duplicate code
@@ -167,6 +169,7 @@ const createBonus = async (req, res) => {
         maxClaims: maxClaims || null,
         description: description || null,
         terms: terms || null,
+        imageUrl: imageUrl || null,
         isActive: true
       }
     });
@@ -189,7 +192,7 @@ const updateBonus = async (req, res) => {
     const { bonusId } = req.params;
     const {
       name, code, amount, percentage, wageringReq, minDeposit, maxCap,
-      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, status
+      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, status, imageUrl
     } = req.body;
 
     // Check if bonus exists
@@ -233,6 +236,7 @@ const updateBonus = async (req, res) => {
     if (maxClaims !== undefined) data.maxClaims = maxClaims;
     if (description !== undefined) data.description = description;
     if (terms !== undefined) data.terms = terms;
+    if (imageUrl !== undefined) data.imageUrl = imageUrl;
     if (status !== undefined) data.isActive = status === 'active';
 
     await prisma.promotion.update({
@@ -542,8 +546,8 @@ const getBonusStats = async (req, res) => {
 
     const avgCompletionRate = avgCompletionData.length > 0
       ? avgCompletionData.reduce((sum, item) => {
-          return sum + (Number(item.wageredAmount) / Number(item.wageringTarget) * 100);
-        }, 0) / avgCompletionData.length
+        return sum + (Number(item.wageredAmount) / Number(item.wageringTarget) * 100);
+      }, 0) / avgCompletionData.length
       : 0;
 
     res.json({

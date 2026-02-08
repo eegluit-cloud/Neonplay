@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   getBonusStats, getBonuses, createBonus, updateBonus, deleteBonus,
-  getPlayerBonuses, cancelPlayerBonus
+  getPlayerBonuses, cancelPlayerBonus, uploadImage
 } from '../services/api';
 
 const Bonuses = () => {
@@ -16,7 +16,7 @@ const Bonuses = () => {
   const [editBonus, setEditBonus] = useState(null);
   const [formData, setFormData] = useState({
     name: '', code: '', type: 'deposit', amount: '', percentage: '',
-    wageringReq: '30', minDeposit: '', maxCap: '', description: '', terms: ''
+    wageringReq: '30', minDeposit: '', maxCap: '', description: '', terms: '', imageUrl: ''
   });
 
   useEffect(() => {
@@ -141,10 +141,23 @@ const Bonuses = () => {
     alert('Player bonus cancelled');
   };
 
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const response = await uploadImage(file);
+      setFormData({ ...formData, imageUrl: response.imageUrl });
+    } catch (err) {
+      console.error('Failed to upload image:', err);
+      alert('Failed to upload image');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       name: '', code: '', type: 'deposit', amount: '', percentage: '',
-      wageringReq: '30', minDeposit: '', maxCap: '', description: '', terms: ''
+      wageringReq: '30', minDeposit: '', maxCap: '', description: '', terms: '', imageUrl: ''
     });
   };
 
@@ -160,7 +173,8 @@ const Bonuses = () => {
       minDeposit: bonus.minDeposit?.toString() || '',
       maxCap: bonus.maxCap?.toString() || '',
       description: bonus.description || '',
-      terms: bonus.terms || ''
+      terms: bonus.terms || '',
+      imageUrl: bonus.imageUrl || ''
     });
     setShowModal('edit');
   };
@@ -374,15 +388,35 @@ const Bonuses = () => {
                 <label className="form-label">Terms</label>
                 <textarea className="form-input" rows="2" value={formData.terms} onChange={(e) => setFormData({ ...formData, terms: e.target.value })} />
               </div>
+
+
+              <div className="form-group">
+                <label className="form-label">Promotion Image</label>
+                <input
+                  type="file"
+                  className="form-input"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+                {formData.imageUrl && (
+                  <div style={{ marginTop: '10px' }}>
+                    <img
+                      src={formData.imageUrl.startsWith('http') ? formData.imageUrl : `http://localhost:8002${formData.imageUrl}`}
+                      alt="Promotion Preview"
+                      style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '4px', objectFit: 'contain' }}
+                    />
+                  </div>
+                )}
+              </div>
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(null); setEditBonus(null); }}>Cancel</button>
                 <button type="submit" className="btn btn-primary">{showModal === 'create' ? 'Create' : 'Save'}</button>
               </div>
             </form>
           </div>
-        </div>
+        </div >
       )}
-    </div>
+    </div >
   );
 };
 

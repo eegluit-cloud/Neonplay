@@ -145,6 +145,16 @@ export const deleteBonus = (bonusId) => api.delete(`/bonus/${bonusId}`);
 export const getPlayerBonuses = (params) => api.get(`/bonus/player-bonuses?${new URLSearchParams(params)}`);
 export const awardBonus = (data) => api.post('/bonus/award', data);
 export const cancelPlayerBonus = (playerBonusId, reason) => api.post(`/bonus/player-bonuses/${playerBonusId}/cancel`, { reason });
+export const uploadImage = (file) => {
+  const formData = new FormData();
+  formData.append('image', file);
+  return api.request('/upload', {
+    method: 'POST',
+    body: formData,
+    // Do not set Content-Type header, let browser set it with boundary
+    headers: {}
+  });
+};
 
 // Admin Management
 export const getAdmins = (params) => api.get(`/admins?${new URLSearchParams(params || {})}`);

@@ -36,38 +36,44 @@ try {
 const DEFAULT_VIP_ICON = '/icons/vip/default.png';
 
 /**
- * Upload a file to S3
+ * Upload a file to S3 under a given folder prefix.
  * @param {Buffer} fileBuffer - File buffer
  * @param {string} originalName - Original file name
  * @param {string} mimetype - File mimetype
- * @returns {Promise<string>} - Uploaded file URL or default image path
+ * @param {string} folder - S3 key prefix (e.g. 'promotions', 'vip-icons')
+ * @returns {Promise<string|null>} - Full S3 URL on success, null if S3 not configured
  */
-const uploadToS3 = async (fileBuffer, originalName, mimetype) => {
-  // If S3 is not configured, return default image
+const uploadFile = async (fileBuffer, originalName, mimetype, folder = 'uploads') => {
   if (!s3Client || !PutObjectCommand) {
-    console.log('S3 not configured, using default icon');
-    return DEFAULT_VIP_ICON;
+    return null;
   }
 
+  const fileExt = path.extname(originalName);
+  const fileName = `${folder}/${crypto.randomUUID()}${fileExt}`;
+
+  const command = new PutObjectCommand({
+    Bucket: process.env.AWS_S3_BUCKET,
+    Key: fileName,
+    Body: fileBuffer,
+    ContentType: mimetype,
+    ACL: 'public-read',
+  });
+
+  await s3Client.send(command);
+
+  const s3Url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'ap-southeast-1'}.amazonaws.com/${fileName}`;
+  console.log('✅ File uploaded to S3:', s3Url);
+  return s3Url;
+};
+
+/**
+ * Upload a VIP icon to S3 (legacy wrapper).
+ * Falls back to DEFAULT_VIP_ICON if S3 is not configured or upload fails.
+ */
+const uploadToS3 = async (fileBuffer, originalName, mimetype) => {
   try {
-    const fileExt = path.extname(originalName);
-    const fileName = `vip-icons/${crypto.randomUUID()}${fileExt}`;
-
-    const command = new PutObjectCommand({
-      Bucket: process.env.AWS_S3_BUCKET,
-      Key: fileName,
-      Body: fileBuffer,
-      ContentType: mimetype,
-      ACL: 'public-read',
-    });
-
-    await s3Client.send(command);
-
-    // Construct the S3 URL
-    const s3Url = `https://${process.env.AWS_S3_BUCKET}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${fileName}`;
-
-    console.log('✅ File uploaded to S3:', s3Url);
-    return s3Url;
+    const url = await uploadFile(fileBuffer, originalName, mimetype, 'vip-icons');
+    return url || DEFAULT_VIP_ICON;
   } catch (error) {
     console.error('❌ Failed to upload to S3:', error.message);
     return DEFAULT_VIP_ICON;
@@ -75,6 +81,7 @@ const uploadToS3 = async (fileBuffer, originalName, mimetype) => {
 };
 
 module.exports = {
+  uploadFile,
   uploadToS3,
   DEFAULT_VIP_ICON,
   isS3Configured: () => !!s3Client,

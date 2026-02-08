@@ -236,7 +236,7 @@ export const promotionsApi = {
 
   getBySlug: (slug: string) => api.get(`/promotions/${slug}`),
 
-  claim: (promotionId: string) => api.post(`/promotions/${promotionId}/claim`),
+  claim: (slug: string) => api.post(`/promotions/${slug}/claim`),
 
   claimDaily: () => api.post('/promotions/daily/claim'),
 };
