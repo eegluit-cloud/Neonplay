@@ -42,7 +42,7 @@ export interface GameRoundResult {
   };
 }
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'SOL' | 'DOGE';
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'USDC' | 'USDT' | 'BTC' | 'ETH' | 'SOL' | 'DOGE' | 'INR';
 
 // Balance field mapping type
 type BalanceFieldMap = {
@@ -57,6 +57,7 @@ type BalanceFieldMap = {
   ETH: 'ethBalance';
   SOL: 'solBalance';
   DOGE: 'dogeBalance';
+  INR: 'inrBalance';
 };
 
 type BalanceField = BalanceFieldMap[Currency];
@@ -77,6 +78,7 @@ const BALANCE_FIELDS: BalanceFieldMap = {
   ETH: 'ethBalance',
   SOL: 'solBalance',
   DOGE: 'dogeBalance',
+  INR: 'inrBalance',
 };
 
 // Helper to get balance field name from currency
@@ -593,8 +595,10 @@ export class GamesService {
     };
   }
 
-  async getUserFavorites(userId: string, query: PaginationDto) {
-    const { skip, take } = getPaginationParams(query);
+  async getUserFavorites(userId: string, query?: PaginationDto) {
+    const page = query?.page || 1;
+    const limit = query?.limit || 20;
+    const { skip, take } = getPaginationParams({ page, limit });
 
     const [favorites, total] = await Promise.all([
       this.prisma.userFavoriteGame.findMany({
@@ -641,7 +645,7 @@ export class GamesService {
       favoritedAt: f.createdAt,
     }));
 
-    return createPaginatedResult(games, total, query.page || 1, query.limit || 20);
+    return createPaginatedResult(games, total, page, limit);
   }
 
   async addToFavorites(userId: string, gameId: string) {

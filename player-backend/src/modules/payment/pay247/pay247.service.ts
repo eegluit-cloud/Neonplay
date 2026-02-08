@@ -326,7 +326,7 @@ export class Pay247Service {
         amount,
         'pay247',
         accountDetails,
-        accountDetails.walletAddress,
+        accountFields.walletAddress,
       );
 
       // 2. Generate unique merchant order ID
