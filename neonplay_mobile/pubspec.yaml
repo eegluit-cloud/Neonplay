@@ -1,0 +1,129 @@
+name: neonplay_mobile
+description: "PhiBet.io - Casino & Sportsbook Mobile App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.8
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State Management
+  flutter_riverpod: ^3.1.0
+  riverpod_annotation: ^4.0.0
+
+  # Navigation
+  go_router: ^17.1.0
+
+  # Networking
+  dio: ^5.7.0
+  socket_io_client: ^3.0.2
+  connectivity_plus: ^7.0.0
+
+  # Storage
+  flutter_secure_storage: ^10.0.0
+  shared_preferences: ^2.5.3
+
+  # UI & Theming
+  google_fonts: ^8.0.1
+  flutter_svg: ^2.0.17
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+
+  # Animations
+  flutter_animate: ^4.5.2
+  lottie: ^3.2.0
+
+  # Video
+  video_player: ^2.9.3
+
+  # WebView (for game iframe + payments)
+  webview_flutter: ^4.12.0
+  url_launcher: ^6.3.1
+
+  # Forms & Validation
+  flutter_form_builder: ^10.3.0+1
+  form_builder_validators: ^11.0.0
+
+  # Models & Serialization
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.9.0
+  equatable: ^2.0.7
+
+  # Utilities
+  intl: ^0.20.2
+  uuid: ^4.5.1
+  package_info_plus: ^9.0.0
+  device_info_plus: ^12.3.0
+  share_plus: ^12.0.1
+  qr_flutter: ^4.1.0
+  audioplayers: ^6.1.0
+  vibration: ^3.1.6
+  image_picker: ^1.1.2
+  app_links: ^7.0.0
+
+  # Environment
+  flutter_dotenv: ^6.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+  build_runner: ^2.4.13
+  freezed: ^3.2.3
+  json_serializable: ^6.8.0
+  riverpod_generator: ^4.0.0+1
+  riverpod_lint: ^3.1.0
+  mockito: ^5.4.6
+  mocktail: ^1.0.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/logos/
+    - assets/images/badges/
+    - assets/images/prizes/
+    - assets/images/providers/
+    - assets/images/teams/
+    - assets/images/social/
+    - assets/images/banners/
+    - assets/images/characters/
+    - assets/images/ui/
+    - assets/images/placeholders/
+    - assets/images/games/
+    - assets/videos/
+    - assets/animations/
+    - .env
+
+  fonts:
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Light.ttf
+          weight: 300
+        - asset: assets/fonts/Inter-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    - family: Orbitron
+      fonts:
+        - asset: assets/fonts/Orbitron-Variable.ttf
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/logos/app_icon.png"
+  adaptive_icon_background: "#0A0C12"
+  adaptive_icon_foreground: "assets/images/logos/app_icon.png"
+  remove_alpha_ios: true
+  web:
+    generate: false
