@@ -4,9 +4,12 @@ import {
   NotFoundException,
   ConflictException,
   Logger,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { RedisService } from '../../database/redis/redis.service';
+import { BonusService } from '../bonus/bonus.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import { createPaginatedResult, getPaginationParams, PaginationDto } from '../../common/utils/pagination.util';
 import { CryptoUtil } from '../../common/utils/crypto.util';
@@ -40,7 +43,9 @@ export class WalletService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
-  ) {}
+    @Inject(forwardRef(() => BonusService))
+    private readonly bonusService: BonusService,
+  ) { }
 
   /**
    * Get current exchange rate for a currency to USDC
@@ -331,7 +336,7 @@ export class WalletService {
       throw new NotFoundException('Deposit not found or already processed');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       // Update deposit status
       await tx.deposit.update({
         where: { id: depositId },
@@ -448,6 +453,11 @@ export class WalletService {
         wallet: updatedWallet,
       };
     });
+
+    // After successful deposit, check for deposit bonus eligibility (outside transaction)
+    await this.bonusService.processDepositForBonuses(userId, new Decimal(deposit.usdcAmount));
+
+    return result;
   }
 
   async requestWithdrawal(
@@ -458,6 +468,8 @@ export class WalletService {
     payoutDetails: any,
     toAddress?: string,
   ) {
+    // Cancel any active bonuses with incomplete wagering before withdrawal
+    await this.bonusService.cancelBonusOnWithdrawal(userId);
     const wallet = await this.prisma.wallet.findUnique({
       where: { userId },
     });

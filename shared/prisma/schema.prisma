@@ -481,8 +481,9 @@ model Game {
   rounds        GameRound[]
   jackpotWins   JackpotWin[]
   publicWins    PublicWin[]
-  liveBets      LiveBet[]
-  dailyStats    GameDailyStats[]
+  liveBets           LiveBet[]
+  dailyStats         GameDailyStats[]
+  bonusContributions BonusGameContribution[]
 
   @@index([categoryId])
   @@index([providerId])
@@ -793,14 +794,16 @@ model Promotion {
   name                String
   slug                String    @unique
   description         String?
-  type                String // welcome, deposit, daily, weekly, monthly, spin_wheel, code
+  type                String // welcome, deposit, daily, weekly, monthly, spin_wheel, code, joining, birthday
   // Bonus in specific currency
   bonusCurrency       String?   @map("bonus_currency") // USD, USDC, BTC, etc. - null means USDC default
   bonusAmount         Decimal?  @map("bonus_amount") @db.Decimal(18, 8)
   // USDC equivalent for tracking
   bonusAmountUsdc     Decimal?  @map("bonus_amount_usdc") @db.Decimal(18, 6)
+  bonusValueType      String?   @map("bonus_value_type") // 'fixed' or 'percentage'
   percentageBonus     Int?      @map("percentage_bonus") // for deposit match
   maxBonusUsdc        Decimal?  @map("max_bonus_usdc") @db.Decimal(18, 6)
+  maxBonusCap         Decimal?  @map("max_bonus_cap") @db.Decimal(18, 6) // max bonus cap in USDC
   wageringRequirement Int?      @map("wagering_requirement") // multiplier
   minDepositUsdc      Decimal?  @map("min_deposit_usdc") @db.Decimal(18, 6)
   code                String? // for promo codes
@@ -808,13 +811,20 @@ model Promotion {
   terms               String?
   maxClaims           Int?      @map("max_claims") // total
   maxClaimsPerUser    Int?      @map("max_claims_per_user")
+  expiryDaysAfterClaim Int?     @map("expiry_days_after_claim") // bonus expires N days after claim
+  isAutoCredit        Boolean   @default(false) @map("is_auto_credit") // auto-credit or claim-based
+  isStackable         Boolean   @default(false) @map("is_stackable") // can stack with other bonuses
+  countryRestrictions Json?     @map("country_restrictions") // array of allowed country codes
+  userSegment         String?   @map("user_segment") // 'new', 'vip', 'all'
   isActive            Boolean   @default(true) @map("is_active")
   startsAt            DateTime? @map("starts_at")
   endsAt              DateTime? @map("ends_at")
+  version             Int       @default(1)
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  userPromotions UserPromotion[]
+  userPromotions    UserPromotion[]
+  gameContributions BonusGameContribution[]
 
   @@map("promotions")
 }
@@ -836,22 +846,57 @@ model SpinWheelSegment {
 }
 
 model UserPromotion {
-  id             String    @id @default(uuid())
-  userId         String    @map("user_id")
-  promotionId    String    @map("promotion_id")
-  status         String    @default("available") // available, claimed, completed, expired
-  bonusAmount    Decimal?  @map("bonus_amount") @db.Decimal(18, 4)
-  wageredAmount  Decimal   @default(0) @map("wagered_amount") @db.Decimal(18, 4)
-  wageringTarget Decimal?  @map("wagering_target") @db.Decimal(18, 4)
-  claimedAt      DateTime? @map("claimed_at")
-  completedAt    DateTime? @map("completed_at")
-  expiresAt      DateTime? @map("expires_at")
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  promotionId     String    @map("promotion_id")
+  status          String    @default("available") // available, claimed, completed, expired, cancelled
+  bonusAmount     Decimal?  @map("bonus_amount") @db.Decimal(18, 4)
+  currency        String?   // Currency the bonus was awarded in
+  wageredAmount   Decimal   @default(0) @map("wagered_amount") @db.Decimal(18, 4)
+  wageringTarget  Decimal?  @map("wagering_target") @db.Decimal(18, 4)
+  depositProgress Decimal   @default(0) @map("deposit_progress") @db.Decimal(18, 6) // cumulative deposits toward this bonus
+  claimedAt       DateTime? @map("claimed_at")
+  completedAt     DateTime? @map("completed_at")
+  expiresAt       DateTime? @map("expires_at")
 
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   promotion Promotion @relation(fields: [promotionId], references: [id])
+  wagerLogs UserBonusWagerLog[]
 
   @@index([userId, status])
   @@map("user_promotions")
+}
+
+model BonusGameContribution {
+  id                  String   @id @default(uuid())
+  promotionId         String   @map("promotion_id")
+  gameId              String   @map("game_id")
+  contributionPercent Decimal  @map("contribution_percent") @db.Decimal(5, 2) // 0.00 - 100.00
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, gameId])
+  @@index([promotionId])
+  @@index([gameId])
+  @@map("bonus_game_contributions")
+}
+
+model UserBonusWagerLog {
+  id                  String   @id @default(uuid())
+  userPromotionId     String   @map("user_promotion_id")
+  gameRoundId         String   @unique @map("game_round_id") // prevents double-counting
+  gameId              String   @map("game_id")
+  betAmount           Decimal  @map("bet_amount") @db.Decimal(18, 8)
+  contributionPercent Decimal  @map("contribution_percent") @db.Decimal(5, 2)
+  countedAmount       Decimal  @map("counted_amount") @db.Decimal(18, 8) // betAmount * contributionPercent / 100
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  userPromotion UserPromotion @relation(fields: [userPromotionId], references: [id], onDelete: Cascade)
+
+  @@index([userPromotionId])
+  @@map("user_bonus_wager_logs")
 }
 
 // ============================================

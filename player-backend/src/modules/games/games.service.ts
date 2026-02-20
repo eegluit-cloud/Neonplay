@@ -11,6 +11,7 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 import { RedisService } from '../../database/redis/redis.service';
 import { JackpotService } from '../jackpot/jackpot.service';
 import { HuiduService } from '../huidu/huidu.service';
+import { BonusService } from '../bonus/bonus.service';
 import { Decimal } from '@prisma/client/runtime/library';
 import {
   createPaginatedResult,
@@ -105,7 +106,9 @@ export class GamesService {
     private readonly jackpotService: JackpotService,
     @Inject(forwardRef(() => HuiduService))
     private readonly huiduService: HuiduService,
-  ) {}
+    @Inject(forwardRef(() => BonusService))
+    private readonly bonusService: BonusService,
+  ) { }
 
   async getGames(query: GamesQueryDto) {
     const { skip, take } = getPaginationParams(query);
@@ -1243,6 +1246,14 @@ export class GamesService {
     if (winAmountUsdc.gte(100)) {
       await this.recordBigWin(userId, gameId, winAmount, winAmountUsdc, currency);
     }
+
+    // Process wagering for active bonuses
+    await this.bonusService.processWagerForBonuses(
+      userId,
+      gameId,
+      betAmountUsdc,
+      result.round.id,
+    );
 
     // Publish balance update via WebSocket for real-time UI updates
     await this.redis.publish('wallet:balance_updated', {
