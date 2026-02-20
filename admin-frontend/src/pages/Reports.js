@@ -19,6 +19,10 @@ const Reports = () => {
   const [bonusReport, setBonusReport] = useState(null);
   const [gameReport, setGameReport] = useState(null);
 
+  // Pagination state for game rounds
+  const [roundsPage, setRoundsPage] = useState(1);
+  const roundsPerPage = 20;
+
   useEffect(() => {
     loadReports();
   }, [activeTab, dateRange]);
@@ -134,6 +138,8 @@ const Reports = () => {
     uniquePlayers: Number(overallGgr.unique_players || 0),
   };
   const ggrByProvider = gameReport?.ggrByProvider || [];
+  const ggrByCurrency = gameReport?.ggrByCurrency || [];
+  const recentRounds = gameReport?.recentRounds || [];
   const topGames = gameReport?.topGames || [];
   const topPlayers = playerReport?.topPlayers || [];
 
@@ -407,39 +413,42 @@ const Reports = () => {
           </div>
 
           {/* GGR/NGR Overview */}
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-card-title">Total Bets</div>
-              <div className="stat-card-value">{formatCurrency(casinoStats.totalBets)}</div>
-              <div className="stat-card-change">{casinoStats.totalRounds} rounds</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-card-title">Total Wins</div>
-              <div className="stat-card-value">{formatCurrency(casinoStats.totalWins)}</div>
-              <div className="stat-card-change">{casinoStats.uniquePlayers} players</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-card-title">GGR (Gross)</div>
-              <div className="stat-card-value" style={{ color: 'var(--success)' }}>
-                {formatCurrency(casinoStats.ggr)}
+          <div style={{ overflowX: 'auto', marginBottom: '16px' }}>
+            <div className="stats-grid" style={{ minWidth: '800px' }}>
+              <div className="stat-card">
+                <div className="stat-card-title">Total Bets</div>
+                <div className="stat-card-value">{formatCurrency(casinoStats.totalBets)}</div>
+                <div className="stat-card-change">{casinoStats.totalRounds} rounds</div>
               </div>
-              <div className="stat-card-change">Bets - Wins</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-card-title">NGR (Net)</div>
-              <div className="stat-card-value" style={{ color: 'var(--success)' }}>
-                {formatCurrency(casinoStats.ngr)}
+              <div className="stat-card">
+                <div className="stat-card-title">Total Wins</div>
+                <div className="stat-card-value">{formatCurrency(casinoStats.totalWins)}</div>
+                <div className="stat-card-change">{casinoStats.uniquePlayers} players</div>
               </div>
-              <div className="stat-card-change">GGR - Bonus Cost</div>
+              <div className="stat-card">
+                <div className="stat-card-title">GGR (Gross)</div>
+                <div className="stat-card-value" style={{ color: 'var(--success)' }}>
+                  {formatCurrency(casinoStats.ggr)}
+                </div>
+                <div className="stat-card-change">Bets - Wins</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-card-title">NGR (Net)</div>
+                <div className="stat-card-value" style={{ color: 'var(--success)' }}>
+                  {formatCurrency(casinoStats.ngr)}
+                </div>
+                <div className="stat-card-change">GGR - Bonus Cost</div>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-2 gap-2">
+          <div style={{ overflowX: 'auto' }}>
+            <div className="grid grid-2 gap-2" style={{ minWidth: '900px' }}>
             {/* By Provider */}
-            <div className="card">
+            <div className="card" style={{ minWidth: 0, overflow: 'hidden' }}>
               <h4 className="card-title mb-2">Revenue by Provider</h4>
-              <div className="table-container">
-                <table className="table">
+              <div className="table-container" style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ minWidth: '450px' }}>
                   <thead>
                     <tr>
                       <th>Provider</th>
@@ -452,11 +461,11 @@ const Reports = () => {
                   <tbody>
                     {ggrByProvider.length > 0 ? ggrByProvider.map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '500' }}>{row.provider_name || 'Unknown'}</td>
+                        <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>{row.provider_name || 'Unknown'}</td>
                         <td>{Number(row.plays || 0).toLocaleString()}</td>
-                        <td>{formatCurrency(row.total_bets)}</td>
-                        <td>{formatCurrency(row.total_wins)}</td>
-                        <td style={{ color: 'var(--success)' }}>{formatCurrency(row.ggr)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{formatCurrency(row.total_bets)}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{formatCurrency(row.total_wins)}</td>
+                        <td style={{ color: 'var(--success)', whiteSpace: 'nowrap' }}>{formatCurrency(row.ggr)}</td>
                       </tr>
                     )) : (
                       <tr>
@@ -469,10 +478,10 @@ const Reports = () => {
             </div>
 
             {/* Top Games */}
-            <div className="card">
+            <div className="card" style={{ minWidth: 0, overflow: 'hidden' }}>
               <h4 className="card-title mb-2">Top Performing Games</h4>
-              <div className="table-container">
-                <table className="table">
+              <div className="table-container" style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ minWidth: '400px' }}>
                   <thead>
                     <tr>
                       <th>Game</th>
@@ -484,9 +493,9 @@ const Reports = () => {
                   <tbody>
                     {topGames.length > 0 ? topGames.map((row, i) => (
                       <tr key={i}>
-                        <td style={{ fontWeight: '500' }}>{row.name || 'Unknown'}</td>
-                        <td>{formatCurrency(row.totalBets)}</td>
-                        <td style={{ color: 'var(--success)' }}>{formatCurrency(row.ggr)}</td>
+                        <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>{row.name || 'Unknown'}</td>
+                        <td style={{ whiteSpace: 'nowrap' }}>{formatCurrency(row.totalBets)}</td>
+                        <td style={{ color: 'var(--success)', whiteSpace: 'nowrap' }}>{formatCurrency(row.ggr)}</td>
                         <td>{Number(row.plays || 0).toLocaleString()}</td>
                       </tr>
                     )) : (
@@ -498,6 +507,7 @@ const Reports = () => {
                 </table>
               </div>
             </div>
+          </div>
           </div>
 
           {/* Top Player Wagering */}
@@ -534,6 +544,134 @@ const Reports = () => {
                 </tbody>
               </table>
             </div>
+          </div>
+
+          {/* GGR by Currency */}
+          <div className="card">
+            <h4 className="card-title mb-2">GGR by Currency</h4>
+            <div className="table-container" style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ minWidth: '500px' }}>
+                <thead>
+                  <tr>
+                    <th>Currency</th>
+                    <th>Plays</th>
+                    <th>Total Bets</th>
+                    <th>Total Wins</th>
+                    <th>GGR</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ggrByCurrency.length > 0 ? ggrByCurrency.map((row, i) => (
+                    <tr key={i}>
+                      <td style={{ fontWeight: '500' }}>{row.currency}</td>
+                      <td>{Number(row.plays || 0).toLocaleString()}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatCurrency(row.total_bets)}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatCurrency(row.total_wins)}</td>
+                      <td style={{ color: 'var(--success)', fontWeight: '500', whiteSpace: 'nowrap' }}>{formatCurrency(row.ggr)}</td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="5" style={{ textAlign: 'center', color: 'var(--gray)' }}>No currency data</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Game Rounds Listing */}
+          <div className="card">
+            <div className="flex-between mb-2">
+              <h4 className="card-title">Recent Game Rounds</h4>
+              <span style={{ color: 'var(--gray)', fontSize: '0.9rem' }}>
+                Showing {Math.min((roundsPage - 1) * roundsPerPage + 1, recentRounds.length)}-{Math.min(roundsPage * roundsPerPage, recentRounds.length)} of {recentRounds.length}
+              </span>
+            </div>
+            <div className="table-container" style={{ overflowX: 'auto' }}>
+              <table className="table" style={{ minWidth: '900px' }}>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Player</th>
+                    <th>Game</th>
+                    <th>Provider</th>
+                    <th>Bet</th>
+                    <th>Win</th>
+                    <th>Currency</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentRounds.length > 0 ? recentRounds
+                    .slice((roundsPage - 1) * roundsPerPage, roundsPage * roundsPerPage)
+                    .map((round, i) => (
+                    <tr key={i}>
+                      <td style={{ whiteSpace: 'nowrap' }}>{new Date(round.createdAt).toLocaleString()}</td>
+                      <td>
+                        <div style={{ fontWeight: '500' }}>{round.playerName || 'N/A'}</div>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--gray)' }}>{round.playerEmail}</div>
+                      </td>
+                      <td style={{ fontWeight: '500', whiteSpace: 'nowrap' }}>{round.gameName}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{round.providerName}</td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{formatCurrency(round.betAmount)}</td>
+                      <td style={{ color: round.winAmount > 0 ? 'var(--success)' : 'inherit', whiteSpace: 'nowrap' }}>
+                        {formatCurrency(round.winAmount)}
+                      </td>
+                      <td>{round.currency}</td>
+                      <td>
+                        <span className={`badge ${
+                          round.status === 'completed' ? 'badge-success' :
+                          round.status === 'pending' ? 'badge-warning' :
+                          'badge-info'
+                        }`} style={{ textTransform: 'capitalize' }}>
+                          {round.status || 'completed'}
+                        </span>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr>
+                      <td colSpan="8" style={{ textAlign: 'center', color: 'var(--gray)' }}>No game rounds found for this period</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Pagination */}
+            {recentRounds.length > roundsPerPage && (
+              <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', marginTop: '16px' }}>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setRoundsPage(1)}
+                  disabled={roundsPage === 1}
+                >
+                  First
+                </button>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setRoundsPage(p => Math.max(1, p - 1))}
+                  disabled={roundsPage === 1}
+                >
+                  Previous
+                </button>
+                <span style={{ padding: '0 12px', color: 'var(--text)' }}>
+                  Page {roundsPage} of {Math.ceil(recentRounds.length / roundsPerPage)}
+                </span>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setRoundsPage(p => Math.min(Math.ceil(recentRounds.length / roundsPerPage), p + 1))}
+                  disabled={roundsPage >= Math.ceil(recentRounds.length / roundsPerPage)}
+                >
+                  Next
+                </button>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  onClick={() => setRoundsPage(Math.ceil(recentRounds.length / roundsPerPage))}
+                  disabled={roundsPage >= Math.ceil(recentRounds.length / roundsPerPage)}
+                >
+                  Last
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

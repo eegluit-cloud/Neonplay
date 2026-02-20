@@ -36,15 +36,16 @@ const getBonuses = async (req, res) => {
         name: p.name,
         code: p.code,
         type: p.type,
-        amount: Number(p.bonusAmountUsdc || 0),
+        amount: Number(p.bonusAmountUsdc || p.bonusAmount || 0),
+        currency: p.bonusCurrency || 'USDC',
         percentage: p.percentageBonus || 0,
         wageringReq: p.wageringRequirement || 1,
         minDeposit: Number(p.minDepositUsdc || 0),
         maxCap: Number(p.maxBonusUsdc || 0),
         startDate: p.startsAt,
         endDate: p.endsAt,
-        eligibleGames: null, // TODO: Add to schema if needed
-        playerSegments: null, // TODO: Add to schema if needed
+        eligibleGames: null,
+        playerSegments: null,
         maxClaims: p.maxClaims,
         currentClaims: p._count.userPromotions,
         description: p.description,
@@ -138,7 +139,8 @@ const createBonus = async (req, res) => {
   try {
     const {
       name, code, type, amount, percentage, wageringReq, minDeposit, maxCap,
-      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, imageUrl
+      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, imageUrl,
+      currency // NEW: Support currency selection
     } = req.body;
 
     // Check for duplicate code
@@ -151,15 +153,19 @@ const createBonus = async (req, res) => {
       }
     }
 
+    // Validate currency
+    const validCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'USDC', 'USDT', 'INR', 'PHP', 'THB'];
+    const bonusCurrency = currency && validCurrencies.includes(currency) ? currency : 'USDC';
+
     const promotion = await prisma.promotion.create({
       data: {
         name,
         slug: name.toLowerCase().replace(/\s+/g, '-'),
         code: code ? code.toUpperCase() : null,
         type: type || 'code',
-        bonusCurrency: 'USDC',
+        bonusCurrency: bonusCurrency,
         bonusAmount: amount ? parseFloat(amount) : null,
-        bonusAmountUsdc: amount ? parseFloat(amount) : null,
+        bonusAmountUsdc: amount ? parseFloat(amount) : null, // Keep for backward compatibility
         percentageBonus: percentage || null,
         wageringRequirement: wageringReq || 1,
         minDepositUsdc: minDeposit ? parseFloat(minDeposit) : null,
@@ -566,6 +572,97 @@ const getBonusStats = async (req, res) => {
   }
 };
 
+// Reset wagering requirement for a player's bonus
+const resetWageringRequirement = async (req, res) => {
+  try {
+    const { playerBonusId } = req.params;
+    const { reason, newWageringTarget } = req.body;
+
+    const userPromotion = await prisma.userPromotion.findUnique({
+      where: { id: playerBonusId },
+      include: {
+        user: { select: { email: true } },
+        promotion: true
+      }
+    });
+
+    if (!userPromotion) {
+      return res.status(404).json({ error: 'Player bonus not found' });
+    }
+
+    if (userPromotion.status !== 'claimed') {
+      return res.status(400).json({ error: 'Can only reset wagering for active bonuses' });
+    }
+
+    const oldWageringTarget = userPromotion.wageringTarget;
+    const oldWageredAmount = userPromotion.wageredAmount;
+
+    // If newWageringTarget is provided, use it; otherwise reset to 0 (complete the bonus)
+    const updatedWageringTarget = newWageringTarget !== undefined
+      ? parseFloat(newWageringTarget)
+      : Number(userPromotion.wageredAmount); // Set target to already wagered amount to complete
+
+    await prisma.userPromotion.update({
+      where: { id: playerBonusId },
+      data: {
+        wageringTarget: updatedWageringTarget,
+        status: updatedWageringTarget <= Number(userPromotion.wageredAmount) ? 'completed' : 'claimed',
+        completedAt: updatedWageringTarget <= Number(userPromotion.wageredAmount) ? new Date() : null
+      }
+    });
+
+    // Add audit log
+    await prisma.adminAuditLog.create({
+      data: {
+        adminId: req.admin?.id || 'system',
+        action: 'reset_wagering',
+        entityType: 'user_promotion',
+        entityId: playerBonusId,
+        oldValues: {
+          wageringTarget: Number(oldWageringTarget),
+          wageredAmount: Number(oldWageredAmount)
+        },
+        newValues: {
+          wageringTarget: updatedWageringTarget,
+          status: updatedWageringTarget <= Number(userPromotion.wageredAmount) ? 'completed' : 'claimed'
+        },
+        reason: reason || 'Wagering requirement reset by admin'
+      }
+    });
+
+    res.json({
+      message: 'Wagering requirement reset successfully',
+      newWageringTarget: updatedWageringTarget,
+      isCompleted: updatedWageringTarget <= Number(userPromotion.wageredAmount)
+    });
+  } catch (error) {
+    console.error('Reset wagering error:', error);
+    res.status(500).json({ error: 'Failed to reset wagering requirement' });
+  }
+};
+
+// Get available currencies for bonuses
+const getAvailableCurrencies = async (req, res) => {
+  try {
+    const currencies = [
+      { code: 'USD', name: 'US Dollar', symbol: '$' },
+      { code: 'EUR', name: 'Euro', symbol: '€' },
+      { code: 'GBP', name: 'British Pound', symbol: '£' },
+      { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
+      { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+      { code: 'USDC', name: 'USD Coin', symbol: '$' },
+      { code: 'USDT', name: 'Tether', symbol: '$' },
+      { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
+      { code: 'PHP', name: 'Philippine Peso', symbol: '₱' },
+      { code: 'THB', name: 'Thai Baht', symbol: '฿' }
+    ];
+    res.json({ currencies });
+  } catch (error) {
+    console.error('Get currencies error:', error);
+    res.status(500).json({ error: 'Failed to load currencies' });
+  }
+};
+
 module.exports = {
   getBonuses,
   getBonus,
@@ -575,5 +672,7 @@ module.exports = {
   getPlayerBonuses,
   awardBonus,
   cancelPlayerBonus,
-  getBonusStats
+  getBonusStats,
+  resetWageringRequirement,
+  getAvailableCurrencies
 };

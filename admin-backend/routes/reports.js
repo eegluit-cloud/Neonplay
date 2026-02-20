@@ -24,6 +24,12 @@ router.get('/players', reportsController.getPlayerReport);
 // Game reports
 router.get('/games', reportsController.getGameReport);
 
+// Player segmentation report (Active, Inactive, Closed, GGR, NGR, Bonus spends)
+router.get('/player-segmentation', reportsController.getPlayerSegmentationReport);
+
+// Fraud detection report (Same IP detection)
+router.get('/fraud', requireRole('super_admin', 'manager'), reportsController.getFraudReport);
+
 // Export to CSV
 router.get('/export', requireRole('super_admin', 'manager'), reportsController.exportToCsv);
 

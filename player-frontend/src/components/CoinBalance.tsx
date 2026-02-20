@@ -10,6 +10,9 @@ const CURRENCIES = {
   GBP: { symbol: '£', icon: DollarSign, color: 'text-purple-400', bgColor: 'bg-purple-500/20', decimals: 2 },
   CAD: { symbol: 'C$', icon: DollarSign, color: 'text-red-400', bgColor: 'bg-red-500/20', decimals: 2 },
   AUD: { symbol: 'A$', icon: DollarSign, color: 'text-yellow-400', bgColor: 'bg-yellow-500/20', decimals: 2 },
+  INR: { symbol: '₹', icon: DollarSign, color: 'text-orange-400', bgColor: 'bg-orange-500/20', decimals: 2 },
+  PHP: { symbol: '₱', icon: DollarSign, color: 'text-pink-400', bgColor: 'bg-pink-500/20', decimals: 2 },
+  THB: { symbol: '฿', icon: DollarSign, color: 'text-teal-400', bgColor: 'bg-teal-500/20', decimals: 2 },
   USDC: { symbol: 'USDC', icon: DollarSign, color: 'text-blue-400', bgColor: 'bg-blue-500/20', decimals: 2 },
   USDT: { symbol: 'USDT', icon: DollarSign, color: 'text-emerald-400', bgColor: 'bg-emerald-500/20', decimals: 2 },
   BTC: { symbol: '₿', icon: Bitcoin, color: 'text-orange-400', bgColor: 'bg-orange-500/20', decimals: 8 },
@@ -188,7 +191,7 @@ export function CoinBalance({ variant = 'header', className, onFlash }: CoinBala
             {/* Fiat Currencies */}
             <div className="border-b border-border/20 pb-2 mb-2">
               <p className="px-2 py-1 text-xs text-muted-foreground">Fiat</p>
-              {(['USD', 'EUR', 'GBP', 'CAD', 'AUD'] as CurrencyCode[]).map((currency) => {
+              {(['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'INR', 'PHP', 'THB'] as CurrencyCode[]).map((currency) => {
                 const config = CURRENCIES[currency];
                 const balance = balances?.[currency] || 0;
                 const CurrencyIcon = config.icon;

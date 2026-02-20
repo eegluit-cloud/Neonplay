@@ -14,6 +14,7 @@ import {
   PAY247_LIMITS,
   PAY247_METHOD_NAMES,
   PAY247_METHODS_BY_CURRENCY,
+  PAY247_CURRENCY_SYMBOLS,
   type Pay247AccountDetails,
   type UpiAccountDetails,
   type BankAccountDetails,
@@ -527,7 +528,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             {/* Amount Display */}
             <div className="mb-6 p-4 bg-secondary/50 rounded-xl">
               <p className="text-sm text-muted-foreground">{activeTab === 'withdraw' ? 'Amount to withdraw' : 'Amount to deposit'}</p>
-              <p className="text-2xl font-bold text-primary">${amount}</p>
+              <p className="text-2xl font-bold text-primary">{amount}</p>
             </div>
 
             {/* Payment Methods */}
@@ -984,7 +985,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
             {/* Amount Display */}
             <div className="mb-6 p-4 bg-secondary/50 rounded-xl">
               <p className="text-sm text-muted-foreground">{activeTab === 'withdraw' ? 'Amount to withdraw' : 'Amount to deposit'}</p>
-              <p className="text-2xl font-bold text-primary">${amount}</p>
+              <p className="text-2xl font-bold text-primary">{PAY247_CURRENCY_SYMBOLS[pay247Currency]}{amount} {pay247Currency}</p>
             </div>
 
             {/* Error Message */}
@@ -1022,7 +1023,7 @@ export function WalletModal({ isOpen, onClose, onDepositSuccess, onWithdrawSucce
                 ))}
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Limits: ${PAY247_LIMITS[pay247Currency].min} - ${PAY247_LIMITS[pay247Currency].max}
+                Limits: {PAY247_CURRENCY_SYMBOLS[pay247Currency]}{PAY247_LIMITS[pay247Currency].min} - {PAY247_CURRENCY_SYMBOLS[pay247Currency]}{PAY247_LIMITS[pay247Currency].max} {pay247Currency}
               </p>
             </div>
 

@@ -82,6 +82,13 @@ export const PAY247_LIMITS = {
   PHP: { min: 500, max: 500000 },
 };
 
+// Currency symbols
+export const PAY247_CURRENCY_SYMBOLS: Record<Pay247Currency, string> = {
+  USDT: '',
+  INR: '₹',
+  PHP: '₱',
+};
+
 // Payment method display names
 export const PAY247_METHOD_NAMES: Record<string, string> = {
   TRC20: 'USDT (TRC20)',

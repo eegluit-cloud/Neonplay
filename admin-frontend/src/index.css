@@ -410,6 +410,7 @@ button {
 .page-content {
   padding: 28px;
   max-width: 1600px;
+  overflow-x: auto;
 }
 
 /* ============================================
@@ -736,9 +737,10 @@ button {
    ============================================ */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(4, minmax(200px, 1fr));
   gap: 24px;
   margin-bottom: 28px;
+  min-width: fit-content;
 }
 
 .stat-card {

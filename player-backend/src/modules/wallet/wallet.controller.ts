@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Body,
   Param,
   Query,
@@ -27,6 +28,17 @@ export class WalletController {
   @ApiOperation({ summary: 'Get wallet balances' })
   async getWallet(@CurrentUser('id') userId: string) {
     return this.walletService.getWallet(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('currency')
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Update primary currency' })
+  async setPrimaryCurrency(
+    @CurrentUser('id') userId: string,
+    @Body() body: { currency: string },
+  ) {
+    return this.walletService.setPrimaryCurrency(userId, body.currency);
   }
 
   @UseGuards(JwtAuthGuard)

@@ -45,7 +45,9 @@ const getTransactionReport = async (req, res) => {
     }
 
     if (endDate) {
-      where.createdAt = { ...where.createdAt, lte: new Date(endDate) };
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.createdAt = { ...where.createdAt, lte: end };
     }
 
     if (type) {
@@ -303,7 +305,11 @@ const getBonusReport = async (req, res) => {
     if (startDate || endDate) {
       where.claimedAt = {};
       if (startDate) where.claimedAt.gte = new Date(startDate);
-      if (endDate) where.claimedAt.lte = new Date(endDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.claimedAt.lte = end;
+      }
     }
 
     const userPromotions = await prisma.userPromotion.findMany({
@@ -405,7 +411,11 @@ const getPlayerReport = async (req, res) => {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
     }
 
     const users = await prisma.user.findMany({
@@ -521,7 +531,11 @@ const getGameReport = async (req, res) => {
     if (startDate || endDate) {
       where.createdAt = {};
       if (startDate) where.createdAt.gte = new Date(startDate);
-      if (endDate) where.createdAt.lte = new Date(endDate);
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        where.createdAt.lte = end;
+      }
     }
 
     const gameRounds = await prisma.gameRound.findMany({
@@ -609,9 +623,63 @@ const getGameReport = async (req, res) => {
       unique_players: new Set()
     });
 
+    // GGR by currency
+    const ggrByCurrency = {};
+    gameRounds.forEach(gr => {
+      const currency = gr.currency || 'USDC';
+      if (!ggrByCurrency[currency]) {
+        ggrByCurrency[currency] = {
+          currency,
+          total_bets: 0,
+          total_wins: 0,
+          plays: 0
+        };
+      }
+      ggrByCurrency[currency].plays++;
+      ggrByCurrency[currency].total_bets += Number(gr.betAmountUsdc || 0);
+      ggrByCurrency[currency].total_wins += Number(gr.winAmountUsdc || 0);
+    });
+
+    const ggrByCurrencyArray = Object.values(ggrByCurrency).map(c => ({
+      ...c,
+      ggr: c.total_bets - c.total_wins
+    })).sort((a, b) => b.ggr - a.ggr);
+
+    // Recent game rounds listing (last 100)
+    const recentRounds = await prisma.gameRound.findMany({
+      where,
+      include: {
+        user: { select: { email: true, username: true, firstName: true, lastName: true } },
+        game: {
+          select: {
+            name: true,
+            provider: { select: { name: true } }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+
+    const recentRoundsData = recentRounds.map(gr => ({
+      id: gr.id,
+      roundId: gr.roundId,
+      playerEmail: gr.user?.email || 'N/A',
+      playerName: `${gr.user?.firstName || ''} ${gr.user?.lastName || ''}`.trim() || gr.user?.username || 'N/A',
+      gameName: gr.game?.name || 'Unknown',
+      providerName: gr.game?.provider?.name || 'Unknown',
+      betAmount: Number(gr.betAmountUsdc || 0),
+      winAmount: Number(gr.winAmountUsdc || 0),
+      currency: gr.currency || 'USDC',
+      status: gr.status,
+      createdAt: gr.createdAt
+    }));
+
     res.json({
       topGames,
       ggrByProvider,
+      ggrByCurrency: ggrByCurrencyArray,
+      recentRounds: recentRoundsData,
       overallGgr: {
         total_bets: overallGgr.total_bets,
         total_wins: overallGgr.total_wins,
@@ -893,6 +961,191 @@ const exportToCsv = async (req, res) => {
   }
 };
 
+// Player Segmentation Report
+const getPlayerSegmentationReport = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    // Define activity thresholds
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    // Get all users with their activity data
+    const users = await prisma.user.findMany({
+      include: {
+        wallet: true,
+        gameRounds: {
+          select: {
+            createdAt: true,
+            betAmountUsdc: true,
+            winAmountUsdc: true
+          },
+          orderBy: { createdAt: 'desc' },
+          take: 100
+        },
+        deposits: {
+          where: { status: 'completed' },
+          select: { amount: true, usdcAmount: true, createdAt: true }
+        },
+        userPromotions: {
+          select: {
+            bonusAmount: true,
+            wageredAmount: true,
+            status: true
+          }
+        }
+      }
+    });
+
+    const segmentStats = {
+      active: { count: 0, ggr: 0, ngr: 0, bonusSpend: 0, totalDeposits: 0 },
+      inactive: { count: 0, ggr: 0, ngr: 0, bonusSpend: 0, totalDeposits: 0 },
+      dormant: { count: 0, ggr: 0, ngr: 0, bonusSpend: 0, totalDeposits: 0 },
+      closed: { count: 0, ggr: 0, ngr: 0, bonusSpend: 0, totalDeposits: 0 },
+      newPlayers: { count: 0, ggr: 0, ngr: 0, bonusSpend: 0, totalDeposits: 0 }
+    };
+
+    let totalGGR = 0;
+    let totalNGR = 0;
+    let totalBonusSpend = 0;
+
+    const topPlayersByGGR = [];
+
+    users.forEach(user => {
+      const lastActivity = user.gameRounds[0]?.createdAt || user.lastLoginAt;
+      const lastActivityDate = lastActivity ? new Date(lastActivity) : null;
+
+      const userGGR = user.gameRounds.reduce((sum, gr) =>
+        sum + (Number(gr.betAmountUsdc || 0) - Number(gr.winAmountUsdc || 0)), 0);
+
+      const userBonusSpend = user.userPromotions.reduce((sum, up) =>
+        sum + Number(up.bonusAmount || 0), 0);
+
+      const userNGR = userGGR - userBonusSpend;
+
+      const userDeposits = user.deposits.reduce((sum, d) =>
+        sum + Number(d.usdcAmount || d.amount || 0), 0);
+
+      totalGGR += userGGR;
+      totalNGR += userNGR;
+      totalBonusSpend += userBonusSpend;
+
+      topPlayersByGGR.push({
+        id: user.id,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username,
+        ggr: userGGR,
+        ngr: userNGR,
+        bonusSpend: userBonusSpend,
+        totalDeposits: userDeposits
+      });
+
+      // Determine segment
+      let segment;
+      if (!user.isActive || user.isSuspended) {
+        segment = 'closed';
+      } else if (user.createdAt >= sevenDaysAgo) {
+        segment = 'newPlayers';
+      } else if (lastActivityDate && lastActivityDate >= sevenDaysAgo) {
+        segment = 'active';
+      } else if (lastActivityDate && lastActivityDate >= thirtyDaysAgo) {
+        segment = 'inactive';
+      } else {
+        segment = 'dormant';
+      }
+
+      segmentStats[segment].count++;
+      segmentStats[segment].ggr += userGGR;
+      segmentStats[segment].ngr += userNGR;
+      segmentStats[segment].bonusSpend += userBonusSpend;
+      segmentStats[segment].totalDeposits += userDeposits;
+    });
+
+    topPlayersByGGR.sort((a, b) => b.ggr - a.ggr);
+
+    res.json({
+      summary: {
+        totalPlayers: users.length,
+        totalGGR,
+        totalNGR,
+        totalBonusSpend
+      },
+      segmentStats,
+      topPlayersByGGR: topPlayersByGGR.slice(0, 50),
+      topPlayersByNGR: [...topPlayersByGGR].sort((a, b) => b.ngr - a.ngr).slice(0, 50),
+      topBonusRecipients: [...topPlayersByGGR].sort((a, b) => b.bonusSpend - a.bonusSpend).slice(0, 50)
+    });
+  } catch (error) {
+    console.error('Player segmentation report error:', error);
+    res.status(500).json({ error: 'Failed to generate segmentation report' });
+  }
+};
+
+// Fraud Detection - Same IP Report
+const getFraudReport = async (req, res) => {
+  try {
+    const usersWithIps = await prisma.user.findMany({
+      where: { lastLoginIp: { not: null } },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        lastLoginIp: true,
+        lastLoginAt: true,
+        createdAt: true,
+        isActive: true,
+        isSuspended: true
+      }
+    });
+
+    // Group by IP
+    const ipGroups = {};
+    usersWithIps.forEach(user => {
+      const ip = user.lastLoginIp;
+      if (!ipGroups[ip]) {
+        ipGroups[ip] = [];
+      }
+      ipGroups[ip].push(user);
+    });
+
+    // Find IPs with multiple accounts
+    const suspiciousIps = Object.entries(ipGroups)
+      .filter(([ip, users]) => users.length > 1)
+      .map(([ip, users]) => ({
+        ip,
+        accountCount: users.length,
+        accounts: users.map(u => ({
+          id: u.id,
+          email: u.email,
+          username: u.username,
+          name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+          lastLogin: u.lastLoginAt,
+          createdAt: u.createdAt,
+          status: u.isSuspended ? 'suspended' : u.isActive ? 'active' : 'inactive'
+        })),
+        firstSeen: new Date(Math.min(...users.map(u => new Date(u.createdAt)))),
+        lastSeen: users.some(u => u.lastLoginAt)
+          ? new Date(Math.max(...users.filter(u => u.lastLoginAt).map(u => new Date(u.lastLoginAt))))
+          : null
+      }))
+      .sort((a, b) => b.accountCount - a.accountCount);
+
+    res.json({
+      summary: {
+        totalSuspiciousIps: suspiciousIps.length,
+        totalAffectedAccounts: suspiciousIps.reduce((sum, ip) => sum + ip.accountCount, 0)
+      },
+      suspiciousIps: suspiciousIps.slice(0, 100)
+    });
+  } catch (error) {
+    console.error('Fraud report error:', error);
+    res.status(500).json({ error: 'Failed to generate fraud report' });
+  }
+};
+
 module.exports = {
   getTransactionReport,
   getBankingReport,
@@ -900,5 +1153,7 @@ module.exports = {
   getPlayerReport,
   getGameReport,
   getDashboardSummary,
-  exportToCsv
+  exportToCsv,
+  getPlayerSegmentationReport,
+  getFraudReport
 };

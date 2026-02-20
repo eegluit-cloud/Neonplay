@@ -183,6 +183,7 @@ export const gamesApi = {
 // Wallet API
 export const walletApi = {
   getBalance: () => api.get('/wallet'),
+  updateCurrency: (currency: string) => api.patch('/wallet/currency', { currency }),
 
   getTransactions: (params?: { page?: number; limit?: number; type?: string }) =>
     api.get('/wallet/transactions', { params }),

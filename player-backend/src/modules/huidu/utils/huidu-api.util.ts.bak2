@@ -73,27 +73,25 @@ export class HuiduApiUtil {
    */
   async getGameUrl(payload: HuiduLaunchPayload): Promise<string> {
     this.logger.log("🔍 Huidu getGameUrl - Plaintext payload BEFORE encryption:");
-    this.logger.log("   agency_uid: " + payload.agency_uid);
-    this.logger.log("   member_account: " + payload.member_account);
-    this.logger.log("   game_uid: " + payload.game_uid);
-    this.logger.log("   currency_code: " + payload.currency_code);
-    this.logger.log("   credit_amount: " + payload.credit_amount);
-    this.logger.log("   Full payload: " + JSON.stringify(payload));
-
+    this.logger.log();
+    this.logger.log();
+    this.logger.log();
+    this.logger.log();
+    this.logger.log();
+    this.logger.log();
     
     const encryptedPayload = this.crypto.encryptJson(payload);
     const requestTimestamp = Date.now().toString();
-
+    
     this.logger.log("📤 Huidu API Request Body:");
-    this.logger.log("   agency_uid: " + this.agencyUid);
-    this.logger.log("   timestamp: " + requestTimestamp);
-    this.logger.log("   payload (encrypted): " + encryptedPayload.substring(0, 50) + "...");
+    this.logger.log();
+    this.logger.log();
     
     const response = await this.axiosInstance.post("/game/v1", {
-      agency_uid: this.agencyUid,
       timestamp: requestTimestamp,
       payload: encryptedPayload,
     });
+
     if (response.data.code !== 0) {
       const errorMsg = response.data.msg || HUIDU_ERROR_CODES[response.data.code] || 'Unknown error';
       this.logger.error(`Huidu getGameUrl failed: code=${response.data.code} msg=${errorMsg}`);

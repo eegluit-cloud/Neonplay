@@ -79,11 +79,10 @@ export class HuiduApiUtil {
     this.logger.log("   currency_code: " + payload.currency_code);
     this.logger.log("   credit_amount: " + payload.credit_amount);
     this.logger.log("   Full payload: " + JSON.stringify(payload));
-
     
     const encryptedPayload = this.crypto.encryptJson(payload);
     const requestTimestamp = Date.now().toString();
-
+    
     this.logger.log("📤 Huidu API Request Body:");
     this.logger.log("   agency_uid: " + this.agencyUid);
     this.logger.log("   timestamp: " + requestTimestamp);

@@ -47,4 +47,14 @@ router.post('/player-bonuses/:playerBonusId/cancel', requireRole('super_admin', 
   validate
 ], bonusController.cancelPlayerBonus);
 
+// Reset wagering requirement for a player's bonus
+router.post('/player-bonuses/:playerBonusId/reset-wagering', requireRole('super_admin', 'manager'), logAction('reset_wagering', 'player_bonus'), [
+  body('reason').optional(),
+  body('newWageringTarget').optional().isFloat({ min: 0 }).withMessage('Invalid wagering target'),
+  validate
+], bonusController.resetWageringRequirement);
+
+// Get available currencies for bonus creation
+router.get('/currencies/available', bonusController.getAvailableCurrencies);
+
 module.exports = router;

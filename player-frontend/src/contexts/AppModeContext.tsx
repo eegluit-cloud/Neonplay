@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import AuthContext from './AuthContext';
+import { walletApi } from '@/lib/api';
 
 // Supported currencies
 export type FiatCurrency = 'USD' | 'EUR' | 'GBP' | 'CAD' | 'AUD' | 'PHP' | 'INR' | 'THB' | 'CNY' | 'JPY';
@@ -11,7 +12,7 @@ export interface WalletActivity {
   type: 'deposit' | 'withdrawal' | 'stake' | 'win' | 'bonus' | 'transfer' | 'conversion';
   currency: Currency;
   amount: number;
-  usdcAmount: number; // USDC equivalent for unified tracking
+  usdcAmount: number;
   timestamp: Date;
   referenceId?: string;
   status: 'pending' | 'confirming' | 'completed' | 'failed';
@@ -67,8 +68,8 @@ interface WalletContextType {
 const AppModeContext = createContext<WalletContextType | undefined>(undefined);
 
 const WALLET_STORAGE_KEY = 'wallet_data_v2';
+const CURRENCY_STORAGE_KEY = 'selected_currency';
 
-// Currency display configuration
 const CURRENCY_CONFIG: Record<Currency, { symbol: string; decimals: number }> = {
   USD: { symbol: '$', decimals: 2 },
   EUR: { symbol: '€', decimals: 2 },
@@ -88,7 +89,6 @@ const CURRENCY_CONFIG: Record<Currency, { symbol: string; decimals: number }> = 
   DOGE: { symbol: 'Ð', decimals: 4 },
 };
 
-// Approximate exchange rates to USDC (in production, fetch from API)
 const EXCHANGE_RATES: Record<Currency, number> = {
   USD: 1,
   EUR: 1.08,
@@ -108,7 +108,6 @@ const EXCHANGE_RATES: Record<Currency, number> = {
   DOGE: 0.08,
 };
 
-// Demo wallet for unauthenticated users
 const DEMO_WALLET: Wallet = {
   balances: {
     USD: 1000,
@@ -142,6 +141,17 @@ const DEMO_WALLET: Wallet = {
 export function AppModeProvider({ children }: { children: ReactNode }) {
   const authContext = useContext(AuthContext);
 
+  // Separate state for selected currency (works for both auth and non-auth users)
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(CURRENCY_STORAGE_KEY);
+      if (stored && ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'PHP', 'INR', 'THB', 'CNY', 'JPY', 'USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE'].includes(stored)) {
+        return stored as Currency;
+      }
+    }
+    return 'USD';
+  });
+
   const [localWallet, setLocalWallet] = useState<Wallet>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem(WALLET_STORAGE_KEY);
@@ -169,11 +179,27 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   const wallet: Wallet = authContext?.wallet
     ? {
         balances: authContext.wallet.balances || DEMO_WALLET.balances,
-        primaryCurrency: authContext.wallet.primaryCurrency || 'USD',
+        primaryCurrency: selectedCurrency, // Use selected currency instead of server value
         activity: localWallet.activity,
         lifetimeStats: authContext.wallet.lifetimeStats || DEMO_WALLET.lifetimeStats,
       }
-    : localWallet;
+    : { ...localWallet, primaryCurrency: selectedCurrency };
+
+  // Persist selected currency to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(CURRENCY_STORAGE_KEY, selectedCurrency);
+    }
+  }, [selectedCurrency]);
+
+  // Sync selected currency from server when authenticated
+  useEffect(() => {
+    console.log("Sync useEffect - isAuth:", authContext?.isAuthenticated, "serverCurrency:", authContext?.wallet?.primaryCurrency);
+    if (authContext?.isAuthenticated && authContext?.wallet?.primaryCurrency) {
+      console.log("Setting currency from server:", authContext.wallet.primaryCurrency);
+      setSelectedCurrency(authContext.wallet.primaryCurrency as Currency);
+    }
+  }, [authContext?.isAuthenticated, authContext?.wallet?.primaryCurrency]);
 
   // Persist local wallet to localStorage
   useEffect(() => {
@@ -183,8 +209,9 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   }, [localWallet, authContext?.isAuthenticated]);
 
   const updateBalance = (currency: Currency, amount: number) => {
+    console.log("setPrimaryCurrency called:", currency, "isAuthenticated:", authContext?.isAuthenticated);
     if (authContext?.isAuthenticated) {
-      authContext.refreshWallet();
+      walletApi.updateCurrency(currency).catch(console.error);
     } else {
       setLocalWallet(prev => ({
         ...prev,
@@ -197,9 +224,13 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   };
 
   const setPrimaryCurrency = (currency: Currency) => {
+    // Update local state immediately for instant UI feedback
+    setSelectedCurrency(currency);
+    
+    console.log("setPrimaryCurrency called:", currency, "isAuthenticated:", authContext?.isAuthenticated);
     if (authContext?.isAuthenticated) {
-      // API call would go here
-      authContext.refreshWallet();
+      // Optionally sync to server in background
+      walletApi.updateCurrency(currency).catch(console.error);
     } else {
       setLocalWallet(prev => ({
         ...prev,
@@ -221,8 +252,9 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
   };
 
   const refreshWallet = () => {
+    console.log("setPrimaryCurrency called:", currency, "isAuthenticated:", authContext?.isAuthenticated);
     if (authContext?.isAuthenticated) {
-      authContext.refreshWallet();
+      walletApi.updateCurrency(currency).catch(console.error);
     } else {
       if (typeof window !== 'undefined') {
         const stored = localStorage.getItem(WALLET_STORAGE_KEY);
@@ -253,7 +285,6 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       maximumFractionDigits: config.decimals
     });
 
-    // For crypto with no symbol, append currency code
     if (!config.symbol) {
       return `${formatted} ${currency}`;
     }
@@ -271,7 +302,7 @@ export function AppModeProvider({ children }: { children: ReactNode }) {
       value={{
         wallet,
         balances: wallet.balances,
-        primaryCurrency: wallet.primaryCurrency,
+        primaryCurrency: selectedCurrency,
         isDemo,
         updateBalance,
         setPrimaryCurrency,
@@ -311,9 +342,7 @@ export function useWallet() {
     refresh: context.refreshWallet,
     formatCurrency: context.formatCurrency,
     getUsdcEquivalent: context.getUsdcEquivalent,
-    // Helper to get balance for specific currency
     getBalance: (currency: Currency) => context.balances[currency],
-    // Get total balance in USDC equivalent
     getTotalUsdcValue: () => {
       return Object.entries(context.balances).reduce((total, [currency, amount]) => {
         return total + context.getUsdcEquivalent(amount, currency as Currency);

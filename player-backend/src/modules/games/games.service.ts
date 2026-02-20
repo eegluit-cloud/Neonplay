@@ -1244,6 +1244,14 @@ export class GamesService {
       await this.recordBigWin(userId, gameId, winAmount, winAmountUsdc, currency);
     }
 
+    // Publish balance update via WebSocket for real-time UI updates
+    await this.redis.publish('wallet:balance_updated', {
+      userId,
+      currency,
+      balance: result.newBalance.toFixed(4),
+      transactionType: 'game_round',
+    });
+
     return {
       roundId: result.round.id,
       betAmount: betAmount.toFixed(4),

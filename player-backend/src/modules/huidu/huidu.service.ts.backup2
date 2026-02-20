@@ -48,36 +48,37 @@ export class HuiduService {
   }
 
   /**
-   * Generate a Huidu-compatible member_account from userId + currency.
-   * Format: player_prefix + first 12 chars of UUID (hyphens stripped) + currency code.
-   * Each user gets a separate member account per currency (Huidu locks currency per account).
+   * Generate a Huidu-compatible member_account from userId.
+   * Format: playerPrefix + first 16 chars of UUID (hyphens stripped) (varies based on prefix length).
    * Stores bidirectional Redis mapping with no TTL.
    */
-  async getOrCreateMemberAccount(userId: string, currency: string): Promise<string> {
-    // Check if mapping already exists for this user+currency
-    const cacheKey = `huidu:user:${userId}:${currency}`;
-    const existing = await this.redis.get<string>(cacheKey);
+  async getOrCreateMemberAccount(userId: string): Promise<string> {
+    // Check if mapping already exists
+    const existing = await this.redis.get<string>(`huidu:user:${userId}`);
     if (existing) return existing;
 
-    // Generate: strip hyphens, take first 12 chars, append currency, prepend player prefix
-    // Format: prefix + 12 chars + currency = max 20 chars (Huidu limit is typically 20-32)
-    const userIdShort = userId.replace(/-/g, '').slice(0, 12).toLowerCase();
-    const memberAccount = this.playerPrefix + userIdShort + currency.toLowerCase();
+    // Generate: strip hyphens, take first 16 chars, prepend player prefix
+    const memberAccount = this.playerPrefix + userId.replace(/-/g, '').slice(0, 16).toLowerCase();
 
     // Store bidirectional mapping (no TTL -- permanent)
-    await this.redis.set(cacheKey, memberAccount);
+    await this.redis.set(`huidu:user:${userId}`, memberAccount);
     await this.redis.set(`huidu:member:${memberAccount}`, userId);
 
-    this.logger.log(`Created Huidu member account: ${memberAccount} for user ${userId} currency ${currency}`);
+    this.logger.log(`Created Huidu member account: ${memberAccount} for user ${userId}`);
     return memberAccount;
   }
+
+  /**
+   * Launch a Huidu game -- calls Huidu API to get a game launch URL.
+   * Called from GamesService.launchGame() for Huidu-aggregated games.
+   */
   async launchGame(
     userId: string,
     game: any, // Game with provider.aggregator included
     currency: Currency,
     sessionId: string,
   ): Promise<string> {
-    const memberAccount = await this.getOrCreateMemberAccount(userId, currency);
+    const memberAccount = await this.getOrCreateMemberAccount(userId);
 
     // Get wallet balance
     const wallet = await this.prisma.wallet.findUnique({
@@ -133,17 +134,6 @@ export class HuiduService {
     let cbPayload: HuiduCallbackPayload;
     try {
       cbPayload = this.huiduApi.decryptCallback(dto.payload);
-
-      // Log decrypted callback payload
-      this.logger.log("📥 Huidu Callback - Received Payload (DECRYPTED):");
-      this.logger.log("   serial_number: " + cbPayload.serial_number);
-      this.logger.log("   member_account: " + cbPayload.member_account);
-      this.logger.log("   game_uid: " + cbPayload.game_uid);
-      this.logger.log("   currency_code: " + cbPayload.currency_code);
-      this.logger.log("   bet_amount: " + cbPayload.bet_amount);
-      this.logger.log("   win_amount: " + cbPayload.win_amount);
-      this.logger.log("   game_round: " + cbPayload.game_round);
-      this.logger.log("   Full callback payload: " + JSON.stringify(cbPayload));
     } catch (error) {
       this.logger.error('Failed to decrypt Huidu callback payload', error);
       return { code: 1, msg: 'Payload decryption failed', payload: '' };
@@ -162,9 +152,6 @@ export class HuiduService {
       cacheKey,
     );
     if (cached) {
-      this.logger.log("🔁 Idempotent replay detected - returning cached response:");
-      this.logger.log("   credit_amount: " + cached.creditAmount);
-      this.logger.log("   timestamp: " + cached.timestamp);
       this.logger.debug(`Idempotent replay for serial_number: ${serial_number}`);
       return {
         code: 0,
@@ -297,13 +284,6 @@ export class HuiduService {
 
     // 10. Cache for idempotency (24h TTL)
     await this.redis.set(cacheKey, { code: 0, creditAmount: newBalance, timestamp: ts }, 86400);
-
-    // Log response before encryption
-    this.logger.log("📤 Huidu Callback - Sending Response (BEFORE encryption):");
-    this.logger.log("   code: 0");
-    this.logger.log("   msg: success");
-    this.logger.log("   credit_amount: " + newBalance);
-    this.logger.log("   timestamp: " + ts);
 
     // 11. Return encrypted response
     return {

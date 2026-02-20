@@ -14,7 +14,7 @@ export function CoinBalancePill({
   className,
   size = 'md'
 }: CoinBalancePillProps) {
-  const { balances } = useWallet();
+  const { balances, setPrimaryCurrency, primaryCurrency } = useWallet();
   const [activeWalletIndex, setActiveWalletIndex] = useState<number>(0);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -150,6 +150,14 @@ export function CoinBalancePill({
     }
   ];
 
+  // Sync activeWalletIndex with primaryCurrency from context
+  useEffect(() => {
+    const index = wallets.findIndex(w => w.currency === primaryCurrency);
+    if (index !== -1 && index !== activeWalletIndex) {
+      setActiveWalletIndex(index);
+    }
+  }, [primaryCurrency, wallets]);
+
   const currentWallet = wallets[activeWalletIndex];
 
   // Switch function - cycles through all currencies
@@ -264,6 +272,7 @@ export function CoinBalancePill({
                   onClick={(e) => {
                     e.stopPropagation();
                     setActiveWalletIndex(index);
+                    setPrimaryCurrency(wallet.currency as Currency);
                     setIsDropdownOpen(false);
                   }}
                   className={cn(

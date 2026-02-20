@@ -132,6 +132,7 @@ services:
       HUIDU_AES_KEY: ${HUIDU_AES_KEY:-}
       HUIDU_SERVER_URL: ${HUIDU_SERVER_URL:-https://jsgame.live}
       HUIDU_CALLBACK_URL: ${HUIDU_CALLBACK_URL:-}
+      HUIDU_PLAYER_PREFIX: ${HUIDU_PLAYER_PREFIX:-np}
     ports:
       - "4000:4000"
     volumes:

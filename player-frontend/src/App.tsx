@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppModeProvider } from "@/contexts/AppModeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 import { SupportButton } from "@/components/SupportButton";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageLoadingState } from "@/components/PageLoadingState";
@@ -72,6 +73,7 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
+      <SocketProvider>
       <AppModeProvider>
         <TooltipProvider delayDuration={0}>
           <Toaster />
@@ -126,6 +128,7 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </AppModeProvider>
+      </SocketProvider>
     </AuthProvider>
   </QueryClientProvider>
 );
