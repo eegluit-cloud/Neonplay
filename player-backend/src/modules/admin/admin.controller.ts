@@ -449,6 +449,33 @@ export class AdminController {
     return this.adminService.deletePromotion(admin.id, promotionId);
   }
 
+  @UseGuards(AdminAuthGuard)
+  @Post('promotions/:id/game-contributions')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('Admin-JWT')
+  @ApiOperation({ summary: 'Set game wagering contributions for a promotion' })
+  async setPromotionGameContributions(
+    @Req() req: Request,
+    @Param('id') promotionId: string,
+    @Body() data: { contributions: Array<{ gameId: string; contributionPercent: number }> },
+  ) {
+    const admin = (req as any).admin;
+    return this.adminService.setPromotionGameContributions(admin.id, promotionId, data.contributions ?? []);
+  }
+
+  @UseGuards(AdminAuthGuard)
+  @Post('promotions/:id/assign')
+  @ApiBearerAuth('Admin-JWT')
+  @ApiOperation({ summary: 'Manually assign a promotion to a user' })
+  async assignPromotionToUser(
+    @Req() req: Request,
+    @Param('id') promotionId: string,
+    @Body('userId') userId: string,
+  ) {
+    const admin = (req as any).admin;
+    return this.adminService.assignPromotionToUser(admin.id, promotionId, userId);
+  }
+
   // ==========================================
   // SUPPORT TICKET MANAGEMENT
   // ==========================================

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import {
-  getBonusStats, getBonuses, createBonus, updateBonus, deleteBonus,
-  getPlayerBonuses, cancelPlayerBonus, uploadImage
-} from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { getBonusStats, getBonuses, getPlayerBonuses, cancelPlayerBonus } from '../services/api';
 
 const Bonuses = () => {
+  const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState('bonuses');
   const [stats, setStats] = useState({});
   const [bonuses, setBonuses] = useState([]);
@@ -12,174 +12,35 @@ const Bonuses = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0 });
-  const [showModal, setShowModal] = useState(null);
-  const [editBonus, setEditBonus] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '', code: '', type: 'deposit', amount: '', percentage: '',
-    wageringReq: '30', minDeposit: '', maxCap: '', description: '', terms: '', imageUrl: ''
-  });
 
-  useEffect(() => {
-    loadStats();
-    loadBonuses();
-  }, []);
-
-  useEffect(() => {
-    if (activeTab === 'player-bonuses') loadPlayerBonuses();
-  }, [activeTab, pagination.page]);
+  useEffect(() => { loadStats(); loadBonuses(); }, []);
+  useEffect(() => { if (activeTab === 'player-bonuses') loadPlayerBonuses(); }, [activeTab, pagination.page]);
 
   const loadStats = async () => {
-    try {
-      const response = await getBonusStats();
-      setStats(response.stats || {});
-    } catch (err) {
-      console.error('Failed to load bonus stats:', err);
-      setError('Failed to load bonus stats');
-    }
+    try { const r = await getBonusStats(); setStats(r.stats || {}); } catch { /* silent */ }
   };
 
   const loadBonuses = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const response = await getBonuses({ page: 1, limit: 100 });
-      setBonuses(response.bonuses || []);
-      setLoading(false);
-    } catch (err) {
-      console.error('Failed to load bonuses:', err);
-      setError('Failed to load bonuses');
-      setBonuses([]);
-      setLoading(false);
-    }
+      setLoading(true); setError(null);
+      const r = await getBonuses({ page: 1, limit: 100 });
+      setBonuses(r.bonuses || []);
+    } catch { setError('Failed to load bonuses'); setBonuses([]); }
+    finally { setLoading(false); }
   };
 
   const loadPlayerBonuses = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      const params = {
-        page: pagination.page,
-        limit: 20
-      };
-      const response = await getPlayerBonuses(params);
-      setPlayerBonusesList(response.playerBonuses || []);
-
-      // Backend returns pagination nested in response.pagination
-      const paginationData = response.pagination || {};
-      setPagination({
-        page: paginationData.page || 1,
-        pages: paginationData.pages || 1,
-        total: paginationData.total || 0
-      });
-      setLoading(false);
-    } catch (err) {
-      console.error('Failed to load player bonuses:', err);
-      setError('Failed to load player bonuses');
-      setPlayerBonusesList([]);
-      setLoading(false);
-    }
+      setLoading(true); setError(null);
+      const r = await getPlayerBonuses({ page: pagination.page, limit: 20 });
+      setPlayerBonusesList(r.playerBonuses || []);
+      const pg = r.pagination || {};
+      setPagination({ page: pg.page || 1, pages: pg.pages || 1, total: pg.total || 0 });
+    } catch { setError('Failed to load player bonuses'); setPlayerBonusesList([]); }
+    finally { setLoading(false); }
   };
 
-  const handleCreateBonus = async (e) => {
-    e.preventDefault();
-    const bonusData = {
-      ...formData,
-      amount: parseFloat(formData.amount) || 0,
-      percentage: parseFloat(formData.percentage) || 0,
-      wageringReq: parseFloat(formData.wageringReq) || 1,
-      minDeposit: parseFloat(formData.minDeposit) || 0,
-      maxCap: formData.maxCap ? parseFloat(formData.maxCap) : null,
-    };
-
-    try {
-      const response = await createBonus(bonusData);
-      setBonuses([...bonuses, response.bonus]);
-      setShowModal(null);
-      resetForm();
-      alert('Bonus created successfully');
-      loadStats(); // Reload stats
-    } catch (err) {
-      console.error('Failed to create bonus:', err);
-      alert('Failed to create bonus: ' + (err.message || 'Unknown error'));
-    }
-  };
-
-  const handleUpdateBonus = async (e) => {
-    e.preventDefault();
-    const bonusData = {
-      ...formData,
-      amount: parseFloat(formData.amount) || 0,
-      percentage: parseFloat(formData.percentage) || 0,
-      wageringReq: parseFloat(formData.wageringReq) || 1,
-      minDeposit: parseFloat(formData.minDeposit) || 0,
-      maxCap: formData.maxCap ? parseFloat(formData.maxCap) : null,
-    };
-
-    try {
-      await updateBonus(editBonus.id, bonusData);
-      setBonuses(bonuses.map(b => b.id === editBonus.id ? { ...b, ...bonusData } : b));
-      setShowModal(null);
-      setEditBonus(null);
-      resetForm();
-      alert('Bonus updated successfully');
-    } catch (err) {
-      console.error('Failed to update bonus:', err);
-      alert('Failed to update bonus: ' + (err.message || 'Unknown error'));
-    }
-  };
-
-  const handleStatusChange = (bonusId, status) => {
-    setBonuses(bonuses.map(b => b.id === bonusId ? { ...b, status } : b));
-  };
-
-  const handleCancelPlayerBonus = (playerBonusId) => {
-    const reason = window.prompt('Reason for cancellation:');
-    if (!reason) return;
-    setPlayerBonusesList(playerBonusesList.map(pb =>
-      pb.id === playerBonusId ? { ...pb, status: 'cancelled' } : pb
-    ));
-    alert('Player bonus cancelled');
-  };
-
-  const handleImageUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    try {
-      const response = await uploadImage(file);
-      setFormData({ ...formData, imageUrl: response.imageUrl });
-    } catch (err) {
-      console.error('Failed to upload image:', err);
-      alert('Failed to upload image');
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '', code: '', type: 'deposit', amount: '', percentage: '',
-      wageringReq: '30', minDeposit: '', maxCap: '', description: '', terms: '', imageUrl: ''
-    });
-  };
-
-  const openEditModal = (bonus) => {
-    setEditBonus(bonus);
-    setFormData({
-      name: bonus.name,
-      code: bonus.code || '',
-      type: bonus.type,
-      amount: bonus.amount?.toString() || '',
-      percentage: bonus.percentage?.toString() || '',
-      wageringReq: bonus.wageringReq?.toString() || '30',
-      minDeposit: bonus.minDeposit?.toString() || '',
-      maxCap: bonus.maxCap?.toString() || '',
-      description: bonus.description || '',
-      terms: bonus.terms || '',
-      imageUrl: bonus.imageUrl || ''
-    });
-    setShowModal('edit');
-  };
-
-  const formatCurrency = (amount) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+  const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n || 0);
 
   return (
     <div>
@@ -195,11 +56,11 @@ const Bonuses = () => {
         </div>
         <div className="stat-card">
           <div className="stat-card-title">Total Bonus Given</div>
-          <div className="stat-card-value">{formatCurrency(stats.total_bonus_given)}</div>
+          <div className="stat-card-value">{fmt(stats.total_bonus_given)}</div>
         </div>
         <div className="stat-card">
           <div className="stat-card-title">Total Wagered</div>
-          <div className="stat-card-value">{formatCurrency(stats.total_wagered_on_bonuses)}</div>
+          <div className="stat-card-value">{fmt(stats.total_wagered_on_bonuses)}</div>
         </div>
       </div>
 
@@ -214,12 +75,13 @@ const Bonuses = () => {
         <div className="card">
           <div className="card-header">
             <h3 className="card-title">Bonus Campaigns</h3>
-            <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal('create'); }}>
-              Create Bonus
+            <button className="btn btn-primary" onClick={() => navigate('/bonuses/new')}>
+              + Create Bonus
             </button>
           </div>
-          {loading ? (
-            <div className="loading"><div className="spinner"></div></div>
+
+          {loading ? <div className="loading"><div className="spinner"></div></div> : error ? (
+            <div style={{ padding: '24px', color: 'var(--danger)' }}>{error}</div>
           ) : (
             <div className="table-container">
               <table className="table">
@@ -229,37 +91,66 @@ const Bonuses = () => {
                     <th>Type</th>
                     <th>Amount</th>
                     <th>Wagering</th>
+                    <th>Games</th>
+                    <th>Auto Credit</th>
                     <th>Claims</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {bonuses.map(bonus => (
-                    <tr key={bonus.id}>
-                      <td>
-                        <div style={{ fontWeight: '500' }}>{bonus.name}</div>
-                        {bonus.code && <div style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Code: {bonus.code}</div>}
+                  {bonuses.length === 0 ? (
+                    <tr>
+                      <td colSpan="9" style={{ textAlign: 'center', color: 'var(--gray)', padding: '40px' }}>
+                        No bonus campaigns yet.{' '}
+                        <span
+                          onClick={() => navigate('/bonuses/new')}
+                          style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                        >
+                          Create your first bonus
+                        </span>
                       </td>
-                      <td><span className={`badge badge-${bonus.type === 'joining' ? 'success' : bonus.type === 'deposit' ? 'primary' : 'warning'}`}>{bonus.type}</span></td>
+                    </tr>
+                  ) : bonuses.map(bonus => (
+                    <tr key={bonus.id} style={{ cursor: 'pointer' }} onClick={() => navigate(`/bonuses/${bonus.id}`)}>
                       <td>
-                        {bonus.amount > 0 && formatCurrency(bonus.amount)}
-                        {bonus.percentage > 0 && ` ${bonus.percentage}%`}
-                        {bonus.maxCap && <div style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Max: {formatCurrency(bonus.maxCap)}</div>}
+                        <div style={{ fontWeight: '600' }}>{bonus.name}</div>
+                        {bonus.code && <div style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>Code: {bonus.code}</div>}
+                        {bonus.expiryDays && <div style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>Expires {bonus.expiryDays}d after claim</div>}
+                      </td>
+                      <td>
+                        <span className={`badge badge-${bonus.type === 'joining' ? 'success' : bonus.type === 'deposit' ? 'primary' : bonus.type === 'birthday' ? 'warning' : 'secondary'}`}>
+                          {bonus.type}
+                        </span>
+                      </td>
+                      <td>
+                        {bonus.amount > 0 && <div>{fmt(bonus.amount)}</div>}
+                        {bonus.percentage > 0 && <div>{bonus.percentage}%</div>}
+                        {bonus.maxBonusCap > 0 && <div style={{ fontSize: '0.75rem', color: 'var(--gray)' }}>Cap: {fmt(bonus.maxBonusCap)}</div>}
                       </td>
                       <td>{bonus.wageringReq}x</td>
-                      <td>{bonus.currentClaims}{bonus.maxClaims && `/${bonus.maxClaims}`}</td>
-                      <td><span className={`badge badge-${bonus.status === 'active' ? 'success' : 'danger'}`}>{bonus.status}</span></td>
                       <td>
-                        <div className="table-actions">
-                          <button onClick={() => openEditModal(bonus)} className="btn btn-sm btn-secondary">Edit</button>
-                          <button
-                            onClick={() => handleStatusChange(bonus.id, bonus.status === 'active' ? 'inactive' : 'active')}
-                            className={`btn btn-sm ${bonus.status === 'active' ? 'btn-warning' : 'btn-success'}`}
-                          >
-                            {bonus.status === 'active' ? 'Deactivate' : 'Activate'}
-                          </button>
-                        </div>
+                        <span style={{
+                          background: bonus.gamesConfigured > 0 ? '#dcfce7' : '#f3f4f6',
+                          color: bonus.gamesConfigured > 0 ? '#16a34a' : 'var(--gray)',
+                          borderRadius: '12px', padding: '2px 10px', fontSize: '0.8rem', fontWeight: '600'
+                        }}>
+                          {bonus.gamesConfigured || 0} game{bonus.gamesConfigured !== 1 ? 's' : ''}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge badge-${bonus.isAutoCredit ? 'success' : 'secondary'}`}>
+                          {bonus.isAutoCredit ? 'Auto' : 'Manual'}
+                        </span>
+                      </td>
+                      <td>{bonus.currentClaims}{bonus.maxClaims ? `/${bonus.maxClaims}` : ''}</td>
+                      <td>
+                        <span className={`badge badge-${bonus.status === 'active' ? 'success' : 'danger'}`}>{bonus.status}</span>
+                      </td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <button className="btn btn-sm btn-primary" onClick={() => navigate(`/bonuses/${bonus.id}`)}>
+                          Edit
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -276,27 +167,20 @@ const Bonuses = () => {
           <div className="card-header">
             <h3 className="card-title">Player Bonuses</h3>
           </div>
-          {loading ? (
-            <div className="loading"><div className="spinner"></div></div>
-          ) : (
+          {loading ? <div className="loading"><div className="spinner"></div></div> : (
             <div className="table-container">
               <table className="table">
                 <thead>
-                  <tr>
-                    <th>Player</th>
-                    <th>Bonus</th>
-                    <th>Amount</th>
-                    <th>Progress</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
+                  <tr><th>Player</th><th>Bonus</th><th>Amount</th><th>Progress</th><th>Status</th><th>Actions</th></tr>
                 </thead>
                 <tbody>
-                  {playerBonusesList.map(pb => (
+                  {playerBonusesList.length === 0 ? (
+                    <tr><td colSpan="6" style={{ textAlign: 'center', color: 'var(--gray)', padding: '24px' }}>No player bonuses found</td></tr>
+                  ) : playerBonusesList.map(pb => (
                     <tr key={pb.id}>
                       <td>{pb.playerEmail}</td>
                       <td>{pb.bonusName}</td>
-                      <td>{formatCurrency(pb.amount)}</td>
+                      <td>{fmt(pb.amount)}</td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div className="progress-bar" style={{ width: '80px' }}>
@@ -308,7 +192,7 @@ const Bonuses = () => {
                       <td><span className={`badge badge-${pb.status === 'active' ? 'primary' : pb.status === 'completed' ? 'success' : 'danger'}`}>{pb.status}</span></td>
                       <td>
                         {pb.status === 'active' && (
-                          <button onClick={() => handleCancelPlayerBonus(pb.id)} className="btn btn-sm btn-danger">Cancel</button>
+                          <button onClick={() => cancelPlayerBonus(pb.id, 'Admin cancelled')} className="btn btn-sm btn-danger">Cancel</button>
                         )}
                       </td>
                     </tr>
@@ -319,104 +203,14 @@ const Bonuses = () => {
           )}
           {pagination.pages > 1 && (
             <div className="pagination mt-2">
-              <button disabled={pagination.page === 1} onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}>Previous</button>
+              <button disabled={pagination.page === 1} onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}>Previous</button>
               <span style={{ padding: '8px 14px', color: 'var(--gray)' }}>Page {pagination.page} of {pagination.pages}</span>
-              <button disabled={pagination.page === pagination.pages} onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}>Next</button>
+              <button disabled={pagination.page === pagination.pages} onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}>Next</button>
             </div>
           )}
         </div>
       )}
-
-      {/* Create/Edit Modal */}
-      {(showModal === 'create' || showModal === 'edit') && (
-        <div className="modal-overlay" onClick={() => { setShowModal(null); setEditBonus(null); }}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3 className="modal-title">{showModal === 'create' ? 'Create Bonus' : 'Edit Bonus'}</h3>
-              <button className="modal-close" onClick={() => { setShowModal(null); setEditBonus(null); }}>×</button>
-            </div>
-            <form onSubmit={showModal === 'create' ? handleCreateBonus : handleUpdateBonus}>
-              <div className="grid grid-2 gap-2">
-                <div className="form-group">
-                  <label className="form-label">Name</label>
-                  <input type="text" className="form-input" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Code (optional)</label>
-                  <input type="text" className="form-input" value={formData.code} onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Type</label>
-                <select className="form-select" value={formData.type} onChange={(e) => setFormData({ ...formData, type: e.target.value })}>
-                  <option value="joining">Joining</option>
-                  <option value="deposit">Deposit</option>
-                  <option value="losing">Losing/Cashback</option>
-                  <option value="reload">Reload</option>
-                  <option value="custom">Custom</option>
-                </select>
-              </div>
-              <div className="grid grid-2 gap-2">
-                <div className="form-group">
-                  <label className="form-label">Fixed Amount</label>
-                  <input type="number" step="0.01" className="form-input" value={formData.amount} onChange={(e) => setFormData({ ...formData, amount: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Percentage</label>
-                  <input type="number" step="0.01" className="form-input" value={formData.percentage} onChange={(e) => setFormData({ ...formData, percentage: e.target.value })} />
-                </div>
-              </div>
-              <div className="grid grid-3 gap-2">
-                <div className="form-group">
-                  <label className="form-label">Wagering Req (x)</label>
-                  <input type="number" step="0.1" className="form-input" value={formData.wageringReq} onChange={(e) => setFormData({ ...formData, wageringReq: e.target.value })} required />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Min Deposit</label>
-                  <input type="number" step="0.01" className="form-input" value={formData.minDeposit} onChange={(e) => setFormData({ ...formData, minDeposit: e.target.value })} />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Max Cap</label>
-                  <input type="number" step="0.01" className="form-input" value={formData.maxCap} onChange={(e) => setFormData({ ...formData, maxCap: e.target.value })} />
-                </div>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Description</label>
-                <textarea className="form-input" rows="2" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} />
-              </div>
-              <div className="form-group">
-                <label className="form-label">Terms</label>
-                <textarea className="form-input" rows="2" value={formData.terms} onChange={(e) => setFormData({ ...formData, terms: e.target.value })} />
-              </div>
-
-
-              <div className="form-group">
-                <label className="form-label">Promotion Image</label>
-                <input
-                  type="file"
-                  className="form-input"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                />
-                {formData.imageUrl && (
-                  <div style={{ marginTop: '10px' }}>
-                    <img
-                      src={formData.imageUrl.startsWith('http') ? formData.imageUrl : `http://localhost:8002${formData.imageUrl}`}
-                      alt="Promotion Preview"
-                      style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '4px', objectFit: 'contain' }}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(null); setEditBonus(null); }}>Cancel</button>
-                <button type="submit" className="btn btn-primary">{showModal === 'create' ? 'Create' : 'Save'}</button>
-              </div>
-            </form>
-          </div>
-        </div >
-      )}
-    </div >
+    </div>
   );
 };
 

@@ -62,6 +62,7 @@ export class PromotionsService {
         slug: true,
         description: true,
         type: true,
+        isActive: true,
         bonusAmount: true,
         bonusAmountUsdc: true,
         bonusCurrency: true,

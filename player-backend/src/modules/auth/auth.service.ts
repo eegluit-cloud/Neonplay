@@ -15,6 +15,7 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { TokenResponse, JwtPayload, OAuthProfile } from '../../shared/interfaces/user.interface';
 import { v4 as uuidv4 } from 'uuid';
+import { BonusService } from '../bonus/bonus.service';
 
 @Injectable()
 export class AuthService {
@@ -28,6 +29,7 @@ export class AuthService {
     private readonly redis: RedisService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly bonusService: BonusService,
   ) {}
 
   async register(dto: RegisterDto): Promise<TokenResponse> {
@@ -93,6 +95,11 @@ export class AuthService {
     if (dto.referralCode) {
       await this.applyReferralCode(user.id, dto.referralCode);
     }
+
+    // Grant joining bonus (fire-and-forget — never block registration)
+    this.bonusService.grantJoiningBonus(user.id).catch(err =>
+      this.logger.warn(`grantJoiningBonus failed for user ${user.id}: ${err.message}`),
+    );
 
     // Generate tokens
     return this.generateTokens(user);

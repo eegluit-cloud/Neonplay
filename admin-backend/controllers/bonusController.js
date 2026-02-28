@@ -22,7 +22,7 @@ const getBonuses = async (req, res) => {
       where,
       include: {
         _count: {
-          select: { userPromotions: true }
+          select: { userPromotions: true, gameContributions: true }
         }
       },
       orderBy: { createdAt: 'desc' },
@@ -36,16 +36,21 @@ const getBonuses = async (req, res) => {
         name: p.name,
         code: p.code,
         type: p.type,
-        amount: Number(p.bonusAmountUsdc || p.bonusAmount || 0),
-        currency: p.bonusCurrency || 'USDC',
+        amount: Number(p.bonusAmountUsdc || 0),
         percentage: p.percentageBonus || 0,
+        bonusValueType: p.bonusValueType || 'fixed',
         wageringReq: p.wageringRequirement || 1,
         minDeposit: Number(p.minDepositUsdc || 0),
         maxCap: Number(p.maxBonusUsdc || 0),
+        maxBonusCap: Number(p.maxBonusCap || 0),
+        isAutoCredit: p.isAutoCredit || false,
+        isStackable: p.isStackable || false,
+        expiryDays: p.expiryDaysAfterClaim || null,
+        userSegment: p.userSegment || 'all',
+        countryRestrictions: p.countryRestrictions || [],
         startDate: p.startsAt,
         endDate: p.endsAt,
-        eligibleGames: null,
-        playerSegments: null,
+        gamesConfigured: p._count.gameContributions,
         maxClaims: p.maxClaims,
         currentClaims: p._count.userPromotions,
         description: p.description,
@@ -81,6 +86,13 @@ const getBonus = async (req, res) => {
             bonusAmount: true,
             wageredAmount: true
           }
+        },
+        gameContributions: {
+          include: {
+            game: {
+              select: { id: true, name: true, slug: true, thumbnailUrl: true }
+            }
+          }
         }
       }
     });
@@ -106,20 +118,32 @@ const getBonus = async (req, res) => {
         type: promotion.type,
         amount: Number(promotion.bonusAmountUsdc || 0),
         percentage: promotion.percentageBonus || 0,
+        bonusValueType: promotion.bonusValueType || 'fixed',
         wageringReq: promotion.wageringRequirement || 1,
         minDeposit: Number(promotion.minDepositUsdc || 0),
         maxCap: Number(promotion.maxBonusUsdc || 0),
+        maxBonusCap: Number(promotion.maxBonusCap || 0),
+        isAutoCredit: promotion.isAutoCredit || false,
+        isStackable: promotion.isStackable || false,
+        expiryDays: promotion.expiryDaysAfterClaim || null,
+        userSegment: promotion.userSegment || 'all',
+        countryRestrictions: promotion.countryRestrictions || [],
         startDate: promotion.startsAt,
         endDate: promotion.endsAt,
-        eligibleGames: null,
-        playerSegments: null,
         maxClaims: promotion.maxClaims,
         currentClaims: promotion.userPromotions.length,
         description: promotion.description,
         terms: promotion.terms,
         imageUrl: promotion.imageUrl,
         status: promotion.isActive ? 'active' : 'inactive',
-        createdAt: promotion.createdAt
+        createdAt: promotion.createdAt,
+        gameContributions: promotion.gameContributions.map(gc => ({
+          gameId: gc.gameId,
+          contributionPercent: Number(gc.contributionPercent),
+          gameName: gc.game.name,
+          gameSlug: gc.game.slug,
+          thumbnailUrl: gc.game.thumbnailUrl
+        }))
       },
       stats: {
         totalClaims: stats.total_claims,
@@ -138,9 +162,9 @@ const getBonus = async (req, res) => {
 const createBonus = async (req, res) => {
   try {
     const {
-      name, code, type, amount, percentage, wageringReq, minDeposit, maxCap,
-      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, imageUrl,
-      currency // NEW: Support currency selection
+      name, code, type, amount, percentage, bonusValueType, wageringReq, minDeposit, maxCap, maxBonusCap,
+      isAutoCredit, isStackable, expiryDays, userSegment, countryRestrictions,
+      startDate, endDate, maxClaims, description, terms, imageUrl
     } = req.body;
 
     // Check for duplicate code
@@ -153,26 +177,29 @@ const createBonus = async (req, res) => {
       }
     }
 
-    // Validate currency
-    const validCurrencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'USDC', 'USDT', 'INR', 'PHP', 'THB'];
-    const bonusCurrency = currency && validCurrencies.includes(currency) ? currency : 'USDC';
-
     const promotion = await prisma.promotion.create({
       data: {
         name,
-        slug: name.toLowerCase().replace(/\s+/g, '-'),
+        slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now(),
         code: code ? code.toUpperCase() : null,
-        type: type || 'code',
-        bonusCurrency: bonusCurrency,
+        type: type || 'deposit',
+        bonusCurrency: 'USDC',
         bonusAmount: amount ? parseFloat(amount) : null,
-        bonusAmountUsdc: amount ? parseFloat(amount) : null, // Keep for backward compatibility
-        percentageBonus: percentage || null,
-        wageringRequirement: wageringReq || 1,
+        bonusAmountUsdc: amount ? parseFloat(amount) : null,
+        bonusValueType: bonusValueType || 'fixed',
+        percentageBonus: percentage ? parseInt(percentage) : null,
+        wageringRequirement: wageringReq ? parseInt(wageringReq) : 1,
         minDepositUsdc: minDeposit ? parseFloat(minDeposit) : null,
         maxBonusUsdc: maxCap ? parseFloat(maxCap) : null,
+        maxBonusCap: maxBonusCap ? parseFloat(maxBonusCap) : null,
+        isAutoCredit: isAutoCredit === true || isAutoCredit === 'true',
+        isStackable: isStackable === true || isStackable === 'true',
+        expiryDaysAfterClaim: expiryDays ? parseInt(expiryDays) : null,
+        userSegment: userSegment || null,
+        countryRestrictions: countryRestrictions && countryRestrictions.length > 0 ? countryRestrictions : null,
         startsAt: startDate ? new Date(startDate) : null,
         endsAt: endDate ? new Date(endDate) : null,
-        maxClaims: maxClaims || null,
+        maxClaims: maxClaims ? parseInt(maxClaims) : null,
         description: description || null,
         terms: terms || null,
         imageUrl: imageUrl || null,
@@ -197,8 +224,9 @@ const updateBonus = async (req, res) => {
   try {
     const { bonusId } = req.params;
     const {
-      name, code, amount, percentage, wageringReq, minDeposit, maxCap,
-      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, status, imageUrl
+      name, code, amount, percentage, bonusValueType, wageringReq, minDeposit, maxCap, maxBonusCap,
+      isAutoCredit, isStackable, expiryDays, userSegment, countryRestrictions,
+      startDate, endDate, maxClaims, description, terms, status, imageUrl
     } = req.body;
 
     // Check if bonus exists
@@ -226,20 +254,27 @@ const updateBonus = async (req, res) => {
     const data = {};
     if (name !== undefined) {
       data.name = name;
-      data.slug = name.toLowerCase().replace(/\s+/g, '-');
+      data.slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     }
     if (code !== undefined) data.code = code ? code.toUpperCase() : null;
     if (amount !== undefined) {
       data.bonusAmount = parseFloat(amount);
       data.bonusAmountUsdc = parseFloat(amount);
     }
-    if (percentage !== undefined) data.percentageBonus = percentage;
-    if (wageringReq !== undefined) data.wageringRequirement = wageringReq;
-    if (minDeposit !== undefined) data.minDepositUsdc = parseFloat(minDeposit);
+    if (bonusValueType !== undefined) data.bonusValueType = bonusValueType;
+    if (percentage !== undefined) data.percentageBonus = percentage ? parseInt(percentage) : null;
+    if (wageringReq !== undefined) data.wageringRequirement = parseInt(wageringReq);
+    if (minDeposit !== undefined) data.minDepositUsdc = minDeposit ? parseFloat(minDeposit) : null;
     if (maxCap !== undefined) data.maxBonusUsdc = maxCap ? parseFloat(maxCap) : null;
+    if (maxBonusCap !== undefined) data.maxBonusCap = maxBonusCap ? parseFloat(maxBonusCap) : null;
+    if (isAutoCredit !== undefined) data.isAutoCredit = isAutoCredit === true || isAutoCredit === 'true';
+    if (isStackable !== undefined) data.isStackable = isStackable === true || isStackable === 'true';
+    if (expiryDays !== undefined) data.expiryDaysAfterClaim = expiryDays ? parseInt(expiryDays) : null;
+    if (userSegment !== undefined) data.userSegment = userSegment || null;
+    if (countryRestrictions !== undefined) data.countryRestrictions = countryRestrictions && countryRestrictions.length > 0 ? countryRestrictions : null;
     if (startDate !== undefined) data.startsAt = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) data.endsAt = endDate ? new Date(endDate) : null;
-    if (maxClaims !== undefined) data.maxClaims = maxClaims;
+    if (maxClaims !== undefined) data.maxClaims = maxClaims ? parseInt(maxClaims) : null;
     if (description !== undefined) data.description = description;
     if (terms !== undefined) data.terms = terms;
     if (imageUrl !== undefined) data.imageUrl = imageUrl;
@@ -572,94 +607,62 @@ const getBonusStats = async (req, res) => {
   }
 };
 
-// Reset wagering requirement for a player's bonus
-const resetWageringRequirement = async (req, res) => {
+const setGameContributions = async (req, res) => {
   try {
-    const { playerBonusId } = req.params;
-    const { reason, newWageringTarget } = req.body;
+    const { bonusId } = req.params;
+    const { contributions } = req.body; // [{ gameId, contributionPercent }]
 
-    const userPromotion = await prisma.userPromotion.findUnique({
-      where: { id: playerBonusId },
-      include: {
-        user: { select: { email: true } },
-        promotion: true
+    const promotion = await prisma.promotion.findUnique({ where: { id: bonusId } });
+    if (!promotion) return res.status(404).json({ error: 'Bonus not found' });
+
+    await prisma.$transaction(async (tx) => {
+      await tx.bonusGameContribution.deleteMany({ where: { promotionId: bonusId } });
+      if (contributions && contributions.length > 0) {
+        await tx.bonusGameContribution.createMany({
+          data: contributions.map(c => ({
+            promotionId: bonusId,
+            gameId: c.gameId,
+            contributionPercent: parseFloat(c.contributionPercent)
+          }))
+        });
       }
     });
 
-    if (!userPromotion) {
-      return res.status(404).json({ error: 'Player bonus not found' });
-    }
-
-    if (userPromotion.status !== 'claimed') {
-      return res.status(400).json({ error: 'Can only reset wagering for active bonuses' });
-    }
-
-    const oldWageringTarget = userPromotion.wageringTarget;
-    const oldWageredAmount = userPromotion.wageredAmount;
-
-    // If newWageringTarget is provided, use it; otherwise reset to 0 (complete the bonus)
-    const updatedWageringTarget = newWageringTarget !== undefined
-      ? parseFloat(newWageringTarget)
-      : Number(userPromotion.wageredAmount); // Set target to already wagered amount to complete
-
-    await prisma.userPromotion.update({
-      where: { id: playerBonusId },
-      data: {
-        wageringTarget: updatedWageringTarget,
-        status: updatedWageringTarget <= Number(userPromotion.wageredAmount) ? 'completed' : 'claimed',
-        completedAt: updatedWageringTarget <= Number(userPromotion.wageredAmount) ? new Date() : null
-      }
-    });
-
-    // Add audit log
-    await prisma.adminAuditLog.create({
-      data: {
-        adminId: req.admin?.id || 'system',
-        action: 'reset_wagering',
-        entityType: 'user_promotion',
-        entityId: playerBonusId,
-        oldValues: {
-          wageringTarget: Number(oldWageringTarget),
-          wageredAmount: Number(oldWageredAmount)
-        },
-        newValues: {
-          wageringTarget: updatedWageringTarget,
-          status: updatedWageringTarget <= Number(userPromotion.wageredAmount) ? 'completed' : 'claimed'
-        },
-        reason: reason || 'Wagering requirement reset by admin'
-      }
-    });
-
-    res.json({
-      message: 'Wagering requirement reset successfully',
-      newWageringTarget: updatedWageringTarget,
-      isCompleted: updatedWageringTarget <= Number(userPromotion.wageredAmount)
-    });
+    res.json({ message: 'Game contributions updated', count: contributions?.length || 0 });
   } catch (error) {
-    console.error('Reset wagering error:', error);
-    res.status(500).json({ error: 'Failed to reset wagering requirement' });
+    console.error('Set game contributions error:', error);
+    res.status(500).json({ error: 'Failed to update game contributions' });
   }
 };
 
-// Get available currencies for bonuses
-const getAvailableCurrencies = async (req, res) => {
+const assignBonusToPlayer = async (req, res) => {
   try {
-    const currencies = [
-      { code: 'USD', name: 'US Dollar', symbol: '$' },
-      { code: 'EUR', name: 'Euro', symbol: '€' },
-      { code: 'GBP', name: 'British Pound', symbol: '£' },
-      { code: 'CAD', name: 'Canadian Dollar', symbol: 'C$' },
-      { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
-      { code: 'USDC', name: 'USD Coin', symbol: '$' },
-      { code: 'USDT', name: 'Tether', symbol: '$' },
-      { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
-      { code: 'PHP', name: 'Philippine Peso', symbol: '₱' },
-      { code: 'THB', name: 'Thai Baht', symbol: '฿' }
-    ];
-    res.json({ currencies });
+    const { bonusId } = req.params;
+    const { playerId } = req.body;
+
+    const [promotion, user] = await Promise.all([
+      prisma.promotion.findUnique({ where: { id: bonusId } }),
+      prisma.user.findUnique({ where: { id: playerId }, select: { id: true, email: true } })
+    ]);
+
+    if (!promotion) return res.status(404).json({ error: 'Bonus not found' });
+    if (!user) return res.status(404).json({ error: 'Player not found' });
+
+    const existing = await prisma.userPromotion.findFirst({ where: { userId: playerId, promotionId: bonusId } });
+    if (existing) return res.status(409).json({ error: 'Player already has this bonus' });
+
+    const expiresAt = promotion.expiryDaysAfterClaim
+      ? new Date(Date.now() + promotion.expiryDaysAfterClaim * 24 * 60 * 60 * 1000)
+      : null;
+
+    const userPromotion = await prisma.userPromotion.create({
+      data: { userId: playerId, promotionId: bonusId, status: 'available', expiresAt }
+    });
+
+    res.status(201).json({ message: 'Bonus assigned to player', userPromotionId: userPromotion.id });
   } catch (error) {
-    console.error('Get currencies error:', error);
-    res.status(500).json({ error: 'Failed to load currencies' });
+    console.error('Assign bonus to player error:', error);
+    res.status(500).json({ error: 'Failed to assign bonus' });
   }
 };
 
@@ -673,6 +676,6 @@ module.exports = {
   awardBonus,
   cancelPlayerBonus,
   getBonusStats,
-  resetWageringRequirement,
-  getAvailableCurrencies
+  setGameContributions,
+  assignBonusToPlayer
 };

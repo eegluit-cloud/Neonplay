@@ -13,7 +13,6 @@ import PlayerDetail from './pages/PlayerDetail';
 import KYC from './pages/KYC';
 import Games from './pages/Games';
 import Bonuses from './pages/Bonuses';
-import BonusCreate from './pages/BonusCreate';
 import BonusDetail from './pages/BonusDetail';
 import Reports from './pages/Reports';
 import Admins from './pages/Admins';
@@ -83,7 +82,6 @@ function App() {
         <Route path="kyc" element={<KYC />} />
         <Route path="games" element={<Games />} />
         <Route path="bonuses" element={<Bonuses />} />
-        <Route path="bonuses/new" element={<BonusCreate />} />
         <Route path="bonuses/:bonusId" element={<BonusDetail />} />
         <Route path="vip" element={<VIP />} />
         <Route path="reports" element={<Reports />} />

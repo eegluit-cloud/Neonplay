@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -1434,8 +1435,16 @@ export class AdminService {
         bonusAmount: data.bonusAmount || data.gcAmount || 0,
         bonusAmountUsdc: data.bonusAmountUsdc || data.scAmount || 0,
         bonusCurrency: data.bonusCurrency || 'USDC',
+        bonusValueType: data.bonusValueType || 'fixed',
         percentageBonus: data.bonusPercent || data.percentageBonus,
+        maxBonusCap: data.maxBonusCap,
+        wageringRequirement: data.wageringRequirement,
         minDepositUsdc: data.minPurchase || data.minDepositUsdc || data.minDeposit,
+        expiryDaysAfterClaim: data.expiryDaysAfterClaim,
+        isAutoCredit: data.isAutoCredit ?? false,
+        isStackable: data.isStackable ?? false,
+        countryRestrictions: data.countryRestrictions,
+        userSegment: data.userSegment,
         maxClaims: data.maxUsesTotal || data.maxClaims,
         maxClaimsPerUser: data.maxUsesPerUser || data.maxClaimsPerUser,
         startsAt: data.startsAt ? new Date(data.startsAt) : null,
@@ -1446,6 +1455,61 @@ export class AdminService {
 
     await this.logAudit(adminId, 'promotion_created', 'promotion', promotion.id, undefined, data);
     return promotion;
+  }
+
+  /**
+   * Set game wagering contributions for a promotion.
+   * Replaces all existing entries.
+   * contributions: [{ gameId, contributionPercent }]
+   */
+  async setPromotionGameContributions(
+    adminId: string,
+    promotionId: string,
+    contributions: Array<{ gameId: string; contributionPercent: number }>,
+  ) {
+    const promo = await this.prisma.promotion.findUnique({ where: { id: promotionId } });
+    if (!promo) throw new NotFoundException('Promotion not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.bonusGameContribution.deleteMany({ where: { promotionId } });
+      if (contributions.length > 0) {
+        await tx.bonusGameContribution.createMany({
+          data: contributions.map((c) => ({
+            promotionId,
+            gameId: c.gameId,
+            contributionPercent: c.contributionPercent,
+          })),
+        });
+      }
+    });
+
+    await this.logAudit(adminId, 'promotion_game_contributions_set', 'promotion', promotionId, undefined, { contributions });
+    return { success: true, promotionId, gamesConfigured: contributions.length };
+  }
+
+  /**
+   * Manually assign a promotion to a specific user.
+   */
+  async assignPromotionToUser(adminId: string, promotionId: string, userId: string) {
+    const promo = await this.prisma.promotion.findUnique({ where: { id: promotionId } });
+    if (!promo) throw new NotFoundException('Promotion not found');
+
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const existing = await this.prisma.userPromotion.findFirst({ where: { userId, promotionId } });
+    if (existing) throw new ConflictException('User already has this promotion');
+
+    const expiresAt = promo.expiryDaysAfterClaim
+      ? new Date(Date.now() + promo.expiryDaysAfterClaim * 24 * 60 * 60 * 1000)
+      : null;
+
+    const userPromo = await this.prisma.userPromotion.create({
+      data: { userId, promotionId, status: 'available', expiresAt },
+    });
+
+    await this.logAudit(adminId, 'promotion_assigned_to_user', 'promotion', promotionId, undefined, { userId });
+    return userPromo;
   }
 
   /**

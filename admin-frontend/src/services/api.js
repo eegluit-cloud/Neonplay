@@ -145,6 +145,8 @@ export const deleteBonus = (bonusId) => api.delete(`/bonus/${bonusId}`);
 export const getPlayerBonuses = (params) => api.get(`/bonus/player-bonuses?${new URLSearchParams(params)}`);
 export const awardBonus = (data) => api.post('/bonus/award', data);
 export const cancelPlayerBonus = (playerBonusId, reason) => api.post(`/bonus/player-bonuses/${playerBonusId}/cancel`, { reason });
+export const setGameContributions = (bonusId, contributions) => api.request(`/bonus/${bonusId}/game-contributions`, { method: 'PUT', body: JSON.stringify({ contributions }) });
+export const assignBonusToPlayer = (bonusId, playerId) => api.post(`/bonus/${bonusId}/assign`, { playerId });
 export const uploadImage = (file) => {
   const formData = new FormData();
   formData.append('image', file);
