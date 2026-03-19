@@ -21,10 +21,10 @@ class ApiService {
     const url = `${this.baseUrl}${endpoint}`;
     const token = this.getToken();
 
-    const headers = {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    };
+    // Don't set Content-Type for FormData — browser sets it with the correct boundary
+    const isFormData = options.body instanceof FormData;
+    const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
+    Object.assign(headers, options.headers);
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -145,7 +145,7 @@ export const deleteBonus = (bonusId) => api.delete(`/bonus/${bonusId}`);
 export const getPlayerBonuses = (params) => api.get(`/bonus/player-bonuses?${new URLSearchParams(params)}`);
 export const awardBonus = (data) => api.post('/bonus/award', data);
 export const cancelPlayerBonus = (playerBonusId, reason) => api.post(`/bonus/player-bonuses/${playerBonusId}/cancel`, { reason });
-export const setGameContributions = (bonusId, contributions) => api.request(`/bonus/${bonusId}/game-contributions`, { method: 'PUT', body: JSON.stringify({ contributions }) });
+export const setGameContributions = (bonusId, contributions) => api.post(`/bonus/${bonusId}/game-contributions`, { contributions });
 export const assignBonusToPlayer = (bonusId, playerId) => api.post(`/bonus/${bonusId}/assign`, { playerId });
 export const uploadImage = (file) => {
   const formData = new FormData();
@@ -157,6 +157,28 @@ export const uploadImage = (file) => {
     headers: {}
   });
 };
+
+// CMS Management
+export const getCmsPages = (params) => api.get(`/cms?${new URLSearchParams(params || {})}`);
+export const getCmsPage = (pageId) => api.get(`/cms/${pageId}`);
+export const createCmsPage = (data) => api.post('/cms', data);
+export const updateCmsPage = (pageId, data) => api.put(`/cms/${pageId}`, data);
+export const deleteCmsPage = (pageId) => api.delete(`/cms/${pageId}`);
+
+// Segment Management
+export const getSegments = (params) => api.get(`/segments?${new URLSearchParams(params || {})}`);
+export const getSegment = (segmentId) => api.get(`/segments/${segmentId}`);
+export const createSegment = (data) => api.post('/segments', data);
+export const updateSegment = (segmentId, data) => api.put(`/segments/${segmentId}`, data);
+export const deleteSegment = (segmentId) => api.delete(`/segments/${segmentId}`);
+
+// Banner Management
+export const getBanners = () => api.get('/banners');
+export const getBanner = (bannerId) => api.get(`/banners/${bannerId}`);
+export const createBanner = (data) => api.post('/banners', data);
+export const updateBanner = (bannerId, data) => api.put(`/banners/${bannerId}`, data);
+export const deleteBanner = (bannerId) => api.delete(`/banners/${bannerId}`);
+export const reorderBanners = (order) => api.put('/banners/reorder', { order });
 
 // Admin Management
 export const getAdmins = (params) => api.get(`/admins?${new URLSearchParams(params || {})}`);

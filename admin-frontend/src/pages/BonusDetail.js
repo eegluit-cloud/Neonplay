@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   getBonus, updateBonus, getGames,
-  setGameContributions, assignBonusToPlayer
+  setGameContributions, assignBonusToPlayer, getSegments
 } from '../services/api';
 
 const hint = { fontSize: '0.72rem', color: 'var(--gray)', marginTop: '3px', lineHeight: '1.4' };
@@ -25,6 +25,10 @@ const BonusDetail = () => {
   const [gamesLoading, setGamesLoading] = useState(true);
   const [gameSearch, setGameSearch] = useState('');
   const [savingGames, setSavingGames] = useState(false);
+  const [selectedProviders, setSelectedProviders] = useState(new Set());
+
+  // Segments
+  const [segments, setSegments] = useState([]);
 
   // Assign
   const [assignPlayerId, setAssignPlayerId] = useState('');
@@ -50,6 +54,7 @@ const BonusDetail = () => {
         isStackable: b.isStackable || false,
         expiryDays: b.expiryDays?.toString() || '',
         userSegment: b.userSegment || 'all',
+        segmentId: b.segmentId || '',
         countryRestrictions: Array.isArray(b.countryRestrictions)
           ? b.countryRestrictions.join(', ')
           : (b.countryRestrictions || ''),
@@ -68,7 +73,7 @@ const BonusDetail = () => {
   const loadGames = useCallback(async (existingContributions = []) => {
     setGamesLoading(true);
     try {
-      const r = await getGames({ limit: 500, page: 1 });
+      const r = await getGames({ limit: 2000, page: 1 });
       const list = r.games || r.data || [];
       const existingMap = {};
       existingContributions.forEach(ec => { existingMap[ec.gameId] = ec; });
@@ -77,6 +82,8 @@ const BonusDetail = () => {
         gameId: g.id,
         gameName: g.name,
         thumbnailUrl: g.thumbnailUrl,
+        providerName: g.providerName || g.provider?.name || 'Other',
+        providerId: g.providerId || null,
         contributionPercent: existingMap[g.id]?.contributionPercent ?? 100,
         enabled: !!existingMap[g.id],
       })));
@@ -92,6 +99,7 @@ const BonusDetail = () => {
     loadBonus()
       .then(existing => loadGames(existing))
       .finally(() => setPageLoading(false));
+    getSegments({ active: 'true', limit: 200 }).then(r => setSegments(r.segments || [])).catch(() => {});
   }, [loadBonus, loadGames]);
 
   // ─── Handlers ────────────────────────────────────────────────────────────
@@ -113,6 +121,7 @@ const BonusDetail = () => {
         isStackable: formData.isStackable,
         expiryDays: formData.expiryDays ? parseInt(formData.expiryDays) : null,
         userSegment: formData.userSegment !== 'all' ? formData.userSegment : null,
+        segmentId: formData.segmentId || null,
         countryRestrictions: formData.countryRestrictions
           ? formData.countryRestrictions.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
           : [],
@@ -173,10 +182,40 @@ const BonusDetail = () => {
       ...(percent !== null ? { contributionPercent: percent } : {}),
     })));
 
+  const toggleProvider = (providerName) => {
+    setSelectedProviders(prev => {
+      const next = new Set(prev);
+      if (next.has(providerName)) next.delete(providerName);
+      else next.add(providerName);
+      return next;
+    });
+  };
+
+  const setProviderGames = (providerName, enabled, percent = null) => {
+    setContributions(prev => prev.map(c =>
+      c.providerName === providerName
+        ? { ...c, enabled, ...(percent !== null ? { contributionPercent: percent } : {}) }
+        : c
+    ));
+  };
+
   // ─── Derived ─────────────────────────────────────────────────────────────
-  const filtered = contributions.filter(c =>
-    c.gameName.toLowerCase().includes(gameSearch.toLowerCase())
-  );
+  // Unique providers sorted alphabetically, with enabled/total counts
+  const providers = useMemo(() => {
+    const map = {};
+    contributions.forEach(c => {
+      if (!map[c.providerName]) map[c.providerName] = { name: c.providerName, total: 0, enabled: 0 };
+      map[c.providerName].total++;
+      if (c.enabled) map[c.providerName].enabled++;
+    });
+    return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+  }, [contributions]);
+
+  const filtered = contributions.filter(c => {
+    const matchesSearch = c.gameName.toLowerCase().includes(gameSearch.toLowerCase());
+    const matchesProvider = selectedProviders.size === 0 || selectedProviders.has(c.providerName);
+    return matchesSearch && matchesProvider;
+  });
   const enabledCount = contributions.filter(c => c.enabled).length;
 
   // ─── Loading / Error ─────────────────────────────────────────────────────
@@ -312,14 +351,23 @@ const BonusDetail = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">User Segment</label>
-              <select className="form-select" value={formData.userSegment}
-                onChange={e => setFormData(f => ({ ...f, userSegment: e.target.value }))}>
-                <option value="all">All Users</option>
-                <option value="new">New Users Only</option>
-                <option value="vip">VIP Users Only</option>
+              <label className="form-label">Target Segment</label>
+              <select className="form-select" value={formData.segmentId}
+                onChange={e => setFormData(f => ({ ...f, segmentId: e.target.value }))}>
+                <option value="">All Players (no segment)</option>
+                {segments.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}{s.comment ? ` — ${s.comment}` : ''}</option>
+                ))}
               </select>
-              <div style={hint}>Restricts who can receive this bonus. "New" = players who haven't deposited before. "VIP" = players with an active VIP tier.</div>
+              <div style={hint}>
+                Restrict to players matching a segment's conditions.{' '}
+                <span
+                  style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => window.open('/segments', '_blank')}
+                >
+                  Manage segments
+                </span>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Country Restrictions</label>
@@ -383,8 +431,8 @@ const BonusDetail = () => {
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span style={{
-              background: enabledCount > 0 ? '#dcfce7' : '#f3f4f6',
-              color: enabledCount > 0 ? '#16a34a' : 'var(--gray)',
+              background: enabledCount > 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)',
+              color: enabledCount > 0 ? '#10b981' : 'var(--gray)',
               borderRadius: '12px', padding: '4px 12px', fontSize: '0.875rem', fontWeight: '600'
             }}>
               {enabledCount} / {contributions.length} games enabled
@@ -393,8 +441,8 @@ const BonusDetail = () => {
         </div>
 
         <div style={{ padding: '0 0 16px' }}>
-          {/* Controls bar */}
-          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center' }}>
+          {/* Top controls bar */}
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '14px', flexWrap: 'wrap', alignItems: 'center' }}>
             <input
               type="text"
               className="form-input"
@@ -403,87 +451,235 @@ const BonusDetail = () => {
               onChange={e => setGameSearch(e.target.value)}
               style={{ flex: '1', minWidth: '200px', marginBottom: 0 }}
             />
-            <button className="btn btn-sm btn-secondary" onClick={() => setAll(true, 100)}>All 100%</button>
-            <button className="btn btn-sm btn-secondary" onClick={() => setAll(true, 50)}>All 50%</button>
-            <button className="btn btn-sm btn-secondary" onClick={() => setAll(false)}>Disable All</button>
+            <button className="btn btn-sm btn-secondary" onClick={() => setAll(true, 100)} title="Enable all games at 100%">All 100%</button>
+            <button className="btn btn-sm btn-secondary" onClick={() => setAll(true, 50)} title="Enable all games at 50%">All 50%</button>
+            <button className="btn btn-sm btn-secondary" onClick={() => setAll(false)} title="Disable all games">Disable All</button>
           </div>
 
-          {/* Games grid */}
           {gamesLoading ? (
             <div className="loading"><div className="spinner"></div></div>
-          ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray)' }}>No games found</div>
           ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-              gap: '10px',
-            }}>
-              {filtered.map(c => (
+            <div style={{ display: 'flex', gap: '0', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '10px', overflow: 'hidden', minHeight: '400px' }}>
+
+              {/* ── Provider sidebar ── */}
+              <div style={{
+                width: '220px', flexShrink: 0,
+                borderRight: '1px solid rgba(255,255,255,0.08)',
+                background: 'rgba(10, 22, 40, 0.6)',
+                overflowY: 'auto',
+                maxHeight: '600px',
+              }}>
+                <div style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.08)', background: 'rgba(10, 22, 40, 0.8)' }}>
+                  <div style={{ fontSize: '0.7rem', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Providers
+                  </div>
+                  {selectedProviders.size > 0 && (
+                    <button
+                      style={{ marginTop: '6px', fontSize: '0.7rem', color: '#10b981', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      onClick={() => setSelectedProviders(new Set())}
+                    >
+                      Clear filter ×
+                    </button>
+                  )}
+                </div>
+
+                {/* All providers row */}
                 <div
-                  key={c.gameId}
-                  onClick={() => toggleGame(c.gameId)}
+                  onClick={() => setSelectedProviders(new Set())}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '12px 14px',
-                    border: `2px solid ${c.enabled ? '#22c55e' : '#e5e7eb'}`,
-                    borderRadius: '10px',
-                    background: c.enabled ? '#f0fdf4' : '#fafafa',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '8px 12px', cursor: 'pointer',
+                    background: selectedProviders.size === 0 ? 'rgba(16, 185, 129, 0.15)' : 'transparent',
+                    borderBottom: '1px solid rgba(255,255,255,0.06)',
+                    fontWeight: selectedProviders.size === 0 ? '700' : '500',
+                    fontSize: '0.82rem',
+                    color: selectedProviders.size === 0 ? '#10b981' : '#e2e8f0',
                   }}
                 >
-                  {/* Thumbnail */}
-                  {c.thumbnailUrl ? (
-                    <img src={c.thumbnailUrl} alt={c.gameName}
-                      style={{ width: '44px', height: '44px', borderRadius: '8px', objectFit: 'cover', flexShrink: 0 }}
-                      onError={e => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
-                    <div style={{
-                      width: '44px', height: '44px', borderRadius: '8px',
-                      background: '#e5e7eb', flexShrink: 0, display: 'flex',
-                      alignItems: 'center', justifyContent: 'center', fontSize: '20px'
-                    }}>🎮</div>
-                  )}
-
-                  {/* Name + toggle */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{
-                      fontWeight: '600', fontSize: '0.875rem',
-                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
-                    }}>{c.gameName}</div>
-                    <div style={{ fontSize: '0.75rem', color: c.enabled ? '#16a34a' : 'var(--gray)', marginTop: '2px' }}>
-                      {c.enabled ? 'Enabled' : 'Disabled — click to enable'}
-                    </div>
-                  </div>
-
-                  {/* Percentage input */}
-                  <div
-                    onClick={e => e.stopPropagation()}
-                    style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}
-                  >
-                    <input
-                      type="number" min="0" max="100" step="1"
-                      value={c.contributionPercent}
-                      onChange={e => setPercent(c.gameId, e.target.value)}
-                      disabled={!c.enabled}
-                      style={{
-                        width: '58px', padding: '4px 6px',
-                        border: '1px solid #d1d5db', borderRadius: '6px',
-                        fontSize: '0.875rem', textAlign: 'center',
-                        opacity: c.enabled ? 1 : 0.35,
-                        background: c.enabled ? '#fff' : '#f3f4f6',
-                      }}
-                    />
-                    <span style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>%</span>
-                  </div>
+                  <span>All Providers</span>
+                  <span style={{
+                    fontSize: '0.7rem', fontWeight: '600',
+                    color: enabledCount > 0 ? '#10b981' : '#64748b',
+                    background: enabledCount > 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)',
+                    borderRadius: '10px', padding: '1px 7px',
+                  }}>
+                    {enabledCount}/{contributions.length}
+                  </span>
                 </div>
-              ))}
+
+                {/* Per-provider rows */}
+                {providers.map(prov => {
+                  const isSelected = selectedProviders.has(prov.name);
+                  return (
+                    <div
+                      key={prov.name}
+                      style={{
+                        borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        background: isSelected ? 'rgba(16, 185, 129, 0.1)' : 'transparent',
+                      }}
+                    >
+                      <div
+                        onClick={() => toggleProvider(prov.name)}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '7px 12px', cursor: 'pointer',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', minWidth: 0 }}>
+                          {isSelected && (
+                            <span style={{ color: '#10b981', fontWeight: '700', fontSize: '0.75rem', flexShrink: 0 }}>✓</span>
+                          )}
+                          <span style={{
+                            fontSize: '0.8rem', fontWeight: isSelected ? '600' : '400',
+                            color: isSelected ? '#10b981' : '#e2e8f0',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          }}>
+                            {prov.name}
+                          </span>
+                        </div>
+                        <span style={{
+                          fontSize: '0.68rem', fontWeight: '600', flexShrink: 0,
+                          color: prov.enabled > 0 ? '#10b981' : '#64748b',
+                          background: prov.enabled > 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.05)',
+                          borderRadius: '10px', padding: '1px 6px', marginLeft: '4px',
+                        }}>
+                          {prov.enabled}/{prov.total}
+                        </span>
+                      </div>
+
+                      {/* Per-provider quick actions */}
+                      <div style={{ display: 'flex', gap: '4px', padding: '0 10px 6px', flexWrap: 'wrap' }}>
+                        <button
+                          onClick={e => { e.stopPropagation(); setProviderGames(prov.name, true, 100); }}
+                          style={{
+                            fontSize: '0.65rem', padding: '2px 7px', borderRadius: '4px',
+                            border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: '#e2e8f0',
+                          }}
+                          title={`Enable all ${prov.name} games at 100%`}
+                        >100%</button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setProviderGames(prov.name, true, 50); }}
+                          style={{
+                            fontSize: '0.65rem', padding: '2px 7px', borderRadius: '4px',
+                            border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)', cursor: 'pointer', color: '#e2e8f0',
+                          }}
+                          title={`Enable all ${prov.name} games at 50%`}
+                        >50%</button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setProviderGames(prov.name, false); }}
+                          style={{
+                            fontSize: '0.65rem', padding: '2px 7px', borderRadius: '4px',
+                            border: '1px solid rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.08)', cursor: 'pointer', color: '#f87171',
+                          }}
+                          title={`Disable all ${prov.name} games`}
+                        >Off</button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Games area ── */}
+              <div style={{ flex: 1, overflowY: 'auto', maxHeight: '600px', padding: '12px' }}>
+                {/* Filter label */}
+                {selectedProviders.size > 0 && (
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                    {[...selectedProviders].map(pname => (
+                      <span key={pname} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '5px',
+                        background: 'rgba(16, 185, 129, 0.15)', color: '#10b981',
+                        borderRadius: '12px', padding: '3px 10px', fontSize: '0.75rem', fontWeight: '600',
+                        border: '1px solid rgba(16, 185, 129, 0.25)',
+                      }}>
+                        {pname}
+                        <span
+                          style={{ cursor: 'pointer', fontWeight: '700', lineHeight: 1 }}
+                          onClick={() => toggleProvider(pname)}
+                        >×</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {filtered.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '40px', color: 'var(--gray)' }}>No games found</div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+                    gap: '8px',
+                  }}>
+                    {filtered.map(c => (
+                      <div
+                        key={c.gameId}
+                        onClick={() => toggleGame(c.gameId)}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: '10px',
+                          padding: '10px 12px',
+                          border: `2px solid ${c.enabled ? '#10b981' : 'rgba(255,255,255,0.08)'}`,
+                          borderRadius: '8px',
+                          background: c.enabled ? 'rgba(16, 185, 129, 0.08)' : 'rgba(255,255,255,0.03)',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {c.thumbnailUrl ? (
+                          <img src={c.thumbnailUrl} alt={c.gameName}
+                            style={{ width: '38px', height: '38px', borderRadius: '6px', objectFit: 'cover', flexShrink: 0 }}
+                            onError={e => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div style={{
+                            width: '38px', height: '38px', borderRadius: '6px',
+                            background: 'rgba(255,255,255,0.08)', flexShrink: 0, display: 'flex',
+                            alignItems: 'center', justifyContent: 'center', fontSize: '18px'
+                          }}>🎮</div>
+                        )}
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{
+                            fontWeight: '600', fontSize: '0.82rem', color: '#e2e8f0',
+                            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                          }}>{c.gameName}</div>
+                          <div style={{ fontSize: '0.7rem', color: c.enabled ? '#10b981' : '#64748b', marginTop: '1px' }}>
+                            {c.enabled ? '✓ Enabled' : 'Click to enable'}
+                          </div>
+                        </div>
+
+                        <div
+                          onClick={e => e.stopPropagation()}
+                          style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}
+                        >
+                          <input
+                            type="number" min="0" max="100" step="1"
+                            value={c.contributionPercent}
+                            onChange={e => setPercent(c.gameId, e.target.value)}
+                            disabled={!c.enabled}
+                            style={{
+                              width: '52px', padding: '3px 5px',
+                              border: '1px solid rgba(255,255,255,0.15)', borderRadius: '5px',
+                              fontSize: '0.82rem', textAlign: 'center', color: '#e2e8f0',
+                              opacity: c.enabled ? 1 : 0.35,
+                              background: c.enabled ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.02)',
+                            }}
+                          />
+                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>%</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          {/* Footer: count + save */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px' }}>
+            <div style={{ fontSize: '0.82rem', color: 'var(--gray)' }}>
+              Showing {filtered.length} game{filtered.length !== 1 ? 's' : ''}
+              {selectedProviders.size > 0 ? ` from ${selectedProviders.size} provider${selectedProviders.size !== 1 ? 's' : ''}` : ''}
+              {gameSearch && ` matching "${gameSearch}"`}
+            </div>
             <button className="btn btn-primary" onClick={handleSaveGames} disabled={savingGames}>
               {savingGames ? 'Saving…' : `Save ${enabledCount} Game Contribution${enabledCount !== 1 ? 's' : ''}`}
             </button>

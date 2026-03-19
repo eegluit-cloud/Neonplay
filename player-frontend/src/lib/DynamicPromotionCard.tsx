@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Info, Calendar, Coins, Sparkles, Trophy, Gift, GamepadIcon, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { promotionsApi, bonusApi } from '@/lib/api';
 import { toast } from 'sonner';
 
@@ -32,7 +31,6 @@ interface EligibleGame {
 }
 
 export function DynamicPromotionCard({ promotion, onClaim, isClaimed = false, wageringProgress }: DynamicPromotionCardProps) {
-    const navigate = useNavigate();
     const [isClaiming, setIsClaiming] = useState(false);
     const [showGames, setShowGames] = useState(false);
     const [eligibleGames, setEligibleGames] = useState<EligibleGame[] | null>(null);
@@ -75,7 +73,7 @@ export function DynamicPromotionCard({ promotion, onClaim, isClaimed = false, wa
     const handleViewGames = async () => {
         if (!wageringProgress?.userPromotionId) return;
         setShowGames(true);
-        if (eligibleGames !== null && eligibleGames.length > 0) return; // already loaded with data
+        if (eligibleGames !== null) return; // already loaded
         setGamesLoading(true);
         try {
             const res = await bonusApi.getEligibleGames(wageringProgress.userPromotionId);
@@ -147,7 +145,6 @@ export function DynamicPromotionCard({ promotion, onClaim, isClaimed = false, wa
         : '0';
 
     return (
-        <>
         <div className={`relative rounded-xl overflow-hidden border border-white/10 ${!promotion.imageUrl || imageError ? `bg-gradient-to-br ${getGradient()}` : 'bg-zinc-900'} shadow-lg group hover:shadow-xl transition-all duration-300`}>
             {promotion.imageUrl && !imageError ? (
                 <>
@@ -327,26 +324,20 @@ export function DynamicPromotionCard({ promotion, onClaim, isClaimed = false, wa
                 ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 pb-6">
                         {(eligibleGames || []).map((game) => (
-                            <button
+                            <div
                                 key={game.gameId}
-                                onClick={() => { setShowGames(false); navigate(`/game/${game.slug}`); }}
-                                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/50 hover:border-amber-500/60 hover:bg-zinc-700/60 transition-all cursor-pointer group text-left"
+                                className="flex flex-col items-center gap-2 p-3 rounded-xl bg-zinc-800/60 border border-zinc-700/50 hover:border-amber-500/40 transition-colors"
                             >
-                                <div className="relative w-full">
-                                    {game.thumbnailUrl ? (
-                                        <img
-                                            src={game.thumbnailUrl}
-                                            alt={game.gameName}
-                                            className="w-full aspect-video object-cover rounded-lg"
-                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-                                        />
-                                    ) : (
-                                        <div className="w-full aspect-video bg-zinc-700 rounded-lg flex items-center justify-center text-2xl">🎮</div>
-                                    )}
-                                    <div className="absolute inset-0 bg-black/50 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                        <span className="text-white text-xs font-bold flex items-center gap-1"><GamepadIcon className="w-3.5 h-3.5" /> Play</span>
-                                    </div>
-                                </div>
+                                {game.thumbnailUrl ? (
+                                    <img
+                                        src={game.thumbnailUrl}
+                                        alt={game.gameName}
+                                        className="w-full aspect-video object-cover rounded-lg"
+                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                    />
+                                ) : (
+                                    <div className="w-full aspect-video bg-zinc-700 rounded-lg flex items-center justify-center text-2xl">🎮</div>
+                                )}
                                 <div className="w-full text-center">
                                     <p className="text-white text-xs font-semibold truncate">{game.gameName}</p>
                                     {game.providerName && (
@@ -356,12 +347,11 @@ export function DynamicPromotionCard({ promotion, onClaim, isClaimed = false, wa
                                         {game.contributionPercent}% contribution
                                     </span>
                                 </div>
-                            </button>
+                            </div>
                         ))}
                     </div>
                 )}
             </SheetContent>
         </Sheet>
-        </>
     );
 }

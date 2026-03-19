@@ -21,9 +21,8 @@ const getBonuses = async (req, res) => {
     const promotions = await prisma.promotion.findMany({
       where,
       include: {
-        _count: {
-          select: { userPromotions: true, gameContributions: true }
-        }
+        _count: { select: { userPromotions: true } },
+        segment: { select: { id: true, name: true } }
       },
       orderBy: { createdAt: 'desc' },
       skip: (parseInt(page) - 1) * parseInt(limit),
@@ -38,19 +37,13 @@ const getBonuses = async (req, res) => {
         type: p.type,
         amount: Number(p.bonusAmountUsdc || 0),
         percentage: p.percentageBonus || 0,
-        bonusValueType: p.bonusValueType || 'fixed',
         wageringReq: p.wageringRequirement || 1,
         minDeposit: Number(p.minDepositUsdc || 0),
         maxCap: Number(p.maxBonusUsdc || 0),
-        maxBonusCap: Number(p.maxBonusCap || 0),
-        isAutoCredit: p.isAutoCredit || false,
-        isStackable: p.isStackable || false,
-        expiryDays: p.expiryDaysAfterClaim || null,
-        userSegment: p.userSegment || 'all',
-        countryRestrictions: p.countryRestrictions || [],
         startDate: p.startsAt,
         endDate: p.endsAt,
-        gamesConfigured: p._count.gameContributions,
+        segmentId: p.segmentId,
+        segment: p.segment,
         maxClaims: p.maxClaims,
         currentClaims: p._count.userPromotions,
         description: p.description,
@@ -79,6 +72,7 @@ const getBonus = async (req, res) => {
     const promotion = await prisma.promotion.findUnique({
       where: { id: bonusId },
       include: {
+        segment: true,
         userPromotions: {
           select: {
             id: true,
@@ -90,7 +84,7 @@ const getBonus = async (req, res) => {
         gameContributions: {
           include: {
             game: {
-              select: { id: true, name: true, slug: true, thumbnailUrl: true }
+              select: { id: true, name: true, thumbnailUrl: true, provider: { select: { name: true } } }
             }
           }
         }
@@ -118,32 +112,27 @@ const getBonus = async (req, res) => {
         type: promotion.type,
         amount: Number(promotion.bonusAmountUsdc || 0),
         percentage: promotion.percentageBonus || 0,
-        bonusValueType: promotion.bonusValueType || 'fixed',
         wageringReq: promotion.wageringRequirement || 1,
         minDeposit: Number(promotion.minDepositUsdc || 0),
         maxCap: Number(promotion.maxBonusUsdc || 0),
-        maxBonusCap: Number(promotion.maxBonusCap || 0),
-        isAutoCredit: promotion.isAutoCredit || false,
-        isStackable: promotion.isStackable || false,
-        expiryDays: promotion.expiryDaysAfterClaim || null,
-        userSegment: promotion.userSegment || 'all',
-        countryRestrictions: promotion.countryRestrictions || [],
         startDate: promotion.startsAt,
         endDate: promotion.endsAt,
+        gameContributions: promotion.gameContributions.map(gc => ({
+          gameId: gc.game.id,
+          gameName: gc.game.name,
+          thumbnailUrl: gc.game.thumbnailUrl,
+          providerName: gc.game.provider?.name,
+          contributionPercent: Number(gc.contributionPercent),
+        })),
+        segmentId: promotion.segmentId,
+        segment: promotion.segment,
         maxClaims: promotion.maxClaims,
         currentClaims: promotion.userPromotions.length,
         description: promotion.description,
         terms: promotion.terms,
         imageUrl: promotion.imageUrl,
         status: promotion.isActive ? 'active' : 'inactive',
-        createdAt: promotion.createdAt,
-        gameContributions: promotion.gameContributions.map(gc => ({
-          gameId: gc.gameId,
-          contributionPercent: Number(gc.contributionPercent),
-          gameName: gc.game.name,
-          gameSlug: gc.game.slug,
-          thumbnailUrl: gc.game.thumbnailUrl
-        }))
+        createdAt: promotion.createdAt
       },
       stats: {
         totalClaims: stats.total_claims,
@@ -162,9 +151,9 @@ const getBonus = async (req, res) => {
 const createBonus = async (req, res) => {
   try {
     const {
-      name, code, type, amount, percentage, bonusValueType, wageringReq, minDeposit, maxCap, maxBonusCap,
-      isAutoCredit, isStackable, expiryDays, userSegment, countryRestrictions,
-      startDate, endDate, maxClaims, description, terms, imageUrl
+      name, code, type, amount, percentage, wageringReq, minDeposit, maxCap,
+      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, imageUrl,
+      segmentId, bonusValueType, isAutoCredit, isStackable, expiryDays, userSegment, countryRestrictions
     } = req.body;
 
     // Check for duplicate code
@@ -180,30 +169,24 @@ const createBonus = async (req, res) => {
     const promotion = await prisma.promotion.create({
       data: {
         name,
-        slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now(),
+        slug: name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, ''),
         code: code ? code.toUpperCase() : null,
-        type: type || 'deposit',
+        type: type || 'code',
         bonusCurrency: 'USDC',
         bonusAmount: amount ? parseFloat(amount) : null,
         bonusAmountUsdc: amount ? parseFloat(amount) : null,
-        bonusValueType: bonusValueType || 'fixed',
-        percentageBonus: percentage ? parseInt(percentage) : null,
-        wageringRequirement: wageringReq ? parseInt(wageringReq) : 1,
+        percentageBonus: percentage || null,
+        wageringRequirement: wageringReq || 1,
         minDepositUsdc: minDeposit ? parseFloat(minDeposit) : null,
         maxBonusUsdc: maxCap ? parseFloat(maxCap) : null,
-        maxBonusCap: maxBonusCap ? parseFloat(maxBonusCap) : null,
-        isAutoCredit: isAutoCredit === true || isAutoCredit === 'true',
-        isStackable: isStackable === true || isStackable === 'true',
-        expiryDaysAfterClaim: expiryDays ? parseInt(expiryDays) : null,
-        userSegment: userSegment || null,
-        countryRestrictions: countryRestrictions && countryRestrictions.length > 0 ? countryRestrictions : null,
         startsAt: startDate ? new Date(startDate) : null,
         endsAt: endDate ? new Date(endDate) : null,
-        maxClaims: maxClaims ? parseInt(maxClaims) : null,
+        maxClaims: maxClaims || null,
         description: description || null,
         terms: terms || null,
         imageUrl: imageUrl || null,
-        isActive: true
+        isActive: true,
+        segmentId: segmentId || null,
       }
     });
 
@@ -224,9 +207,9 @@ const updateBonus = async (req, res) => {
   try {
     const { bonusId } = req.params;
     const {
-      name, code, amount, percentage, bonusValueType, wageringReq, minDeposit, maxCap, maxBonusCap,
-      isAutoCredit, isStackable, expiryDays, userSegment, countryRestrictions,
-      startDate, endDate, maxClaims, description, terms, status, imageUrl
+      name, code, amount, percentage, wageringReq, minDeposit, maxCap,
+      startDate, endDate, eligibleGames, playerSegments, maxClaims, description, terms, status, imageUrl,
+      segmentId
     } = req.body;
 
     // Check if bonus exists
@@ -254,31 +237,25 @@ const updateBonus = async (req, res) => {
     const data = {};
     if (name !== undefined) {
       data.name = name;
-      data.slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      data.slug = name.toLowerCase().replace(/\s+/g, '-');
     }
     if (code !== undefined) data.code = code ? code.toUpperCase() : null;
     if (amount !== undefined) {
       data.bonusAmount = parseFloat(amount);
       data.bonusAmountUsdc = parseFloat(amount);
     }
-    if (bonusValueType !== undefined) data.bonusValueType = bonusValueType;
-    if (percentage !== undefined) data.percentageBonus = percentage ? parseInt(percentage) : null;
-    if (wageringReq !== undefined) data.wageringRequirement = parseInt(wageringReq);
-    if (minDeposit !== undefined) data.minDepositUsdc = minDeposit ? parseFloat(minDeposit) : null;
+    if (percentage !== undefined) data.percentageBonus = percentage;
+    if (wageringReq !== undefined) data.wageringRequirement = wageringReq;
+    if (minDeposit !== undefined) data.minDepositUsdc = parseFloat(minDeposit);
     if (maxCap !== undefined) data.maxBonusUsdc = maxCap ? parseFloat(maxCap) : null;
-    if (maxBonusCap !== undefined) data.maxBonusCap = maxBonusCap ? parseFloat(maxBonusCap) : null;
-    if (isAutoCredit !== undefined) data.isAutoCredit = isAutoCredit === true || isAutoCredit === 'true';
-    if (isStackable !== undefined) data.isStackable = isStackable === true || isStackable === 'true';
-    if (expiryDays !== undefined) data.expiryDaysAfterClaim = expiryDays ? parseInt(expiryDays) : null;
-    if (userSegment !== undefined) data.userSegment = userSegment || null;
-    if (countryRestrictions !== undefined) data.countryRestrictions = countryRestrictions && countryRestrictions.length > 0 ? countryRestrictions : null;
     if (startDate !== undefined) data.startsAt = startDate ? new Date(startDate) : null;
     if (endDate !== undefined) data.endsAt = endDate ? new Date(endDate) : null;
-    if (maxClaims !== undefined) data.maxClaims = maxClaims ? parseInt(maxClaims) : null;
+    if (maxClaims !== undefined) data.maxClaims = maxClaims;
     if (description !== undefined) data.description = description;
     if (terms !== undefined) data.terms = terms;
     if (imageUrl !== undefined) data.imageUrl = imageUrl;
     if (status !== undefined) data.isActive = status === 'active';
+    if (segmentId !== undefined) data.segmentId = segmentId || null;
 
     await prisma.promotion.update({
       where: { id: bonusId },
@@ -612,26 +589,32 @@ const setGameContributions = async (req, res) => {
     const { bonusId } = req.params;
     const { contributions } = req.body; // [{ gameId, contributionPercent }]
 
+    if (!Array.isArray(contributions)) {
+      return res.status(400).json({ error: 'contributions must be an array' });
+    }
+
     const promotion = await prisma.promotion.findUnique({ where: { id: bonusId } });
     if (!promotion) return res.status(404).json({ error: 'Bonus not found' });
 
-    await prisma.$transaction(async (tx) => {
-      await tx.bonusGameContribution.deleteMany({ where: { promotionId: bonusId } });
-      if (contributions && contributions.length > 0) {
-        await tx.bonusGameContribution.createMany({
-          data: contributions.map(c => ({
-            promotionId: bonusId,
-            gameId: c.gameId,
-            contributionPercent: parseFloat(c.contributionPercent)
-          }))
-        });
-      }
-    });
+    // Replace all contributions atomically
+    await prisma.$transaction([
+      prisma.bonusGameContribution.deleteMany({ where: { promotionId: bonusId } }),
+      ...(contributions.length > 0
+        ? [prisma.bonusGameContribution.createMany({
+            data: contributions.map(c => ({
+              promotionId: bonusId,
+              gameId: c.gameId,
+              contributionPercent: parseFloat(c.contributionPercent) || 100,
+            })),
+            skipDuplicates: true,
+          })]
+        : []),
+    ]);
 
-    res.json({ message: 'Game contributions updated', count: contributions?.length || 0 });
+    res.json({ message: `Saved ${contributions.length} game contribution(s)` });
   } catch (error) {
     console.error('Set game contributions error:', error);
-    res.status(500).json({ error: 'Failed to update game contributions' });
+    res.status(500).json({ error: 'Failed to save game contributions' });
   }
 };
 
@@ -640,26 +623,41 @@ const assignBonusToPlayer = async (req, res) => {
     const { bonusId } = req.params;
     const { playerId } = req.body;
 
-    const [promotion, user] = await Promise.all([
-      prisma.promotion.findUnique({ where: { id: bonusId } }),
-      prisma.user.findUnique({ where: { id: playerId }, select: { id: true, email: true } })
-    ]);
+    if (!playerId) return res.status(400).json({ error: 'playerId is required' });
 
+    const promotion = await prisma.promotion.findUnique({ where: { id: bonusId } });
     if (!promotion) return res.status(404).json({ error: 'Bonus not found' });
+
+    const user = await prisma.user.findUnique({ where: { id: playerId } });
     if (!user) return res.status(404).json({ error: 'Player not found' });
 
-    const existing = await prisma.userPromotion.findFirst({ where: { userId: playerId, promotionId: bonusId } });
-    if (existing) return res.status(409).json({ error: 'Player already has this bonus' });
+    // Check if already assigned
+    const existing = await prisma.userPromotion.findFirst({
+      where: { userId: playerId, promotionId: bonusId, status: { in: ['available', 'claimed'] } }
+    });
+    if (existing) return res.status(409).json({ error: 'Bonus already assigned to this player' });
 
+    const bonusAmountUsdc = promotion.bonusAmountUsdc ? parseFloat(promotion.bonusAmountUsdc) : 0;
+    const wageringTarget = promotion.wageringRequirement && bonusAmountUsdc
+      ? bonusAmountUsdc * promotion.wageringRequirement
+      : null;
     const expiresAt = promotion.expiryDaysAfterClaim
       ? new Date(Date.now() + promotion.expiryDaysAfterClaim * 24 * 60 * 60 * 1000)
       : null;
 
-    const userPromotion = await prisma.userPromotion.create({
-      data: { userId: playerId, promotionId: bonusId, status: 'available', expiresAt }
+    await prisma.userPromotion.create({
+      data: {
+        userId: playerId,
+        promotionId: bonusId,
+        status: 'available',
+        bonusAmount: bonusAmountUsdc,
+        currency: promotion.bonusCurrency || 'USDC',
+        wageringTarget,
+        expiresAt,
+      }
     });
 
-    res.status(201).json({ message: 'Bonus assigned to player', userPromotionId: userPromotion.id });
+    res.json({ message: 'Bonus assigned to player successfully' });
   } catch (error) {
     console.error('Assign bonus to player error:', error);
     res.status(500).json({ error: 'Failed to assign bonus' });
@@ -677,5 +675,5 @@ module.exports = {
   cancelPlayerBonus,
   getBonusStats,
   setGameContributions,
-  assignBonusToPlayer
+  assignBonusToPlayer,
 };

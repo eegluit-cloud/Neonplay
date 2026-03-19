@@ -13,6 +13,9 @@ const reportsRoutes = require('./routes/reports');
 const adminsRoutes = require('./routes/admins');
 const vipRoutes = require('./routes/vip');
 const huiduRoutes = require('./routes/huidu');
+const cmsRoutes = require('./routes/cms');
+const bannersRoutes = require('./routes/banners');
+const segmentsRoutes = require('./routes/segments');
 
 const app = express();
 
@@ -38,6 +41,9 @@ app.use('/api/admins', adminsRoutes);
 app.use('/api/vip', vipRoutes);
 app.use('/api/huidu', huiduRoutes);
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/cms', cmsRoutes);
+app.use('/api/banners', bannersRoutes);
+app.use('/api/segments', segmentsRoutes);
 
 // Serve static files from public directory
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));

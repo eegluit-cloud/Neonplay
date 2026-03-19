@@ -789,6 +789,20 @@ model BetSelection {
 // PROMOTIONS & BONUSES
 // ============================================
 
+model Segment {
+  id         String   @id @default(uuid())
+  name       String
+  comment    String?
+  conditions Json     // array of { field, operator, value, value2? }
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  promotions Promotion[]
+
+  @@map("segments")
+}
+
 model Promotion {
   id                  String    @id @default(uuid())
   name                String
@@ -816,6 +830,7 @@ model Promotion {
   isStackable         Boolean   @default(false) @map("is_stackable") // can stack with other bonuses
   countryRestrictions Json?     @map("country_restrictions") // array of allowed country codes
   userSegment         String?   @map("user_segment") // 'new', 'vip', 'all'
+  segmentId           String?   @map("segment_id")
   isActive            Boolean   @default(true) @map("is_active")
   startsAt            DateTime? @map("starts_at")
   endsAt              DateTime? @map("ends_at")
@@ -823,6 +838,7 @@ model Promotion {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
+  segment           Segment?                @relation(fields: [segmentId], references: [id])
   userPromotions    UserPromotion[]
   gameContributions BonusGameContribution[]
 

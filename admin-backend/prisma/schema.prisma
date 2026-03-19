@@ -463,7 +463,8 @@ model Game {
   jackpotWins   JackpotWin[]
   publicWins    PublicWin[]
   liveBets      LiveBet[]
-  dailyStats    GameDailyStats[]
+  dailyStats         GameDailyStats[]
+  bonusContributions BonusGameContribution[]
 
   @@index([categoryId])
   @@index([providerId])
@@ -769,6 +770,20 @@ model BetSelection {
 // PROMOTIONS & BONUSES
 // ============================================
 
+model Segment {
+  id         String   @id @default(uuid())
+  name       String
+  comment    String?
+  conditions Json     // array of { field, operator, value, value2? }
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  promotions Promotion[]
+
+  @@map("segments")
+}
+
 model Promotion {
   id                  String    @id @default(uuid())
   name                String
@@ -789,15 +804,34 @@ model Promotion {
   terms               String?
   maxClaims           Int?      @map("max_claims") // total
   maxClaimsPerUser    Int?      @map("max_claims_per_user")
+  segmentId           String?   @map("segment_id")
   isActive            Boolean   @default(true) @map("is_active")
   startsAt            DateTime? @map("starts_at")
   endsAt              DateTime? @map("ends_at")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  userPromotions UserPromotion[]
+  segment           Segment?                @relation(fields: [segmentId], references: [id])
+  userPromotions    UserPromotion[]
+  gameContributions BonusGameContribution[]
 
   @@map("promotions")
+}
+
+model BonusGameContribution {
+  id                  String   @id @default(uuid())
+  promotionId         String   @map("promotion_id")
+  gameId              String   @map("game_id")
+  contributionPercent Decimal  @map("contribution_percent") @db.Decimal(5, 2)
+  createdAt           DateTime @default(now()) @map("created_at")
+
+  promotion Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  game      Game      @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@unique([promotionId, gameId])
+  @@index([promotionId])
+  @@index([gameId])
+  @@map("bonus_game_contributions")
 }
 
 model SpinWheelSegment {
@@ -1534,8 +1568,9 @@ model HeroBanner {
   imageUrl           String?   @map("image_url")
   videoUrl           String?   @map("video_url")
   backgroundGradient String?   @map("background_gradient")
-  targetAudience     String    @default("all") @map("target_audience") // all, new_users, vip, etc.
+  targetAudience     String    @default("all") @map("target_audience") // all, authenticated, guest
   platform           String    @default("all") // all, desktop, mobile, tablet
+  displayPage        String    @default("lobby") @map("display_page") // all, lobby, casino, slots, live-casino, sports, promotions
   isActive           Boolean   @default(true) @map("is_active")
   sortOrder          Int       @default(0) @map("sort_order")
   startsAt           DateTime? @map("starts_at")

@@ -51,6 +51,15 @@ export class BonusController {
     }
 
     /**
+     * GET /bonus/:id/games
+     * Return eligible games and their contribution % for a user bonus.
+     */
+    @Get(':id/games')
+    async getEligibleGames(@Req() req: any, @Param('id') userPromotionId: string) {
+        return this.bonusService.getEligibleGames(req.user.sub, userPromotionId);
+    }
+
+    /**
      * POST /bonus/:id/claim
      * Claim an available bonus.
      */

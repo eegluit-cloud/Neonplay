@@ -253,7 +253,16 @@ const PlayerDetail = () => {
   };
 
   const formatCurrency = (amount, currency = 'USD') => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(amount || 0);
+    // Map non-ISO-4217 currency codes to displayable format
+    const cryptoCurrencies = ['USDC', 'USDT', 'BTC', 'ETH', 'SOL', 'DOGE', 'BNB', 'XRP'];
+    if (cryptoCurrencies.includes(currency)) {
+      return `${Number(amount || 0).toFixed(2)} ${currency}`;
+    }
+    try {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency }).format(amount || 0);
+    } catch {
+      return `${Number(amount || 0).toFixed(2)} ${currency}`;
+    }
   };
   const formatDate = (dateStr) => new Date(dateStr).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
   const formatDateTime = (dateStr) => new Date(dateStr).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });

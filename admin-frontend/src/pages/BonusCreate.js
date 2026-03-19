@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { createBonus, uploadImage } from '../services/api';
+import { createBonus, uploadImage, getSegments } from '../services/api';
 
 const hint = { fontSize: '0.72rem', color: 'var(--gray)', marginTop: '3px', lineHeight: '1.4' };
 
@@ -18,8 +18,14 @@ const BonusCreate = () => {
     userSegment: 'all',
     countryRestrictions: '',
     description: '', terms: '', imageUrl: '',
+    segmentId: '',
   });
+  const [segments, setSegments] = useState([]);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    getSegments({ active: 'true', limit: 200 }).then(r => setSegments(r.segments || [])).catch(() => {});
+  }, []);
 
   const set = (key, val) => setFormData(f => ({ ...f, [key]: val }));
 
@@ -41,6 +47,7 @@ const BonusCreate = () => {
         isStackable: formData.isStackable,
         expiryDays: formData.expiryDays ? parseInt(formData.expiryDays) : null,
         userSegment: formData.userSegment !== 'all' ? formData.userSegment : null,
+        segmentId: formData.segmentId || null,
         countryRestrictions: formData.countryRestrictions
           ? formData.countryRestrictions.split(',').map(s => s.trim().toUpperCase()).filter(Boolean)
           : [],
@@ -168,13 +175,22 @@ const BonusCreate = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">User Segment</label>
-              <select className="form-select" value={formData.userSegment} onChange={e => set('userSegment', e.target.value)}>
-                <option value="all">All Users</option>
-                <option value="new">New Users Only</option>
-                <option value="vip">VIP Users Only</option>
+              <label className="form-label">Target Segment</label>
+              <select className="form-select" value={formData.segmentId} onChange={e => set('segmentId', e.target.value)}>
+                <option value="">All Players (no segment)</option>
+                {segments.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}{s.comment ? ` — ${s.comment}` : ''}</option>
+                ))}
               </select>
-              <div style={hint}>Restricts who can receive this bonus. "New" = players who haven't deposited before. "VIP" = players with an active VIP tier.</div>
+              <div style={hint}>
+                Restrict this bonus to players matching a segment's conditions.{' '}
+                <span
+                  style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => window.open('/segments/new', '_blank')}
+                >
+                  Create a segment
+                </span>
+              </div>
             </div>
             <div className="form-group">
               <label className="form-label">Country Restrictions</label>

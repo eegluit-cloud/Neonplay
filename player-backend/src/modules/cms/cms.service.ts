@@ -44,6 +44,7 @@ export interface HeroBannerDto {
   backgroundGradient: string | null;
   targetAudience: string;
   platform: string;
+  displayPage: string;
   sortOrder: number;
 }
 
@@ -258,10 +259,10 @@ export class CmsService {
   }
 
   /**
-   * Get hero banners with optional platform filter
+   * Get hero banners with optional platform and page filters
    */
-  async getHeroBanners(platform?: 'desktop' | 'mobile' | 'tablet'): Promise<HeroBannerDto[]> {
-    const cacheKey = `${this.CACHE_PREFIX}:banners:${platform || 'all'}`;
+  async getHeroBanners(platform?: 'desktop' | 'mobile' | 'tablet', page?: string): Promise<HeroBannerDto[]> {
+    const cacheKey = `${this.CACHE_PREFIX}:banners:${platform || 'all'}:${page || 'all'}`;
 
     // Try cache first
     const cached = await this.redis.get<HeroBannerDto[]>(cacheKey);
@@ -292,6 +293,11 @@ export class CmsService {
       whereClause.platform = { in: ['all', platform] };
     }
 
+    // Filter by display page
+    if (page) {
+      whereClause.displayPage = { in: ['all', page] };
+    }
+
     const banners = await this.prisma.heroBanner.findMany({
       where: whereClause,
       orderBy: { sortOrder: 'asc' },
@@ -306,6 +312,7 @@ export class CmsService {
         backgroundGradient: true,
         targetAudience: true,
         platform: true,
+        displayPage: true,
         sortOrder: true,
       },
     });
@@ -321,6 +328,7 @@ export class CmsService {
       backgroundGradient: b.backgroundGradient,
       targetAudience: b.targetAudience,
       platform: b.platform,
+      displayPage: (b as any).displayPage || 'lobby',
       sortOrder: b.sortOrder,
     }));
 
@@ -348,10 +356,13 @@ export class CmsService {
       this.logger.log('Settings caches invalidated');
     }
     if (!type || type === 'banners') {
-      await this.redis.del(`${this.CACHE_PREFIX}:banners:all`);
-      await this.redis.del(`${this.CACHE_PREFIX}:banners:desktop`);
-      await this.redis.del(`${this.CACHE_PREFIX}:banners:mobile`);
-      await this.redis.del(`${this.CACHE_PREFIX}:banners:tablet`);
+      const platforms = ['all', 'desktop', 'mobile', 'tablet'];
+      const pages = ['all', 'lobby', 'casino', 'slots', 'live-casino', 'sports', 'promotions'];
+      for (const p of platforms) {
+        for (const pg of pages) {
+          await this.redis.del(`${this.CACHE_PREFIX}:banners:${p}:${pg}`);
+        }
+      }
       this.logger.log('Banner caches invalidated');
     }
   }

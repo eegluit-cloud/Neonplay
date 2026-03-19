@@ -183,7 +183,6 @@ export const gamesApi = {
 // Wallet API
 export const walletApi = {
   getBalance: () => api.get('/wallet'),
-  updateCurrency: (currency: string) => api.patch('/wallet/currency', { currency }),
 
   getTransactions: (params?: { page?: number; limit?: number; type?: string }) =>
     api.get('/wallet/transactions', { params }),
@@ -240,6 +239,14 @@ export const promotionsApi = {
   claim: (slug: string) => api.post(`/promotions/${slug}/claim`),
 
   claimDaily: () => api.post('/promotions/daily/claim'),
+};
+
+// Bonus API (authenticated)
+export const bonusApi = {
+  getMyActive: () => api.get('/bonus/active'),
+  getMyAvailable: () => api.get('/bonus/available'),
+  claimUserBonus: (userPromotionId: string) => api.post(`/bonus/${userPromotionId}/claim`),
+  getEligibleGames: (userPromotionId: string) => api.get(`/bonus/${userPromotionId}/games`),
 };
 
 // VIP API

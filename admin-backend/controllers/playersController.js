@@ -1,4 +1,5 @@
 const prisma = require('../lib/prisma');
+const { redis } = require('../lib/redis');
 
 const getPlayers = async (req, res) => {
   try {
@@ -307,6 +308,13 @@ const adjustBalance = async (req, res) => {
         metadata: { reason, adminId: req.admin?.id }
       }
     });
+
+    // Notify player frontend via Redis → WebSocket gateway
+    await redis.publish('wallet:balance_updated', JSON.stringify({
+      userId: playerId,
+      currency: currency,
+      balance: newBalance.toString(),
+    }));
 
     res.json({
       message: 'Balance adjusted successfully',

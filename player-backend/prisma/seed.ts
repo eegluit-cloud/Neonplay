@@ -269,75 +269,7 @@ async function main() {
     }),
   ]);
 
-  // ============================================
-  // PROMOTIONS
-  // ============================================
-  console.log('Creating promotions...');
-  await Promise.all([
-    prisma.promotion.upsert({
-      where: { slug: 'welcome-bonus' },
-      update: {},
-      create: {
-        name: 'Welcome Bonus',
-        slug: 'welcome-bonus',
-        description: 'Get a massive welcome bonus on your first deposit!',
-        type: 'welcome',
-        percentageBonus: 200,
-        maxBonusUsdc: 500,
-        minDepositUsdc: 10,
-        wageringRequirement: 10,
-        imageUrl: '/promotions/welcome.jpg',
-        terms: 'New users only. 10x wagering requirement applies.',
-        maxClaimsPerUser: 1,
-      },
-    }),
-    prisma.promotion.upsert({
-      where: { slug: 'daily-bonus' },
-      update: {},
-      create: {
-        name: 'Daily Bonus',
-        slug: 'daily-bonus',
-        description: 'Claim free bonus every day!',
-        type: 'daily',
-        bonusCurrency: 'USD',
-        bonusAmount: 1,
-        bonusAmountUsdc: 1,
-        imageUrl: '/promotions/daily.jpg',
-        terms: 'Claim once per day. Must be logged in.',
-      },
-    }),
-    prisma.promotion.upsert({
-      where: { slug: 'weekly-bonus' },
-      update: {},
-      create: {
-        name: 'Weekly Bonus',
-        slug: 'weekly-bonus',
-        description: 'Get a weekly bonus every Monday!',
-        type: 'weekly',
-        bonusCurrency: 'USD',
-        bonusAmount: 10,
-        bonusAmountUsdc: 10,
-        imageUrl: '/promotions/weekly.jpg',
-        terms: 'Claim once per week starting Monday.',
-      },
-    }),
-    prisma.promotion.upsert({
-      where: { slug: 'reload-bonus' },
-      update: {},
-      create: {
-        name: 'Weekend Reload',
-        slug: 'reload-bonus',
-        description: '50% bonus on weekend deposits!',
-        type: 'deposit',
-        percentageBonus: 50,
-        maxBonusUsdc: 250,
-        minDepositUsdc: 20,
-        wageringRequirement: 5,
-        imageUrl: '/promotions/reload.jpg',
-        terms: 'Valid on weekends only. 5x wagering requirement.',
-      },
-    }),
-  ]);
+  // Promotions are created manually via the admin panel — no seeding needed.
 
   // ============================================
   // SPIN WHEEL SEGMENTS

@@ -133,13 +133,13 @@ export function Footer() {
                   'Lottery': '/promotions',
                   'Refer a friend': '/refer-friend',
                   'AMOE': '/amoe',
-                  'Help center': '/faq',
-                  'Important Announcement': '/promotions',
-                  'Responsible Gambling': '/responsible-gambling',
-                  'Gamble Aware': '/responsible-gambling',
-                  'Fairness': '/provably-fair',
-                  'FAQ': '/faq',
-                  'Privacy Policy': '/privacy',
+                  'Help center': '/page/help-center',
+                  'Important Announcement': '/page/important-announcement',
+                  'Responsible Gambling': '/page/responsible-gambling',
+                  'Gamble Aware': '/page/gamble-aware',
+                  'Fairness': '/page/fairness',
+                  'FAQ': '/page/faq',
+                  'Privacy Policy': '/page/privacy-policy',
                   'Terms Of Service': '/terms',
                   'News': '/lobby',
                   'Work with us': '/faq',
@@ -160,6 +160,24 @@ export function Footer() {
             </ul>
           </div>
         ))}
+      </div>
+
+      {/* Mobile legal links - visible on mobile only */}
+      <div className="md:hidden pt-4 border-t border-border mb-3">
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
+          <Link to="/terms" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            Terms of Service
+          </Link>
+          <Link to="/page/privacy-policy" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            Privacy Policy
+          </Link>
+          <Link to="/page/responsible-gambling" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            Responsible Gambling
+          </Link>
+          <Link to="/page/faq" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
+            FAQ
+          </Link>
+        </div>
       </div>
 
       {/* Copyright */}

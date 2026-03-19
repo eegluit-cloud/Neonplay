@@ -34,6 +34,12 @@ router.put('/:bonusId', requireRole('super_admin', 'manager'), logAction('update
 // Delete bonus
 router.delete('/:bonusId', requireRole('super_admin'), logAction('delete_bonus', 'bonus'), bonusController.deleteBonus);
 
+// Set game wagering contributions for a bonus
+router.post('/:bonusId/game-contributions', requireRole('super_admin', 'manager'), bonusController.setGameContributions);
+
+// Assign bonus to a player by UUID
+router.post('/:bonusId/assign', requireRole('super_admin', 'manager'), logAction('assign_bonus', 'bonus'), bonusController.assignBonusToPlayer);
+
 // Award bonus to player
 router.post('/award', requireRole('super_admin', 'manager'), logAction('award_bonus', 'player_bonus'), [
   body('playerId').isInt().withMessage('Valid player ID required'),
@@ -46,11 +52,5 @@ router.post('/player-bonuses/:playerBonusId/cancel', requireRole('super_admin', 
   body('reason').notEmpty().withMessage('Reason required'),
   validate
 ], bonusController.cancelPlayerBonus);
-
-// Set game wagering contributions for a bonus
-router.put('/:bonusId/game-contributions', requireRole('super_admin', 'manager'), logAction('set_game_contributions', 'bonus'), bonusController.setGameContributions);
-
-// Assign a bonus to a specific player
-router.post('/:bonusId/assign', requireRole('super_admin', 'manager'), logAction('assign_bonus', 'player_bonus'), bonusController.assignBonusToPlayer);
 
 module.exports = router;

@@ -5,7 +5,7 @@ import phibetLogo from '../assets/phibet-logo.png';
 
 const getSectionForPath = (path) => {
   if (path === '/dashboard') return 'overview';
-  if (['/players', '/kyc', '/games', '/bonuses', '/vip', '/casino-management'].some(p => path.startsWith(p))) return 'management';
+  if (['/players', '/kyc', '/games', '/bonuses', '/segments', '/vip', '/casino-management', '/cms', '/banners'].some(p => path.startsWith(p))) return 'management';
   if (path === '/reports') return 'analytics';
   if (path === '/admins') return 'settings';
   return null;
@@ -80,7 +80,10 @@ const Layout = () => {
     if (path === '/players' || path.startsWith('/players/')) return 'Players';
     if (path === '/kyc') return 'KYC Management';
     if (path === '/games') return 'Games Management';
-    if (path === '/bonuses') return 'Bonus Management';
+    if (path === '/bonuses' || path.startsWith('/bonuses/')) return 'Bonus Management';
+    if (path === '/segments' || path.startsWith('/segments/')) return 'Segmentation';
+    if (path === '/cms' || path.startsWith('/cms/')) return 'CMS Pages';
+    if (path === '/banners' || path.startsWith('/banners/')) return 'Hero Banners';
     if (path === '/vip') return 'VIP Management';
     if (path === '/reports') return 'Reports';
     if (path === '/admins') return 'Admin Users';
@@ -171,7 +174,7 @@ const Layout = () => {
                 </span>
                 Games
               </NavLink>
-              <NavLink to="/bonuses" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
+              <NavLink to="/bonuses" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/bonuses/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <polyline points="20 12 20 22 4 22 4 12"/>
@@ -182,6 +185,17 @@ const Layout = () => {
                   </svg>
                 </span>
                 Bonuses
+              </NavLink>
+              <NavLink to="/segments" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/segments/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
+                <span className="sidebar-link-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                  </svg>
+                </span>
+                Segmentation
               </NavLink>
               <NavLink to="/vip" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -200,6 +214,27 @@ const Layout = () => {
                   </svg>
                 </span>
                 Casino Management
+              </NavLink>
+              <NavLink to="/cms" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/cms/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
+                <span className="sidebar-link-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                  </svg>
+                </span>
+                CMS Pages
+              </NavLink>
+              <NavLink to="/banners" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/banners/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
+                <span className="sidebar-link-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="5" width="18" height="14" rx="2"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                </span>
+                Hero Banners
               </NavLink>
             </div>
           </div>

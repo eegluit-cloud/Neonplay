@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { authApi, walletApi, refreshAccessToken } from '../lib/api';
 import { tokenManager } from '../lib/tokenManager';
+import { connectSocket, disconnectSocket } from '../lib/socket';
 
 export interface User {
   id: string;
@@ -108,6 +109,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (refreshed) {
             await refreshUser();
             await refreshWallet();
+            // Connect WebSocket and listen for real-time balance updates
+            const token = tokenManager.getAccessToken();
+            if (token) {
+              const sock = connectSocket(token);
+              sock.on('wallet:balance_updated', refreshWallet);
+            }
           } else {
             // Refresh failed - session is expired
             tokenManager.clearTokens();
@@ -138,6 +145,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Wallet fetch failed but user is logged in; wallet will retry on next access
     }
+
+    // Connect WebSocket and listen for real-time balance updates
+    const sock = connectSocket(accessToken);
+    sock.on('wallet:balance_updated', refreshWallet);
   };
 
   const register = async (data: RegisterData) => {
@@ -154,6 +165,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {
       // Wallet fetch failed but registration succeeded
     }
+
+    // Connect WebSocket and listen for real-time balance updates
+    const sock = connectSocket(accessToken);
+    sock.on('wallet:balance_updated', refreshWallet);
   };
 
   const logout = async () => {
@@ -161,6 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     tokenManager.clearTokens();
     setUser(null);
     setWallet(null);
+    disconnectSocket();
     try {
       await authApi.logout();
     } catch {

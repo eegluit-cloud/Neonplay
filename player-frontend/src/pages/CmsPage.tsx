@@ -1,32 +1,36 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { NeonPlayLogo } from '@/components/NeonPlayLogo';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1';
-const TERMS_SLUG = 'terms-and-condition';
 
-const TermsOfService = () => {
+const CmsPage = () => {
+  const { slug } = useParams<{ slug: string }>();
   const [html, setHtml] = useState('');
-  const [title, setTitle] = useState('Terms of Service');
+  const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_BASE}/cms/pages/${TERMS_SLUG}`)
+    if (!slug) return;
+    setLoading(true);
+    setError(false);
+
+    fetch(`${API_BASE}/cms/pages/${slug}`)
       .then(r => {
         if (!r.ok) throw new Error('Not found');
         return r.json();
       })
       .then(data => {
         setHtml(data.content || '');
-        if (data.title) setTitle(data.title);
+        setTitle(data.title || slug);
         setLoading(false);
       })
       .catch(() => {
         setError(true);
         setLoading(false);
       });
-  }, []);
+  }, [slug]);
 
   if (loading) {
     return (
@@ -38,8 +42,8 @@ const TermsOfService = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-4">
-        <p className="text-muted-foreground text-sm">Could not load Terms of Service.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+        <p className="text-muted-foreground">Page not found.</p>
         <Link to="/" className="text-primary hover:underline text-sm">← Back to home</Link>
       </div>
     );
@@ -65,4 +69,4 @@ const TermsOfService = () => {
   );
 };
 
-export default TermsOfService;
+export default CmsPage;

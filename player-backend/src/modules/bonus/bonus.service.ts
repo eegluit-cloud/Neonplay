@@ -6,6 +6,7 @@ import {
     ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { RedisService } from '../../database/redis/redis.service';
 import { Decimal } from '@prisma/client/runtime/library';
 
 // Currency balance field mapping
@@ -32,7 +33,10 @@ const CURRENCY_BALANCE_FIELDS: Record<string, string> = {
 export class BonusService {
     private readonly logger = new Logger(BonusService.name);
 
-    constructor(private readonly prisma: PrismaService) { }
+    constructor(
+        private readonly prisma: PrismaService,
+        private readonly redis: RedisService,
+    ) { }
 
     // ============================================================================
     // WAGERING PROGRESS — Called after every game round
@@ -52,12 +56,14 @@ export class BonusService {
         gameRoundId: string,
     ): Promise<void> {
         try {
-            // 1. Find all active (claimed, non-expired) bonuses for this user that have wagering targets
+            // 1. Find all bonuses with wagering targets for this user:
+            //    - 'available': wager-first model (wager before credit)
+            //    - 'claimed': credit-first model (already credited, wagering in progress)
             const now = new Date();
             const activeBonuses = await this.prisma.userPromotion.findMany({
                 where: {
                     userId,
-                    status: 'claimed',
+                    status: { in: ['available', 'claimed'] },
                     wageringTarget: { not: null },
                     OR: [
                         { expiresAt: null },
@@ -70,6 +76,9 @@ export class BonusService {
                             gameContributions: {
                                 where: { gameId },
                             },
+                            _count: {
+                                select: { gameContributions: true },
+                            },
                         },
                     },
                 },
@@ -78,14 +87,22 @@ export class BonusService {
             if (activeBonuses.length === 0) return;
 
             for (const userPromo of activeBonuses) {
-                // 2. Check if game is whitelisted for this bonus
-                const contribution = userPromo.promotion.gameContributions[0];
-                if (!contribution) {
-                    // Game not in whitelist — 0% contribution, skip
-                    continue;
+                // 2. Determine contribution percent for this game:
+                //    - If the promotion has explicit game contributions (whitelist mode),
+                //      use the specific rate for this game (0 if not in the list).
+                //    - If NO contributions are configured, all games count at 100% (open mode).
+                const specificContribution = userPromo.promotion.gameContributions[0];
+                const hasWhitelist = userPromo.promotion._count.gameContributions > 0;
+
+                let contributionPercent: Decimal;
+                if (hasWhitelist) {
+                    if (!specificContribution) continue; // game not in whitelist — skip
+                    contributionPercent = new Decimal(specificContribution.contributionPercent);
+                } else {
+                    // No whitelist configured — all games count at 100%
+                    contributionPercent = new Decimal(100);
                 }
 
-                const contributionPercent = new Decimal(contribution.contributionPercent);
                 if (contributionPercent.lte(0)) continue;
 
                 // 3. Calculate counted amount
@@ -114,30 +131,52 @@ export class BonusService {
                     throw error;
                 }
 
-                // 5. Update UserPromotion.wageredAmount
+                // 5. Skip if wagering was already complete before this bet (prevents double-transition)
+                const alreadyComplete = new Decimal(userPromo.wageredAmount).gte(new Decimal(userPromo.wageringTarget!));
+                if (alreadyComplete) continue;
+
+                // 6. Update UserPromotion.wageredAmount
                 const newWagered = new Decimal(userPromo.wageredAmount).plus(countedAmount);
 
-                // 6. Check if wagering is now complete
+                // 7. Check if wagering is now complete
                 const wageringTarget = new Decimal(userPromo.wageringTarget!);
                 const isComplete = newWagered.gte(wageringTarget);
+                const wasAvailable = userPromo.status === 'available';
 
                 await this.prisma.userPromotion.update({
                     where: { id: userPromo.id },
                     data: {
                         wageredAmount: newWagered,
-                        ...(isComplete
+                        ...(isComplete && !wasAvailable
                             ? {
+                                // Credit-first: wagering done → mark completed
                                 status: 'completed',
                                 completedAt: new Date(),
                             }
                             : {}),
+                        // Wager-first (wasAvailable): stay 'available' — user must manually click Claim
                     },
+                });
+
+                // 8. Emit real-time wagering progress update to player frontend
+                const progressPct = Math.min(100, newWagered.div(wageringTarget).mul(100).toNumber());
+                await this.redis.publish('bonus:wagering_progress', {
+                    userId,
+                    userPromotionId: userPromo.id,
+                    promotionSlug: userPromo.promotion.slug,
+                    wageredAmount: newWagered.toNumber(),
+                    wageringTarget: wageringTarget.toNumber(),
+                    progressPct,
+                    isComplete,
+                    isCredited: false, // wager-first bonuses are never auto-credited; credit-first are already in wallet
+                    wageringComplete: isComplete,
                 });
 
                 if (isComplete) {
                     this.logger.log(
                         `🎉 User ${userId} completed wagering for bonus ${userPromo.promotion.name} ` +
-                        `(wagered ${newWagered.toFixed(2)} / target ${wageringTarget.toFixed(2)})`,
+                        `(wagered ${newWagered.toFixed(2)} / target ${wageringTarget.toFixed(2)})` +
+                        (wasAvailable ? ' — ready to claim manually' : ' — wagering completed'),
                     );
                 } else {
                     this.logger.debug(
@@ -229,6 +268,130 @@ export class BonusService {
     }
 
     // ============================================================================
+    // SEGMENT EVALUATION — Check if user matches segment conditions
+    // ============================================================================
+
+    /**
+     * Evaluate whether a user matches all conditions defined in a segment.
+     * Returns true if the user passes every condition (AND logic).
+     */
+    private async isUserInSegment(userId: string, conditions: any[]): Promise<boolean> {
+        if (!conditions || conditions.length === 0) return true;
+
+        // Gather required data in parallel
+        const [user, wallet, depositAgg, withdrawAgg] = await Promise.all([
+            this.prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    isActive: true,
+                    isSuspended: true,
+                    dateOfBirth: true,
+                    createdAt: true,
+                    lastLoginAt: true,
+                },
+            }),
+            this.prisma.wallet.findUnique({
+                where: { userId },
+                select: {
+                    lifetimeDeposited: true,
+                    lifetimeWithdrawn: true,
+                    lifetimeWagered: true,
+                    lifetimeWon: true,
+                },
+            }),
+            this.prisma.deposit.count({ where: { userId, status: 'completed' } }),
+            this.prisma.withdrawal.count({ where: { userId, status: 'completed' } }),
+        ]);
+
+        if (!user) return false;
+
+        const depositAmount = wallet ? new Decimal(wallet.lifetimeDeposited) : new Decimal(0);
+        const withdrawAmount = wallet ? new Decimal(wallet.lifetimeWithdrawn) : new Decimal(0);
+        const wageringAmount = wallet ? new Decimal(wallet.lifetimeWagered) : new Decimal(0);
+        const winAmount = wallet ? new Decimal(wallet.lifetimeWon) : new Decimal(0);
+        const ggr = depositAmount.minus(withdrawAmount);
+
+        const playerStatus = user.isSuspended ? 'suspended' : (user.isActive ? 'active' : 'inactive');
+        const ageYears = user.dateOfBirth
+            ? Math.floor((Date.now() - new Date(user.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
+            : null;
+
+        const getValue = (field: string): any => {
+            switch (field) {
+                case 'deposit_amount': return depositAmount;
+                case 'deposit_count': return new Decimal(depositAgg);
+                case 'withdraw_amount': return withdrawAmount;
+                case 'withdraw_count': return new Decimal(withdrawAgg);
+                case 'wagering_amount': return wageringAmount;
+                case 'wagering_count': return null; // not tracked separately
+                case 'win_amount': return winAmount;
+                case 'gross_gaming_revenue': return ggr;
+                case 'age': return ageYears !== null ? new Decimal(ageYears) : null;
+                case 'players_status': return playerStatus;
+                case 'signup': return user.createdAt;
+                case 'last_login': return user.lastLoginAt;
+                case 'gender': return null; // not in schema
+                default: return null;
+            }
+        };
+
+        const evaluate = (actual: any, operator: string, value: string, value2?: string): boolean => {
+            if (actual === null || actual === undefined) return false;
+
+            // String/enum comparisons (status, gender)
+            if (typeof actual === 'string') {
+                if (operator === '=') return actual === value;
+                if (operator === '!=') return actual !== value;
+                return false;
+            }
+
+            // Date comparisons
+            if (actual instanceof Date) {
+                const actualMs = actual.getTime();
+                const valMs = new Date(value).getTime();
+                if (isNaN(valMs)) return false;
+                if (operator === '=') return actualMs === valMs;
+                if (operator === '!=') return actualMs !== valMs;
+                if (operator === '>') return actualMs > valMs;
+                if (operator === '>=') return actualMs >= valMs;
+                if (operator === '<') return actualMs < valMs;
+                if (operator === '<=') return actualMs <= valMs;
+                if (operator === 'between' && value2) {
+                    const val2Ms = new Date(value2).getTime();
+                    return actualMs >= valMs && actualMs <= val2Ms;
+                }
+                return false;
+            }
+
+            // Numeric (Decimal) comparisons
+            if (actual instanceof Decimal) {
+                const num = new Decimal(value);
+                if (operator === '=') return actual.eq(num);
+                if (operator === '!=') return !actual.eq(num);
+                if (operator === '>') return actual.gt(num);
+                if (operator === '>=') return actual.gte(num);
+                if (operator === '<') return actual.lt(num);
+                if (operator === '<=') return actual.lte(num);
+                if (operator === 'between' && value2) {
+                    return actual.gte(num) && actual.lte(new Decimal(value2));
+                }
+                return false;
+            }
+
+            return false;
+        };
+
+        for (const cond of conditions) {
+            const actual = getValue(cond.field);
+            if (!evaluate(actual, cond.operator, String(cond.value), cond.value2 ? String(cond.value2) : undefined)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // ============================================================================
     // JOINING BONUS — Called after registration + email verification
     // ============================================================================
 
@@ -263,6 +426,7 @@ export class BonusService {
                         },
                     ],
                 },
+                include: { segment: true },
             });
 
             for (const promo of joiningBonuses) {
@@ -271,6 +435,15 @@ export class BonusService {
                     const allowed = promo.countryRestrictions as string[];
                     if (allowed.length > 0 && !allowed.includes(user.countryCode)) {
                         continue;
+                    }
+                }
+
+                // Segment check
+                if ((promo as any).segment) {
+                    const seg = (promo as any).segment;
+                    if (seg.isActive) {
+                        const inSegment = await this.isUserInSegment(userId, seg.conditions as any[]);
+                        if (!inSegment) continue;
                     }
                 }
 
@@ -304,21 +477,25 @@ export class BonusService {
                     ? bonusAmountUsdc.mul(promo.wageringRequirement)
                     : null;
 
+                // Wager-first: if wagering is required, don't credit yet — user must wager first
+                // No wagering requirement: credit immediately if isAutoCredit
+                const shouldAutoCredit = promo.isAutoCredit && !promo.wageringRequirement;
+
                 // Create user promotion instance
                 const userPromo = await this.prisma.userPromotion.create({
                     data: {
                         userId,
                         promotionId: promo.id,
-                        status: promo.isAutoCredit ? 'claimed' : 'available',
+                        status: shouldAutoCredit ? 'claimed' : 'available',
                         bonusAmount: bonusAmountUsdc,
                         currency: promo.bonusCurrency || 'USDC',
                         wageringTarget,
-                        claimedAt: promo.isAutoCredit ? new Date() : null,
+                        claimedAt: shouldAutoCredit ? new Date() : null,
                         expiresAt,
                     },
                 });
 
-                if (promo.isAutoCredit && bonusAmountUsdc.gt(0)) {
+                if (shouldAutoCredit && bonusAmountUsdc.gt(0)) {
                     await this.creditBonusToWallet(userId, userPromo.id, promo);
                 }
 
@@ -369,6 +546,7 @@ export class BonusService {
                     type: 'birthday',
                     isActive: true,
                 },
+                include: { segment: true },
             });
 
             const yearStart = new Date(today.getFullYear(), 0, 1);
@@ -379,6 +557,15 @@ export class BonusService {
                     const allowed = promo.countryRestrictions as string[];
                     if (allowed.length > 0 && !allowed.includes(user.countryCode)) {
                         continue;
+                    }
+                }
+
+                // Segment check
+                if ((promo as any).segment) {
+                    const seg = (promo as any).segment;
+                    if (seg.isActive) {
+                        const inSegment = await this.isUserInSegment(userId, seg.conditions as any[]);
+                        if (!inSegment) continue;
                     }
                 }
 
@@ -468,6 +655,19 @@ export class BonusService {
                     `Minimum deposit requirement not met. ` +
                     `Deposited: ${new Decimal(userPromo.depositProgress).toFixed(2)} USDC, ` +
                     `Required: ${minDeposit.toFixed(2)} USDC`,
+                );
+            }
+        }
+
+        // For bonuses with wagering requirements, verify wagering is complete before crediting
+        if (userPromo.wageringTarget) {
+            const wagered = new Decimal(userPromo.wageredAmount);
+            const target = new Decimal(userPromo.wageringTarget);
+            if (wagered.lt(target)) {
+                throw new BadRequestException(
+                    `Wagering requirement not met. ` +
+                    `Wagered: ${wagered.toFixed(2)} USDC, ` +
+                    `Required: ${target.toFixed(2)} USDC`,
                 );
             }
         }
@@ -709,6 +909,7 @@ export class BonusService {
                 ],
             },
             include: {
+                segment: true,
                 gameContributions: {
                     include: {
                         game: {
@@ -744,8 +945,19 @@ export class BonusService {
             },
         });
 
+        // Filter by segment eligibility
+        const segmentFiltered: typeof availablePromotions = [];
+        for (const p of availablePromotions) {
+            const seg = (p as any).segment;
+            if (seg && seg.isActive) {
+                const inSegment = await this.isUserInSegment(userId, seg.conditions as any[]);
+                if (!inSegment) continue;
+            }
+            segmentFiltered.push(p);
+        }
+
         return {
-            newPromotions: availablePromotions.map((p) => ({
+            newPromotions: segmentFiltered.map((p) => ({
                 id: p.id,
                 name: p.name,
                 slug: p.slug,
@@ -788,7 +1000,9 @@ export class BonusService {
         const activeBonuses = await this.prisma.userPromotion.findMany({
             where: {
                 userId,
-                status: 'claimed',
+                // 'available' = wager-first bonuses in progress (not yet credited)
+                // 'claimed'   = credited to wallet (credit-first or completed wager-first)
+                status: { in: ['available', 'claimed'] },
                 OR: [
                     { expiresAt: null },
                     { expiresAt: { gte: now } },
@@ -828,6 +1042,9 @@ export class BonusService {
                 imageUrl: up.promotion.imageUrl,
                 bonusAmount: up.bonusAmount,
                 currency: up.currency,
+                // isCredited: true = bonus money is already in wallet
+                // isCredited: false = wager-first model, bonus not yet credited
+                isCredited: up.status === 'claimed',
                 wageredAmount: up.wageredAmount,
                 wageringTarget: up.wageringTarget,
                 wageringRequirement: up.promotion.wageringRequirement,
@@ -899,6 +1116,59 @@ export class BonusService {
             page,
             limit,
             totalPages: Math.ceil(total / limit),
+        };
+    }
+
+    // ============================================================================
+    // ELIGIBLE GAMES — For a specific user bonus
+    // ============================================================================
+
+    /**
+     * Return the list of games that count toward wagering for a given userPromotion.
+     * If the promotion has no configured game contributions, all games count at 100%.
+     */
+    async getEligibleGames(userId: string, userPromotionId: string) {
+        const userPromo = await this.prisma.userPromotion.findUnique({
+            where: { id: userPromotionId },
+            include: {
+                promotion: {
+                    include: {
+                        gameContributions: {
+                            include: {
+                                game: {
+                                    select: {
+                                        id: true,
+                                        name: true,
+                                        slug: true,
+                                        thumbnailUrl: true,
+                                        provider: { select: { name: true } },
+                                    },
+                                },
+                            },
+                            orderBy: { contributionPercent: 'desc' },
+                        },
+                    },
+                },
+            },
+        });
+
+        if (!userPromo || userPromo.userId !== userId) {
+            throw new NotFoundException('Bonus not found');
+        }
+
+        const contributions = userPromo.promotion.gameContributions;
+
+        return {
+            promotionName: userPromo.promotion.name,
+            hasWhitelist: contributions.length > 0,
+            games: contributions.map((gc) => ({
+                gameId: gc.game.id,
+                gameName: gc.game.name,
+                slug: gc.game.slug,
+                thumbnailUrl: gc.game.thumbnailUrl,
+                providerName: gc.game.provider?.name,
+                contributionPercent: Number(gc.contributionPercent),
+            })),
         };
     }
 

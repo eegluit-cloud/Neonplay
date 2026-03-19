@@ -12,35 +12,17 @@ import { MobilePageHeader } from '@/components/MobilePageHeader';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Clock, Coins, Info, ChevronLeft, ChevronRight } from 'lucide-react';
-import { promotionsApi } from '@/lib/api';
+import { promotionsApi, bonusApi } from '@/lib/api';
+import { tokenManager } from '@/lib/tokenManager';
+import { getSocket } from '@/lib/socket';
 import { Promotion } from '@/types/promotion';
-import { DynamicPromotionCard } from '@/components/DynamicPromotionCard';
+import { DynamicPromotionCard, WageringProgress } from '@/components/DynamicPromotionCard';
 import { Loader2 } from 'lucide-react';
 
 // Import promo images
 import spinWheelImg from '@/assets/spin-wheel-new.png';
-import coinBagImg from '@/assets/coin-bag.png';
-import treasureChestImg from '@/assets/treasure-chest-coins.png';
 import stadiumBg from '@/assets/stadium-bg.jpg';
 import monthlyTreasureChest from '@/assets/monthly-treasure-chest.png';
-import vipCrownImg from '@/assets/vip-crown-gold.png';
-
-const useDailyCountdown = () => {
-  const [seconds, setSeconds] = useState(12 * 3600); // 12 hours
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds(prev => (prev > 0 ? prev - 1 : 12 * 3600));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  return { hours, minutes, secs };
-};
 
 const useSpinCountdown = () => {
   const [seconds, setSeconds] = useState(24 * 3600); // 24 hours
@@ -57,42 +39,6 @@ const useSpinCountdown = () => {
   const secs = seconds % 60;
 
   return { hours, minutes, secs };
-};
-
-const useWeeklyCountdown = () => {
-  const [seconds, setSeconds] = useState(72 * 3600); // 72 hours = 3 days
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds(prev => (prev > 0 ? prev - 1 : 72 * 3600));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  return { days, hours, minutes, secs };
-};
-
-const useMonthlyCountdown = () => {
-  const [seconds, setSeconds] = useState(14 * 86400); // 14 days
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds(prev => (prev > 0 ? prev - 1 : 14 * 86400));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const days = Math.floor(seconds / 86400);
-  const hours = Math.floor((seconds % 86400) / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
-
-  return { days, hours, minutes, secs };
 };
 
 const useMegaJackpot = () => {
@@ -120,10 +66,9 @@ const Promotions = () => {
 
   const [promotions, setPromotions] = useState<Promotion[]>([]);
   const [loading, setLoading] = useState(true);
+  const [claimedSlugs, setClaimedSlugs] = useState<Set<string>>(new Set());
+  const [wageringProgressMap, setWageringProgressMap] = useState<Map<string, WageringProgress>>(new Map());
 
-  const dailyCountdown = useDailyCountdown();
-  const weeklyCountdown = useWeeklyCountdown();
-  const monthlyCountdown = useMonthlyCountdown();
   const spinCountdown = useSpinCountdown();
   const megaJackpot = useMegaJackpot();
 
@@ -141,6 +86,84 @@ const Promotions = () => {
       }
     };
     fetchPromotions();
+  }, []);
+
+  const refreshClaimedSlugs = async () => {
+    if (!tokenManager.hasSession()) return;
+    try {
+      const activeRes = await bonusApi.getMyActive();
+      const slugs = new Set<string>();
+      const progressMap = new Map<string, WageringProgress>();
+
+      (activeRes.data || []).forEach((b: any) => {
+        if (!b.promotionSlug) return;
+
+        // isCredited=true means bonus is already in wallet (fully claimed)
+        if (b.isCredited) {
+          slugs.add(b.promotionSlug);
+        }
+
+        // Store wagering progress for all bonuses that have a wagering target.
+        // If two records share the same slug (e.g. a previously credited bonus and
+        // a new in-progress one), prefer the non-credited (available) record so
+        // the active wagering progress is not overwritten by the stale credited one.
+        if (b.wageringTarget) {
+          const existing = progressMap.get(b.promotionSlug);
+          if (!existing || (!b.isCredited && existing.isCredited)) {
+            progressMap.set(b.promotionSlug, {
+              wagered: Number(b.wageredAmount) || 0,
+              target: Number(b.wageringTarget),
+              currency: b.currency || 'USDC',
+              isCredited: !!b.isCredited,
+              userPromotionId: b.id,
+            });
+          }
+        }
+      });
+
+      setClaimedSlugs(slugs);
+      setWageringProgressMap(progressMap);
+    } catch {
+      // not logged in or error — ignore
+    }
+  };
+
+  useEffect(() => {
+    refreshClaimedSlugs();
+  }, []);
+
+  // Listen to bonus:wagering_progress via WebSocket for real-time progress updates
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handler = (data: {
+      promotionSlug: string;
+      userPromotionId: string;
+      wageredAmount: number;
+      wageringTarget: number;
+      isCredited: boolean;
+      wageringComplete: boolean;
+    }) => {
+      setWageringProgressMap(prev => {
+        const next = new Map(prev);
+        next.set(data.promotionSlug, {
+          wagered: data.wageredAmount,
+          target: data.wageringTarget,
+          currency: 'USDC',
+          isCredited: data.isCredited,
+          userPromotionId: data.userPromotionId,
+        });
+        return next;
+      });
+
+      if (data.isCredited) {
+        setClaimedSlugs(prev => new Set([...prev, data.promotionSlug]));
+      }
+    };
+
+    socket.on('bonus:wagering_progress', handler);
+    return () => { socket.off('bonus:wagering_progress', handler); };
   }, []);
 
   useEffect(() => {
@@ -321,361 +344,16 @@ const Promotions = () => {
                 if (promo.slug === 'mega-jackpot') {
                   return renderSpecialCard('mega-jackpot');
                 }
-                return <DynamicPromotionCard key={promo.id} promotion={promo} />;
+                return <DynamicPromotionCard key={promo.id} promotion={promo} isClaimed={claimedSlugs.has(promo.slug)} wageringProgress={wageringProgressMap.get(promo.slug)} onClaim={refreshClaimedSlugs} />;
               })}
 
-              {promotions.length === 0 && (
-                <>
-                  <div
-                    className="relative w-full rounded-2xl overflow-hidden h-[200px] sm:h-[240px] cursor-pointer group"
-                    onClick={() => setSpinGiftOpen(true)}
-                  >
-                    <div className="absolute inset-0">
-                      <img src={stadiumBg} alt="" className="w-full h-full object-cover opacity-25 blur-[2px]" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-red-900/80 via-[#3a1a1a]/70 to-[#1a1a1a]/60" />
-                    </div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 bg-gradient-radial from-red-500/20 via-orange-500/10 to-transparent rounded-full blur-2xl" />
-                    <div className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-40 sm:w-48 h-40 sm:h-48">
-                      <img src={spinWheelImg} alt="" className="w-full h-full object-contain drop-shadow-2xl animate-spin" style={{ animationDuration: '3s' }} />
-                    </div>
-
-                    <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
-                      <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
-                      <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                        <p className="text-red-400/90 text-[10px] sm:text-xs mb-0.5">Daily Spin</p>
-                        <p className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Free Spin!</p>
-
-                        <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-red-400" />
-                          <div className="flex items-center gap-1">
-                            <div className="bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(spinCountdown.hours).padStart(2, '0')}</span>
-                              <span className="text-red-400 text-[8px] sm:text-[10px] ml-0.5">h</span>
-                            </div>
-                            <span className="text-red-400">:</span>
-                            <div className="bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(spinCountdown.minutes).padStart(2, '0')}</span>
-                              <span className="text-red-400 text-[8px] sm:text-[10px] ml-0.5">m</span>
-                            </div>
-                            <span className="text-red-400">:</span>
-                            <div className="bg-red-500/20 backdrop-blur-sm border border-red-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(spinCountdown.secs).padStart(2, '0')}</span>
-                              <span className="text-red-400 text-[8px] sm:text-[10px] ml-0.5">s</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
-                          <div>
-                            <p className="text-red-500/60 text-[8px] sm:text-[10px]">Status</p>
-                            <p className="text-cyan-400 font-semibold text-xs sm:text-sm">Available</p>
-                          </div>
-                          <div>
-                            <p className="text-red-500/60 text-[8px] sm:text-[10px]">Frequency</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">Every 24h</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button className="px-3 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-red-500 to-orange-400 hover:from-red-600 hover:to-orange-500 text-white font-semibold rounded-lg text-[10px] sm:text-sm transition-all shadow-lg shadow-red-500/20">
-                            Spin Now!
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative w-full rounded-2xl overflow-hidden h-[200px] sm:h-[240px]">
-                    <div className="absolute inset-0">
-                      <img src={stadiumBg} alt="" className="w-full h-full object-cover opacity-25 blur-[2px]" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-rose-900/80 via-[#3a1a2a]/70 to-[#1a1a1a]/60" />
-                    </div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 bg-gradient-radial from-rose-500/30 via-pink-500/15 to-transparent rounded-full blur-2xl animate-pulse" />
-                    <img src={monthlyTreasureChest} alt="" className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-40 sm:w-48 h-auto object-contain drop-shadow-2xl" />
-
-                    <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
-                      <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
-                      <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                        <p className="text-rose-400/90 text-[10px] sm:text-xs mb-0.5">Mega Jackpot</p>
-                        <p className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3">
-                          <span className="text-green-400">$</span>
-                          <span className="text-white tabular-nums">{megaJackpot}</span>
-                        </p>
-
-                        <p className="text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4">Win the ultimate prize!</p>
-
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
-                          <div>
-                            <p className="text-rose-500/60 text-[8px] sm:text-[10px]">Winners</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">142</p>
-                          </div>
-                          <div>
-                            <p className="text-rose-500/60 text-[8px] sm:text-[10px]">Last Winner</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">$523,000</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openBonusModal("Mega Jackpot", "Try your luck at the Mega Jackpot")} className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-lg text-gray-300 hover:text-white transition-colors text-[10px] sm:text-xs font-medium">
-                            Details
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                          <button
-                            onClick={() => { window.scrollTo(0, 0); navigate('/slots'); }}
-                            className="px-3 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-rose-500 to-pink-400 hover:from-rose-600 hover:to-pink-500 text-white font-semibold rounded-lg text-[10px] sm:text-sm transition-all shadow-lg shadow-rose-500/20"
-                          >
-                            Play Now
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative w-full rounded-2xl overflow-hidden h-[200px] sm:h-[240px]">
-                    <div className="absolute inset-0">
-                      <img src={stadiumBg} alt="" className="w-full h-full object-cover opacity-25 blur-[2px]" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-purple-900/80 via-[#2a1a3a]/70 to-[#1a1a2a]/60" />
-                    </div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 bg-gradient-radial from-purple-500/20 via-amber-500/10 to-transparent rounded-full blur-2xl" />
-                    <img src={treasureChestImg} alt="" className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-40 sm:w-48 h-auto object-contain drop-shadow-2xl" />
-
-                    <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
-                      <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
-                      <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                        <p className="text-purple-400/90 text-[10px] sm:text-xs mb-0.5">Weekly Spins Bonus</p>
-                        <p className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">100 Free Spins</p>
-
-                        <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
-                          <div className="flex items-center gap-1">
-                            <div className="bg-purple-500/20 backdrop-blur-sm border border-purple-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{weeklyCountdown.days}</span>
-                              <span className="text-purple-400 text-[8px] sm:text-[10px] ml-0.5">d</span>
-                            </div>
-                            <span className="text-purple-400">:</span>
-                            <div className="bg-purple-500/20 backdrop-blur-sm border border-purple-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(weeklyCountdown.hours).padStart(2, '0')}</span>
-                              <span className="text-purple-400 text-[8px] sm:text-[10px] ml-0.5">h</span>
-                            </div>
-                            <span className="text-purple-400">:</span>
-                            <div className="bg-purple-500/20 backdrop-blur-sm border border-purple-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(weeklyCountdown.minutes).padStart(2, '0')}</span>
-                              <span className="text-purple-400 text-[8px] sm:text-[10px] ml-0.5">m</span>
-                            </div>
-                            <span className="text-purple-400">:</span>
-                            <div className="bg-purple-500/20 backdrop-blur-sm border border-purple-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(weeklyCountdown.secs).padStart(2, '0')}</span>
-                              <span className="text-purple-400 text-[8px] sm:text-[10px] ml-0.5">s</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
-                          <div>
-                            <p className="text-purple-500/60 text-[8px] sm:text-[10px]">Spins Value</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">$0.10 each</p>
-                          </div>
-                          <div>
-                            <p className="text-purple-500/60 text-[8px] sm:text-[10px]">Total Value</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">$10</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openBonusModal("Weekly Bonus", "View your weekly bonus details")} className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-lg text-gray-300 hover:text-white transition-colors text-[10px] sm:text-xs font-medium">
-                            Details
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                          <button disabled className="px-3 sm:px-5 py-1.5 sm:py-2 bg-gray-600/50 text-gray-400 font-semibold rounded-lg text-[10px] sm:text-sm cursor-not-allowed opacity-70">
-                            Claim
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative w-full rounded-2xl overflow-hidden h-[200px] sm:h-[240px]">
-                    <div className="absolute inset-0">
-                      <img src={stadiumBg} alt="" className="w-full h-full object-cover opacity-25 blur-[2px]" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-amber-900/80 via-[#3a2a1a]/70 to-[#1a1a1a]/60" />
-                    </div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 bg-gradient-radial from-amber-500/20 via-orange-500/10 to-transparent rounded-full blur-2xl" />
-                    <img src={monthlyTreasureChest} alt="" className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-40 sm:w-48 h-auto object-contain drop-shadow-2xl" />
-
-                    <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
-                      <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
-                      <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                        <p className="text-amber-400/90 text-[10px] sm:text-xs mb-0.5">Monthly Spins Bonus</p>
-                        <p className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">200 Free Spins</p>
-
-                        <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-amber-400" />
-                          <div className="flex items-center gap-1">
-                            <div className="bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{monthlyCountdown.days}</span>
-                              <span className="text-amber-400 text-[8px] sm:text-[10px] ml-0.5">d</span>
-                            </div>
-                            <span className="text-amber-400">:</span>
-                            <div className="bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(monthlyCountdown.hours).padStart(2, '0')}</span>
-                              <span className="text-amber-400 text-[8px] sm:text-[10px] ml-0.5">h</span>
-                            </div>
-                            <span className="text-amber-400">:</span>
-                            <div className="bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(monthlyCountdown.minutes).padStart(2, '0')}</span>
-                              <span className="text-amber-400 text-[8px] sm:text-[10px] ml-0.5">m</span>
-                            </div>
-                            <span className="text-amber-400">:</span>
-                            <div className="bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(monthlyCountdown.secs).padStart(2, '0')}</span>
-                              <span className="text-amber-400 text-[8px] sm:text-[10px] ml-0.5">s</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
-                          <div>
-                            <p className="text-amber-500/60 text-[8px] sm:text-[10px]">Spins Value</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">$0.10 each</p>
-                          </div>
-                          <div>
-                            <p className="text-amber-500/60 text-[8px] sm:text-[10px]">Total Value</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">$20</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openBonusModal("Monthly Bonus", "View your monthly bonus details")} className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-lg text-gray-300 hover:text-white transition-colors text-[10px] sm:text-xs font-medium">
-                            Details
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                          <button disabled className="px-3 sm:px-5 py-1.5 sm:py-2 bg-gray-600/50 text-gray-400 font-semibold rounded-lg text-[10px] sm:text-sm cursor-not-allowed opacity-70">
-                            Claim
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="relative w-full rounded-2xl overflow-hidden h-[200px] sm:h-[240px]">
-                    <div className="absolute inset-0">
-                      <img src={stadiumBg} alt="" className="w-full h-full object-cover opacity-25 blur-[2px]" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-900/80 via-[#3a2a1a]/70 to-[#1a1a1a]/60" />
-                    </div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 bg-gradient-radial from-yellow-500/30 via-amber-500/15 to-transparent rounded-full blur-2xl animate-pulse" />
-                    <img src={coinBagImg} alt="" className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-40 sm:w-48 h-auto object-contain drop-shadow-2xl" />
-
-                    <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
-                      <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
-                      <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                        <p className="text-yellow-400/90 text-[10px] sm:text-xs mb-0.5">Daily Bonus</p>
-                        <p className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 mb-2 sm:mb-3">$10 Bonus</p>
-
-                        <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
-                          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
-                          <div className="flex items-center gap-1">
-                            <div className="bg-yellow-500/20 backdrop-blur-sm border border-yellow-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(dailyCountdown.hours).padStart(2, '0')}</span>
-                              <span className="text-yellow-400 text-[8px] sm:text-[10px] ml-0.5">h</span>
-                            </div>
-                            <span className="text-yellow-400">:</span>
-                            <div className="bg-yellow-500/20 backdrop-blur-sm border border-yellow-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(dailyCountdown.minutes).padStart(2, '0')}</span>
-                              <span className="text-yellow-400 text-[8px] sm:text-[10px] ml-0.5">m</span>
-                            </div>
-                            <span className="text-yellow-400">:</span>
-                            <div className="bg-yellow-500/20 backdrop-blur-sm border border-yellow-500/30 rounded px-1.5 py-0.5">
-                              <span className="text-white font-bold text-xs sm:text-sm">{String(dailyCountdown.secs).padStart(2, '0')}</span>
-                              <span className="text-yellow-400 text-[8px] sm:text-[10px] ml-0.5">s</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
-                          <div>
-                            <p className="text-yellow-500/60 text-[8px] sm:text-[10px]">Frequency</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">Every 24h</p>
-                          </div>
-                          <div>
-                            <p className="text-yellow-500/60 text-[8px] sm:text-[10px]">Status</p>
-                            <p className="text-cyan-400 font-semibold text-xs sm:text-sm">Available</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => openBonusModal("Daily Bonus", "Claim your free $10 bonus every 24 hours!")} className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-lg text-gray-300 hover:text-white transition-colors text-[10px] sm:text-xs font-medium">
-                            Details
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                          <button className="px-3 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-yellow-500 to-amber-400 hover:from-yellow-600 hover:to-amber-500 text-white font-semibold rounded-lg text-[10px] sm:text-sm transition-all shadow-lg shadow-yellow-500/20">
-                            Claim Now
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div
-                    className="relative w-full rounded-2xl overflow-hidden h-[200px] sm:h-[240px] cursor-pointer group"
-                    onClick={() => { window.scrollTo(0, 0); navigate('/vip'); }}
-                  >
-                    <div className="absolute inset-0">
-                      <img src={stadiumBg} alt="" className="w-full h-full object-cover opacity-25 blur-[2px]" />
-                      <div className="absolute inset-0 bg-gradient-to-br from-cyan-900/80 via-[#1a2a3a]/70 to-[#1a1a2a]/60" />
-                    </div>
-                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-48 h-48 sm:w-56 sm:h-56 bg-gradient-radial from-cyan-500/30 via-blue-500/15 to-transparent rounded-full blur-2xl animate-pulse" />
-                    <img src={vipCrownImg} alt="" className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 w-36 sm:w-44 h-auto object-contain drop-shadow-2xl" />
-
-                    <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
-                      <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
-                      <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                        <p className="text-cyan-400/90 text-[10px] sm:text-xs mb-0.5">VIP Club</p>
-                        <p className="text-xl sm:text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-blue-400 to-cyan-500 mb-2 sm:mb-3">Exclusive Rewards</p>
-
-                        <div className="mb-3 sm:mb-4">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-cyan-400 text-[10px] sm:text-xs font-medium">Bronze</span>
-                            <span className="text-gray-400 text-[10px] sm:text-xs">Silver</span>
-                          </div>
-                          <div className="h-2 sm:h-2.5 bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full" style={{ width: '35%' }} />
-                          </div>
-                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-white text-[9px] sm:text-[10px] font-medium">750 XP</span>
-                            <span className="text-gray-400 text-[9px] sm:text-[10px]">1,250 XP to go</span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
-                          <div>
-                            <p className="text-cyan-500/60 text-[8px] sm:text-[10px]">Weekly Bonus</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">5%</p>
-                          </div>
-                          <div>
-                            <p className="text-cyan-500/60 text-[8px] sm:text-[10px]">Next Bonus</p>
-                            <p className="text-white font-semibold text-xs sm:text-sm">10%</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); openBonusModal("VIP Club", "Explore VIP benefits and rewards"); }}
-                            className="inline-flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 hover:bg-white/15 backdrop-blur-sm border border-white/10 rounded-lg text-gray-300 hover:text-white transition-colors text-[10px] sm:text-xs font-medium"
-                          >
-                            Details
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                          <button
-                            className="px-3 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-cyan-500 to-blue-400 hover:from-cyan-600 hover:to-blue-500 text-white font-semibold rounded-lg text-[10px] sm:text-sm transition-all shadow-lg shadow-cyan-500/20"
-                          >
-                            View VIP
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
+              {promotions.length === 0 && !loading && (
+                <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                  <p className="text-white/40 text-lg font-medium">No promotions available</p>
+                  <p className="text-white/25 text-sm mt-1">Check back soon for new offers</p>
+                </div>
               )}
+
             </div>
           )}
 

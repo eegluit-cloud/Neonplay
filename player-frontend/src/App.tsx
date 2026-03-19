@@ -6,7 +6,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppModeProvider } from "@/contexts/AppModeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { SocketProvider } from "@/contexts/SocketContext";
 import { SupportButton } from "@/components/SupportButton";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { PageLoadingState } from "@/components/PageLoadingState";
@@ -49,6 +48,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const ResponsibleGambling = lazy(() => import("./pages/ResponsibleGambling"));
 const FAQPage = lazy(() => import("./pages/FAQ"));
 const ProvablyFair = lazy(() => import("./pages/ProvablyFair"));
+const CmsPage = lazy(() => import("./pages/CmsPage"));
 
 // Optimized QueryClient with aggressive caching strategy
 const queryClient = new QueryClient({
@@ -73,7 +73,6 @@ const queryClient = new QueryClient({
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <SocketProvider>
       <AppModeProvider>
         <TooltipProvider delayDuration={0}>
           <Toaster />
@@ -86,6 +85,7 @@ const App = () => (
               {/* Public routes */}
               <Route path="/" element={<Register />} />
               <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/page/:slug" element={<CmsPage />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/responsible-gambling" element={<ResponsibleGambling />} />
               <Route path="/faq" element={<FAQPage />} />
@@ -128,7 +128,6 @@ const App = () => (
           </BrowserRouter>
         </TooltipProvider>
       </AppModeProvider>
-      </SocketProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

@@ -98,12 +98,17 @@ export class CmsController {
 
   @Public()
   @Get('hero-banners')
-  @ApiOperation({ summary: 'Get hero banners for homepage' })
+  @ApiOperation({ summary: 'Get hero banners' })
   @ApiQuery({
     name: 'platform',
     required: false,
     enum: ['desktop', 'mobile', 'tablet'],
     description: 'Filter banners by platform',
+  })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Filter banners by display page (e.g. lobby, casino, slots)',
   })
   @ApiResponse({
     status: 200,
@@ -111,7 +116,9 @@ export class CmsController {
   })
   async getHeroBanners(
     @Query('platform') platform?: 'desktop' | 'mobile' | 'tablet',
+    @Query('page') page?: string,
   ) {
-    return this.cmsService.getHeroBanners(platform);
+    const banners = await this.cmsService.getHeroBanners(platform, page);
+    return { banners };
   }
 }
