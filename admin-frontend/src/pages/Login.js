@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import phibetLogo from '../assets/phibet-logo.png';
+// import phibetLogo from '../assets/phibet-logo.png';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -33,7 +33,9 @@ const Login = () => {
       {/* Left Side - Features */}
       <div className="auth-left">
         <div className="auth-logo">
-          <img src={phibetLogo} alt="Neon Play" className="auth-logo-img" />
+          {/* Logo removed - replaced with text below */}
+          {/* <img src={phibetLogo} alt="Neon Play" className="auth-logo-img" /> */}
+          <span className="auth-logo-text" style={{fontSize: '24px', fontWeight: 'bold', color: '#f59e0b', paddingTop: '10px'}}>Neon Play</span>
           <span className="auth-logo-text">ADMIN BACKOFFICE</span>
         </div>
 

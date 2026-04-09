@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import phibetLogoIcon from '@/assets/phibet-logo-icon.svg';
+// import phibetLogoIcon from '@/assets/phibet-logo-icon.svg';
 
 interface NeonPlayLogoProps {
   className?: string;
@@ -19,34 +19,37 @@ export function NeonPlayLogo({ className, size = 'md', showText = true }: NeonPl
 
   return (
     <div className={cn('flex items-center', gap, className)}>
-      <div className={cn('flex-shrink-0 overflow-hidden flex items-center justify-center', icon)}>
+      {/* Logo icon removed - replaced with text */}
+      {/* <div className={cn('flex-shrink-0 overflow-hidden flex items-center justify-center', icon)}>
         <img
           src={phibetLogoIcon}
           alt="Neon Play"
           className="w-full h-full object-contain"
         />
-      </div>
-      {showText && (
-        <span className={cn(
-          'font-bold text-amber-500 dark:text-amber-400',
-          text
-        )}>
-          Neon Play
-        </span>
-      )}
+      </div> */}
+      <span className={cn(
+        'font-bold text-amber-500 dark:text-amber-400',
+        text
+      )}>
+        Neon Play
+      </span>
     </div>
   );
 }
 
-// Icon-only version for compact spaces
+// Icon-only version for compact spaces - displays text "Neon Play"
 export function NeonPlayIcon({ className }: { className?: string }) {
   return (
     <div className={cn('flex items-center justify-center', className)}>
-      <img
+      {/* Logo icon removed - replaced with text */}
+      {/* <img
         src={phibetLogoIcon}
         alt="Neon Play"
         className="w-full h-full object-contain"
-      />
+      /> */}
+      <span className="font-bold text-amber-500 dark:text-amber-400 text-lg">
+        Neon Play
+      </span>
     </div>
   );
 }

@@ -223,7 +223,8 @@ export function LoginModal({ isOpen, onClose, onSwitchToRegister, onForgotPasswo
               <span className="text-amber-300/90">Welcome To </span>
               <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">Neon Play</span>
             </span>
-            <NeonPlayLogo size="sm" showText={false} />
+            {/* Logo removed - replaced with text above */}
+            {/* <NeonPlayLogo size="sm" showText={false} /> */}
           </div>
         </div>
 

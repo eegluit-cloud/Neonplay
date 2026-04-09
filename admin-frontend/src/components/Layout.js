@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import phibetLogo from '../assets/phibet-logo.png';
+// import phibetLogo from '../assets/phibet-logo.png';
 
 const getSectionForPath = (path) => {
   if (path === '/dashboard') return 'overview';
@@ -102,8 +102,9 @@ const Layout = () => {
       <aside className={`sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src={phibetLogo} alt="Neon Play" className="sidebar-logo-img" />
-            Neon Play
+            {/* Logo removed - replaced with text below */}
+            {/* <img src={phibetLogo} alt="Neon Play" className="sidebar-logo-img" /> */}
+            <span style={{fontSize: '18px', fontWeight: 'bold', color: '#f59e0b', display: 'block', paddingTop: '4px'}}>Neon Play</span>
           </div>
           <div className="sidebar-subtitle">Admin Backoffice</div>
         </div>
