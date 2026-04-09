@@ -33,7 +33,7 @@ const Login = () => {
       {/* Left Side - Features */}
       <div className="auth-left">
         <div className="auth-logo">
-          <img src={phibetLogo} alt="Phibet" className="auth-logo-img" />
+          <img src={phibetLogo} alt="Neon Play" className="auth-logo-img" />
           <span className="auth-logo-text">ADMIN BACKOFFICE</span>
         </div>
 

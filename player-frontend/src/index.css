@@ -6,7 +6,7 @@
 
 @layer base {
   :root {
-    /* Phibet Dark Theme - Deep Black with Cyan */
+    /* Neon Play Dark Theme - Deep Black with Cyan */
     --background: 220 20% 4%;
     --foreground: 0 0% 98%;
 
@@ -38,7 +38,7 @@
 
     --radius: 0.75rem;
 
-    /* Custom Phibet Colors */
+    /* Custom Neon Play Colors */
     --casino-gold: 42 100% 50%;
     --casino-orange: 25 100% 55%;
     --casino-green: 187 85% 53%;

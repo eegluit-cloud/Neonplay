@@ -22,7 +22,7 @@ export function NeonPlayLogo({ className, size = 'md', showText = true }: NeonPl
       <div className={cn('flex-shrink-0 overflow-hidden flex items-center justify-center', icon)}>
         <img
           src={phibetLogoIcon}
-          alt="PhiBet.io"
+          alt="Neon Play"
           className="w-full h-full object-contain"
         />
       </div>
@@ -31,7 +31,7 @@ export function NeonPlayLogo({ className, size = 'md', showText = true }: NeonPl
           'font-bold text-amber-500 dark:text-amber-400',
           text
         )}>
-          PhiBet.io
+          Neon Play
         </span>
       )}
     </div>
@@ -44,7 +44,7 @@ export function NeonPlayIcon({ className }: { className?: string }) {
     <div className={cn('flex items-center justify-center', className)}>
       <img
         src={phibetLogoIcon}
-        alt="PhiBet.io"
+        alt="Neon Play"
         className="w-full h-full object-contain"
       />
     </div>

@@ -45,7 +45,7 @@ const FAQ = () => (
             </div>
             <div>
               <p className="font-medium text-foreground mb-1">Are there withdrawal fees?</p>
-              <p>PhiBet.io does not charge withdrawal fees. However, your payment provider or bank may apply their own fees for certain transaction types.</p>
+              <p>Neon Play does not charge withdrawal fees. However, your payment provider or bank may apply their own fees for certain transaction types.</p>
             </div>
           </div>
         ),
@@ -64,7 +64,7 @@ const FAQ = () => (
             </div>
             <div>
               <p className="font-medium text-foreground mb-1">Can I play on mobile?</p>
-              <p>Yes! PhiBet.io is fully optimized for mobile browsers on both iOS and Android. No app download is required - simply visit our website from your mobile browser.</p>
+              <p>Yes! Neon Play is fully optimized for mobile browsers on both iOS and Android. No app download is required - simply visit our website from your mobile browser.</p>
             </div>
             <div>
               <p className="font-medium text-foreground mb-1">What is RTP?</p>
@@ -141,8 +141,8 @@ const FAQ = () => (
             <p>Our support team is available 24/7 to assist you:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>Live Chat:</strong> Click the support button on any page for instant help</li>
-              <li><strong>Email:</strong> support@phibet.io (response within 24 hours)</li>
-              <li><strong>Telegram:</strong> @PhibetSupport</li>
+              <li><strong>Email:</strong> support@neonplay.io (response within 24 hours)</li>
+              <li><strong>Telegram:</strong> @NeonPlaySupport</li>
             </ul>
           </div>
         ),

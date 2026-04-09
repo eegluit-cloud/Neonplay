@@ -116,8 +116,8 @@ const navigationConfig: NavSection[] = [
     icon: Headphones,
     items: [
       { id: 'live-chat', label: 'Live Chat', icon: MessageCircle, href: '/faq' },
-      { id: 'telegram', label: 'Telegram', icon: Send, href: 'https://t.me/phibet' },
-      { id: 'whatsapp', label: 'WhatsApp', icon: Phone, href: 'https://wa.me/phibet' },
+      { id: 'telegram', label: 'Telegram', icon: Send, href: 'https://t.me/neonplay' },
+      { id: 'whatsapp', label: 'WhatsApp', icon: Phone, href: 'https://wa.me/neonplay' },
       { id: 'provably-fair', label: 'Provably Fair', icon: Scale, href: '/provably-fair' },
       { id: 'responsible', label: 'Responsible Gambling', icon: ShieldCheck, href: '/responsible-gambling' },
     ],

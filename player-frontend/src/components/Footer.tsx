@@ -183,7 +183,7 @@ export function Footer() {
       {/* Copyright */}
       <div className="md:mt-8 pt-4 md:border-t border-border text-center">
         <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} PhiBet.io &mdash; Powered by EEGLUSOFT. All rights reserved.
+          &copy; {new Date().getFullYear()} Neon Play &mdash; Powered by EEGLUSOFT. All rights reserved.
         </p>
       </div>
     </footer>

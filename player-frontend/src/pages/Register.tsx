@@ -98,7 +98,7 @@ const faqData = [
   },
   {
     question: 'How do I contact customer support?',
-    answer: 'You can reach our 24/7 customer support team via live chat, email at support@phibet.io, or through our help center in the app.'
+    answer: 'You can reach our 24/7 customer support team via live chat, email at support@neonplay.io, or through our help center in the app.'
   },
   {
     question: 'What should I do if I forget my password?',
@@ -782,7 +782,7 @@ export default function Register() {
               padding: '1px'
             }} />
             <div className="text-center mb-3 sm:mb-4">
-              <h2 className="text-base sm:text-lg font-bold text-white mb-1">PhiBet.io Champions Live Board</h2>
+              <h2 className="text-base sm:text-lg font-bold text-white mb-1">Neon Play Champions Live Board</h2>
               <p className="text-muted-foreground text-[10px] sm:text-[11px]">Earn points, rise through the levels, and Get Your Rewards.</p>
             </div>
 

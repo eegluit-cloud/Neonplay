@@ -73,7 +73,7 @@ const PrivacyPolicy = () => (
               <li>Data portability - receive your data in a structured format</li>
               <li>Withdraw consent where processing is based on consent</li>
             </ul>
-            <p>To exercise these rights, contact us at privacy@phibet.io.</p>
+            <p>To exercise these rights, contact us at privacy@neonplay.io.</p>
           </div>
         ),
       },
@@ -94,7 +94,7 @@ const PrivacyPolicy = () => (
         content: (
           <div className="space-y-2">
             <p>For privacy-related inquiries, contact our Data Protection Officer:</p>
-            <p>Email: privacy@phibet.io</p>
+            <p>Email: privacy@neonplay.io</p>
             <p>We will respond to all legitimate requests within 30 days.</p>
           </div>
         ),

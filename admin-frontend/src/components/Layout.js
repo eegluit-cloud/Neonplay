@@ -102,8 +102,8 @@ const Layout = () => {
       <aside className={`sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            <img src={phibetLogo} alt="Phibet" className="sidebar-logo-img" />
-            Phibet
+            <img src={phibetLogo} alt="Neon Play" className="sidebar-logo-img" />
+            Neon Play
           </div>
           <div className="sidebar-subtitle">Admin Backoffice</div>
         </div>
