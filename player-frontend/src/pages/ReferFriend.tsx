@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from "react";
 import { useSidebar } from '@/hooks/useSidebar';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
@@ -23,6 +24,7 @@ import referBannerBg from "@/assets/refer-banner-bg.jpg";
 import referEarnRewardsImage from "@/assets/refer-earn-rewards.png";
 
 const ReferFriend = () => {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const { avatar: userAvatar } = useUserAvatar();
@@ -78,7 +80,7 @@ const ReferFriend = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="page-content page-spacing overflow-x-hidden page-transition-enter max-w-full">
           {/* Mobile Header with Back Button */}
-          <MobilePageHeader title="Refer a Friend" />
+          <MobilePageHeader title={t('nav.referFriend')} />
           
           {/* Hero Banner */}
           <div className="relative rounded-2xl overflow-hidden border border-amber-500/30 !mt-0">

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '@/hooks/useSidebar';
@@ -112,6 +113,7 @@ const ProviderCard = ({ provider }: { provider: GameProvider }) => {
 };
 
 const LiveCasino = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -168,7 +170,7 @@ const LiveCasino = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6 overflow-x-hidden page-transition-enter max-w-full">
 
-          <MobilePageHeader title="Live Casino" />
+          <MobilePageHeader title={t('pages.liveCasino')} />
 
           <HeroSection onOpenSignUp={() => setSignUpOpen(true)} />
 

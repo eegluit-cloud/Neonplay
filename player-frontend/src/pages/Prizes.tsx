@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -73,6 +74,7 @@ const fallbackWeeklyPrizes = [
 ];
 
 const PrizesPage = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [activePeriod, setActivePeriod] = useState<"daily" | "weekly" | "monthly">("monthly");
 
@@ -132,7 +134,7 @@ const PrizesPage = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="page-content page-spacing overflow-x-hidden page-transition-enter max-w-full">
           {/* Mobile Header with Back Button */}
-          <MobilePageHeader title="Prizes" />
+          <MobilePageHeader title={t('nav.prizes')} />
 
           {/* Loading State */}
           {isLoading && (
@@ -165,9 +167,9 @@ const PrizesPage = () => {
                   <Trophy className="w-6 h-6 sm:w-8 sm:h-8 text-black" />
                 </div>
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 drop-shadow-lg">Leaderboard Prizes</h1>
+              <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-2 drop-shadow-lg">{t('prizes.title')}</h1>
               <p className="text-gray-300 max-w-2xl mx-auto text-xs sm:text-sm md:text-base">
-                Compete for amazing prizes! Top players win exclusive rewards every day, week, and month.
+                {t('prizes.subtitle')}
               </p>
             </div>
           </div>
@@ -183,27 +185,27 @@ const PrizesPage = () => {
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Daily Prizes
+                {t('prizes.daily')}
               </button>
-              <button 
+              <button
                 onClick={() => setActivePeriod("weekly")}
                 className={`flex items-center justify-center px-4 sm:px-6 h-10 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap tap-feedback ${
-                  activePeriod === "weekly" 
-                    ? "bg-[#2a2a2a] border border-[#3a3a3a] text-foreground" 
+                  activePeriod === "weekly"
+                    ? "bg-[#2a2a2a] border border-[#3a3a3a] text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Weekly Prizes
+                {t('prizes.weekly')}
               </button>
-              <button 
+              <button
                 onClick={() => setActivePeriod("monthly")}
                 className={`flex items-center justify-center px-4 sm:px-6 h-10 rounded-full text-xs sm:text-sm font-medium transition-all whitespace-nowrap tap-feedback ${
-                  activePeriod === "monthly" 
-                    ? "bg-[#2a2a2a] border border-[#3a3a3a] text-foreground" 
+                  activePeriod === "monthly"
+                    ? "bg-[#2a2a2a] border border-[#3a3a3a] text-foreground"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Monthly Prizes
+                {t('prizes.monthly')}
               </button>
             </div>
           </div>
@@ -213,7 +215,7 @@ const PrizesPage = () => {
             {/* Grand Prize Badge - Above the card */}
             <div className="flex justify-center mb-3 sm:mb-4">
               <div className="bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-400 text-black px-4 sm:px-6 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 shadow-lg shadow-yellow-500/40">
-                <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> GRAND PRIZE <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {t('prizes.grandPrize')} <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
             
@@ -305,27 +307,27 @@ const PrizesPage = () => {
 
           {/* How to Win Section */}
           <div className="bg-card rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-border">
-            <h2 className="text-base sm:text-xl font-bold text-foreground text-center mb-3 sm:mb-5">How to Win</h2>
+            <h2 className="text-base sm:text-xl font-bold text-foreground text-center mb-3 sm:mb-5">{t('prizes.howToWin')}</h2>
             <div className="grid grid-cols-3 gap-2 sm:gap-4">
               <div className="text-center">
                 <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
                   <span className="text-base sm:text-xl font-bold text-blue-400">1</span>
                 </div>
-                <h3 className="font-semibold text-foreground mb-0.5 sm:mb-1 text-[11px] sm:text-sm">Play Games</h3>
+                <h3 className="font-semibold text-foreground mb-0.5 sm:mb-1 text-[11px] sm:text-sm">{t('prizes.playGames')}</h3>
                 <p className="text-muted-foreground text-[9px] sm:text-xs hidden sm:block">Play your favorite casino games and earn wager points</p>
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
                   <span className="text-base sm:text-xl font-bold text-blue-400">2</span>
                 </div>
-                <h3 className="font-semibold text-foreground mb-0.5 sm:mb-1 text-[11px] sm:text-sm">Climb Up</h3>
+                <h3 className="font-semibold text-foreground mb-0.5 sm:mb-1 text-[11px] sm:text-sm">{t('prizes.climbUp')}</h3>
                 <p className="text-muted-foreground text-[9px] sm:text-xs hidden sm:block">Higher wagers mean better positions on the leaderboard</p>
               </div>
               <div className="text-center">
                 <div className="w-10 h-10 sm:w-14 sm:h-14 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3">
                   <span className="text-base sm:text-xl font-bold text-blue-400">3</span>
                 </div>
-                <h3 className="font-semibold text-foreground mb-0.5 sm:mb-1 text-[11px] sm:text-sm">Win Prizes</h3>
+                <h3 className="font-semibold text-foreground mb-0.5 sm:mb-1 text-[11px] sm:text-sm">{t('prizes.winPrizes')}</h3>
                 <p className="text-muted-foreground text-[9px] sm:text-xs hidden sm:block">Top 5 players at the end of each period win amazing prizes!</p>
               </div>
             </div>

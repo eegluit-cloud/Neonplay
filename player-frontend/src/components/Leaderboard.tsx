@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { ChevronLeft, ChevronRight, Calendar, CalendarDays, CalendarRange, DollarSign } from "lucide-react";
 import { useGSAP } from "@gsap/react";
 import gsap from "gsap";
@@ -32,6 +33,7 @@ const myBetsData = [
 ];
 
 const Leaderboard = () => {
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<LeaderboardPeriod>("daily");
   const { winners, playerPosition, playerWager, changePeriod } = useLeaderboardData(period);
   const { avatar: userAvatar } = useUserAvatar();
@@ -117,14 +119,14 @@ const Leaderboard = () => {
   }, [period, changePeriod]);
 
   const tabs = [
-    { id: "leaderboard", label: "Leaderboard" },
-    { id: "myBets", label: "My Bets" },
+    { id: "leaderboard", label: t('leaderboard.title') },
+    { id: "myBets", label: t('leaderboard.myBets') },
   ];
 
   const periods: { id: LeaderboardPeriod; label: string; icon: typeof Calendar }[] = [
-    { id: "daily", label: "Daily", icon: Calendar },
-    { id: "weekly", label: "Weekly", icon: CalendarDays },
-    { id: "monthly", label: "Monthly", icon: CalendarRange },
+    { id: "daily", label: t('leaderboard.daily'), icon: Calendar },
+    { id: "weekly", label: t('leaderboard.weekly'), icon: CalendarDays },
+    { id: "monthly", label: t('leaderboard.monthly'), icon: CalendarRange },
   ];
 
   // Format USD display
@@ -185,12 +187,12 @@ const Leaderboard = () => {
           <div className="h-5 w-px bg-border" />
           
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[10px]">My Position</span>
+            <span className="text-muted-foreground text-[10px]">{t('leaderboard.myPosition')}</span>
             <span className="text-primary font-bold text-sm transition-all duration-300">{playerPosition}th</span>
           </div>
           
           <div className="flex flex-col">
-            <span className="text-muted-foreground text-[10px]">To Reach Top 10</span>
+            <span className="text-muted-foreground text-[10px]">{t('leaderboard.toReachTop10')}</span>
             <span className="text-green-400 font-bold text-sm transition-all duration-300 flex items-center gap-0.5">
               <DollarSign className="w-3 h-3" />
               {formatAmount(Math.max(0, (winners[9]?.amount ?? 0) - playerWager))}
@@ -205,12 +207,12 @@ const Leaderboard = () => {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Rank</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Player</TableHead>
-                <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">Country</TableHead>
-                <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">Games</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Wagered</TableHead>
-                <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">VIP Level</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.rank')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.player')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">{t('leaderboard.country')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">{t('leaderboard.games')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.wagered')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">{t('leaderboard.vipLevel')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -245,7 +247,7 @@ const Leaderboard = () => {
                           <AvatarFallback className="text-[8px]">{displayPlayer.name[0]}</AvatarFallback>
                         </Avatar>
                         <span className={`text-[10px] md:text-xs truncate max-w-[70px] md:max-w-none ${isUserPosition ? 'text-amber-400 font-semibold' : 'text-foreground'}`}>
-                          {displayPlayer.name} {isUserPosition && '(You)'}
+                          {displayPlayer.name} {isUserPosition && t('common.you')}
                         </span>
                       </div>
                     </TableCell>
@@ -275,12 +277,12 @@ const Leaderboard = () => {
           <Table>
             <TableHeader>
               <TableRow className="border-b border-border hover:bg-transparent">
-                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm">Game</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm hidden sm:table-cell">Stake</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm hidden md:table-cell">Multiplier</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm">Prize</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm hidden md:table-cell">Time</TableHead>
-                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm">Status</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm">{t('leaderboard.game')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm hidden sm:table-cell">{t('leaderboard.stake')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm hidden md:table-cell">{t('leaderboard.multiplier')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm">{t('leaderboard.prize')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm hidden md:table-cell">{t('leaderboard.time')}</TableHead>
+                <TableHead className="text-muted-foreground font-medium text-xs md:text-sm">{t('leaderboard.status')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -311,7 +313,7 @@ const Leaderboard = () => {
                     <span className={`px-1.5 md:px-2 py-0.5 md:py-1 rounded-full text-[10px] md:text-xs font-medium ${
                       bet.status === "win" ? "bg-primary/20 text-primary" : "bg-destructive/20 text-destructive"
                     }`}>
-                      {bet.status === "win" ? "Win" : "Loss"}
+                      {bet.status === "win" ? t('common.win') : t('common.loss')}
                     </span>
                   </TableCell>
                 </TableRow>

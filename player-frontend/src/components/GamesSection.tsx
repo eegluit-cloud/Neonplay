@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, memo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Play, Heart, ChevronRight, ChevronLeft, Grid3X3, X, Sparkles, Tv, Search, User, LayoutGrid, Check, Loader2 } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
@@ -13,13 +14,8 @@ import { useFavorites } from '@/hooks/useFavorites';
 // Fallback image
 import placeholderImg from '@/assets/games/thor-hammer-time.png';
 
-const filters = ['Slots', 'Crash Games', 'Live Casino', 'Table Games', 'Instant Win'];
-const volatilityOptions = [
-  { id: 'all', label: 'All Volatility' },
-  { id: 'low', label: 'Low' },
-  { id: 'medium', label: 'Medium' },
-  { id: 'high', label: 'High' }
-];
+const FILTER_IDS = ['slots', 'crash-games', 'live-casino', 'table-games', 'instant-win'] as const;
+const VOLATILITY_IDS = ['all', 'low', 'medium', 'high'] as const;
 
 interface GameSectionRowProps {
   title: string;
@@ -139,9 +135,10 @@ const GameSectionRow = memo(function GameSectionRow({
 
 export function GamesSection() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedProvider, setSelectedProvider] = useState('All Providers');
+  const [selectedProvider, setSelectedProvider] = useState('all');
   const [selectedVolatility, setSelectedVolatility] = useState('all');
   const [providersOpen, setProvidersOpen] = useState(false);
   const [volatilityOpen, setVolatilityOpen] = useState(false);
@@ -171,6 +168,20 @@ export function GamesSection() {
       },
     });
   }, { scope: sectionRef });
+
+  const filters = [
+    { id: 'slots', label: t('games.slots') },
+    { id: 'crash-games', label: t('games.crashGames') },
+    { id: 'live-casino', label: t('games.liveCasino') },
+    { id: 'table-games', label: t('games.tableGames') },
+    { id: 'instant-win', label: t('games.instantWin') },
+  ];
+  const volatilityOptions = [
+    { id: 'all', label: t('games.allVolatility') },
+    { id: 'low', label: t('games.low') },
+    { id: 'medium', label: t('games.medium') },
+    { id: 'high', label: t('games.high') },
+  ];
 
   const { isAuthenticated } = useAuth();
   const { favoriteIds, toggleFavorite } = useFavorites();
@@ -228,7 +239,7 @@ export function GamesSection() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search a game..."
+            placeholder={t('common.searchGames')}
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             className="w-full h-9 md:h-12 pl-9 pr-3 rounded-lg md:rounded-xl bg-card border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -246,11 +257,11 @@ export function GamesSection() {
               }}
               className={cn(
                 "h-12 px-5 rounded-xl bg-card border text-sm flex items-center gap-2 hover:bg-secondary transition-colors whitespace-nowrap shadow-[0_0_15px_hsl(var(--primary)/0.15),0_0_5px_hsl(var(--primary)/0.1)]",
-                selectedProvider !== 'All Providers' ? "border-primary" : "border-border"
+                selectedProvider !== 'all' ? "border-primary" : "border-border"
               )}
             >
               <User className="w-4 h-4" />
-              {selectedProvider === 'All Providers' ? 'Providers' : selectedProvider}
+              {selectedProvider === 'all' ? t('games.providers') : selectedProvider}
               <ChevronRight className={cn("w-4 h-4 transition-transform", providersOpen ? "rotate-[-90deg]" : "rotate-90")} />
             </button>
 
@@ -259,16 +270,16 @@ export function GamesSection() {
                 <div className="max-h-72 overflow-y-auto py-2">
                   <button
                     onClick={() => {
-                      setSelectedProvider('All Providers');
+                      setSelectedProvider('all');
                       setProvidersOpen(false);
                     }}
                     className={cn(
                       "w-full px-4 py-2.5 text-sm text-left flex items-center justify-between hover:bg-secondary transition-colors",
-                      selectedProvider === 'All Providers' ? "text-primary" : "text-foreground"
+                      selectedProvider === 'all' ? "text-primary" : "text-foreground"
                     )}
                   >
-                    All Providers
-                    {selectedProvider === 'All Providers' && <Check className="w-4 h-4 text-primary" />}
+                    {t('games.allProviders')}
+                    {selectedProvider === 'all' && <Check className="w-4 h-4 text-primary" />}
                   </button>
                   {providersList.map(provider => (
                     <button
@@ -305,7 +316,7 @@ export function GamesSection() {
               )}
             >
               <LayoutGrid className="w-4 h-4" />
-              {selectedVolatility === 'all' ? 'Volatility' : volatilityOptions.find(v => v.id === selectedVolatility)?.label}
+              {selectedVolatility === 'all' ? t('games.volatility') : volatilityOptions.find(v => v.id === selectedVolatility)?.label}
               <ChevronRight className={cn("w-4 h-4 transition-transform", volatilityOpen ? "rotate-[-90deg]" : "rotate-90")} />
             </button>
 
@@ -343,22 +354,22 @@ export function GamesSection() {
       <div className="hidden md:flex items-center gap-2 flex-wrap">
         <button className="px-4 py-2 rounded-lg bg-gradient-to-r from-amber-500 to-blue-400 text-white text-sm font-medium flex items-center gap-2">
           <Grid3X3 className="w-4 h-4" />
-          Category
+          {t('games.category')}
         </button>
 
         {filters.map(filter => (
           <button
-            key={filter}
-            onClick={() => toggleFilter(filter)}
+            key={filter.id}
+            onClick={() => toggleFilter(filter.id)}
             className={cn(
               "px-3 py-2 rounded-lg text-sm flex items-center gap-2 transition-colors",
-              activeFilters.includes(filter)
+              activeFilters.includes(filter.id)
                 ? "bg-card border border-primary/50 text-foreground"
                 : "bg-card border border-border text-muted-foreground hover:text-foreground"
             )}
           >
-            {filter}
-            {activeFilters.includes(filter) && <X className="w-3 h-3" />}
+            {filter.label}
+            {activeFilters.includes(filter.id) && <X className="w-3 h-3" />}
           </button>
         ))}
 
@@ -367,7 +378,7 @@ export function GamesSection() {
             onClick={() => setActiveFilters([])}
             className="px-3 py-2 rounded-lg bg-card border border-border text-sm hover:bg-card-hover transition-colors"
           >
-            Clear All
+            {t('games.clearAll')}
           </button>
         )}
       </div>
@@ -382,7 +393,7 @@ export function GamesSection() {
       {/* Search Results */}
       {searchFilteredGames && !gamesLoading && (
         <GameSectionRow
-          title={`Search Results (${searchFilteredGames.length})`}
+          title={`${t('games.searchResults')} (${searchFilteredGames.length})`}
           icon={<Search className="w-4 md:w-5 h-4 md:h-5 text-amber-500" />}
           games={searchFilteredGames}
           scrollRef={slotsScrollRef}
@@ -396,7 +407,7 @@ export function GamesSection() {
       {!searchFilteredGames && !gamesLoading && (
         <>
           <GameSectionRow
-            title="Slots"
+            title={t('games.slots')}
             icon={<Sparkles className="w-4 md:w-5 h-4 md:h-5 text-purple-500" />}
             games={slotsGames}
             scrollRef={slotsScrollRef}
@@ -406,7 +417,7 @@ export function GamesSection() {
           />
 
           <GameSectionRow
-            title="New Games"
+            title={t('games.newGames')}
             icon={<Sparkles className="w-4 md:w-5 h-4 md:h-5 text-yellow-400" />}
             games={newGames}
             scrollRef={newGamesScrollRef}
@@ -416,7 +427,7 @@ export function GamesSection() {
           />
 
           <GameSectionRow
-            title="Live Casino"
+            title={t('games.liveCasino')}
             icon={
               <>
                 <Tv className="w-4 md:w-5 h-4 md:h-5 text-red-500" />
@@ -435,7 +446,7 @@ export function GamesSection() {
       {/* No results message */}
       {!gamesLoading && allGames.length === 0 && (
         <div className="text-center py-12">
-          <p className="text-muted-foreground text-lg">No games found</p>
+          <p className="text-muted-foreground text-lg">{t('games.noGamesFound')}</p>
           <button
             onClick={() => {
               setActiveFilters([]);
@@ -443,7 +454,7 @@ export function GamesSection() {
             }}
             className="mt-4 px-4 py-2 bg-primary text-black rounded-lg font-medium"
           >
-            Clear all filters
+            {t('games.clearAllFilters')}
           </button>
         </div>
       )}

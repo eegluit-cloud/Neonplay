@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -18,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 
 const Slots = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -69,7 +71,7 @@ const Slots = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
 
-          <MobilePageHeader title="Slots" />
+          <MobilePageHeader title={t('pages.slots')} />
 
           <HeroSection onOpenSignUp={() => setSignUpOpen(true)} />
 
@@ -79,7 +81,7 @@ const Slots = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search a game..."
+                placeholder={t('common.searchGames')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-9 md:h-12 pl-9 pr-3 rounded-lg md:rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -95,7 +97,7 @@ const Slots = () => {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Providers</SelectItem>
+                  <SelectItem value="all">{t('games.allProviders')}</SelectItem>
                   {providers.map(p => (
                     <SelectItem key={p.id} value={p.slug}>{p.name}</SelectItem>
                   ))}
@@ -110,10 +112,10 @@ const Slots = () => {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Volatility</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="all">{t('games.allVolatility')}</SelectItem>
+                  <SelectItem value="low">{t('games.low')}</SelectItem>
+                  <SelectItem value="medium">{t('games.medium')}</SelectItem>
+                  <SelectItem value="high">{t('games.high')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -127,7 +129,7 @@ const Slots = () => {
             isLoading={isLoading}
             favoriteIds={favoriteIds}
             onToggleFavorite={handleToggleFavorite}
-            emptyMessage="No slot games found"
+            emptyMessage={t('games.noSlotGames')}
           />
 
           <Footer />

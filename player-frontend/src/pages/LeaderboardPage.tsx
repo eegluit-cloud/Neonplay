@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '@/hooks/useSidebar';
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
@@ -83,6 +84,7 @@ const latestBetsData = [
 ];
 
 const LeaderboardPage = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [bonusClaimedOpen, setBonusClaimedOpen] = useState(false);
   const [period, setPeriod] = useState<"daily" | "weekly" | "monthly">("daily");
@@ -97,8 +99,8 @@ const LeaderboardPage = () => {
   const monthlyCountdown = useCountdown(336, true); // 14 days for monthly - show days and hours
 
   const tabs = [
-    { id: "leaderboard", label: "Leaderboard" },
-    { id: "myBets", label: "My Bets" },
+    { id: "leaderboard", label: t('leaderboard.title') },
+    { id: "myBets", label: t('leaderboard.myBets') },
   ];
 
   // Mock recent winners for the carousel - varied data with mixed avatars
@@ -170,7 +172,7 @@ const LeaderboardPage = () => {
             
             {/* Mobile Header with Back Button - Inside hero */}
             <div className="relative z-10 p-3 md:p-4 lg:p-6">
-              <MobilePageHeader title="Leaderboard" />
+              <MobilePageHeader title={t('leaderboard.title')} />
             </div>
 
             {/* Recent Winners Carousel - Auto-scrolling */}
@@ -358,9 +360,9 @@ const LeaderboardPage = () => {
 
               <div className="flex bg-[#1a1a1a] rounded-full p-1 border border-cyan-500/20 shadow-[0_0_15px_rgba(34,211,238,0.08)]">
                 {[
-                  { id: "daily", label: "Daily", icon: Calendar },
-                  { id: "weekly", label: "Weekly", icon: CalendarDays },
-                  { id: "monthly", label: "Monthly", icon: CalendarRange },
+                  { id: "daily", label: t('leaderboard.daily'), icon: Calendar },
+                  { id: "weekly", label: t('leaderboard.weekly'), icon: CalendarDays },
+                  { id: "monthly", label: t('leaderboard.monthly'), icon: CalendarRange },
                 ].map((p) => (
                   <button
                     key={p.id}
@@ -392,12 +394,12 @@ const LeaderboardPage = () => {
                 <div className="h-5 w-px bg-border" />
                 
                 <div className="flex flex-col">
-                  <span className="text-muted-foreground text-[10px]">My Position</span>
+                  <span className="text-muted-foreground text-[10px]">{t('leaderboard.myPosition')}</span>
                   <span className="text-primary font-bold text-sm transition-all duration-300">{playerPosition}th</span>
                 </div>
                 
                 <div className="flex flex-col">
-                  <span className="text-muted-foreground text-[10px]">To Reach Top 10</span>
+                  <span className="text-muted-foreground text-[10px]">{t('leaderboard.toReachTop10')}</span>
                   <span className="text-primary font-bold text-sm transition-all duration-300">{formatAmount(Math.max(0, (winners[9]?.amount ?? 0) - playerWager))}</span>
                 </div>
               </div>
@@ -409,12 +411,12 @@ const LeaderboardPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Rank</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Player</TableHead>
-                      <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">Country</TableHead>
-                      <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">Games</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Amount</TableHead>
-                      <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">VIP Level</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.rank')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.player')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">{t('leaderboard.country')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">{t('leaderboard.games')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.wagered')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium hidden md:table-cell text-xs">{t('leaderboard.vipLevel')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -449,7 +451,7 @@ const LeaderboardPage = () => {
                                 <AvatarFallback className="text-[8px]">{displayPlayer.name[0]}</AvatarFallback>
                               </Avatar>
                               <span className={`text-[10px] md:text-xs truncate max-w-[70px] md:max-w-none ${isUserPosition ? 'text-cyan-400 font-semibold' : 'text-foreground'}`}>
-                                {displayPlayer.name} {isUserPosition && '(You)'}
+                                {displayPlayer.name} {isUserPosition && t('common.you')}
                               </span>
                             </div>
                           </TableCell>
@@ -478,12 +480,12 @@ const LeaderboardPage = () => {
                 <Table>
                   <TableHeader>
                     <TableRow className="border-b border-border hover:bg-transparent">
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Game</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs hidden sm:table-cell">Bet</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs hidden md:table-cell">Multiplier</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Payout</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs hidden md:table-cell">Time</TableHead>
-                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">Status</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.game')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs hidden sm:table-cell">{t('leaderboard.bet')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs hidden md:table-cell">{t('leaderboard.multiplier')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.payout')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs hidden md:table-cell">{t('leaderboard.time')}</TableHead>
+                      <TableHead className="text-muted-foreground font-medium text-[10px] md:text-xs">{t('leaderboard.status')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>

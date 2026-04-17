@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '@/hooks/useSidebar';
@@ -40,6 +41,7 @@ const ProviderCard = ({ provider }: { provider: GameProvider }) => {
 };
 
 const Favorites = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -89,7 +91,7 @@ const Favorites = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6 overflow-x-hidden page-transition-enter max-w-full">
 
-          <MobilePageHeader title="Favorites" />
+          <MobilePageHeader title={t('pages.favorites')} />
 
           {/* Search and Filters */}
           <div className="flex flex-col lg:flex-row gap-3 items-start lg:items-center justify-between">

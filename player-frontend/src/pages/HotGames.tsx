@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -18,6 +19,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 
 const HotGames = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -72,7 +74,7 @@ const HotGames = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
 
-          <MobilePageHeader title="Hot Games" />
+          <MobilePageHeader title={t('pages.hotGames')} />
 
           <HeroSection onOpenSignUp={() => setSignUpOpen(true)} />
 

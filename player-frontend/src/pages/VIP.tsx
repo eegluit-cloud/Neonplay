@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Header } from "@/components/Header";
 import { Sidebar } from "@/components/Sidebar";
@@ -99,6 +100,7 @@ const LEVEL_STYLE_MAP: Record<string, {
 };
 
 const VIP = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -222,7 +224,7 @@ const VIP = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="page-content page-spacing overflow-x-hidden !pt-2 lg:!pt-0 page-transition-enter max-w-full">
           {/* Mobile Header with Back Button */}
-          <MobilePageHeader title="VIP Club" />
+          <MobilePageHeader title={t('vip.title')} />
           <div className={`relative rounded-2xl overflow-hidden bg-gradient-to-r ${currentLevelInfo.bannerBg} border ${currentLevelInfo.bannerBorder}`}>
             {/* Tech lines decoration - dynamic color based on level */}
             <div className="absolute inset-0 opacity-30">
@@ -251,7 +253,7 @@ const VIP = () => {
                     onClick={() => handleOpenDetails(currentLevel)}
                     className="bg-gradient-to-r from-gray-600 to-gray-500 hover:from-gray-500 hover:to-gray-400 text-white border-none font-semibold"
                   >
-                    View Level Up Details
+                    {t('vip.viewLevelUpDetails')}
                   </Button>
                 </div>
                 
@@ -363,7 +365,7 @@ const VIP = () => {
               <div className={`w-12 h-12 ${currentLevelInfo.benefitIcon} rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <Gift className="w-6 h-6" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">Exclusive Bonuses</h3>
+              <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">{t('vip.exclusiveBonuses')}</h3>
               <p className="text-gray-400 text-xs sm:text-sm">Get special bonuses only available to VIP members</p>
             </div>
             
@@ -371,7 +373,7 @@ const VIP = () => {
               <div className={`w-12 h-12 ${currentLevelInfo.benefitIcon} rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <Star className="w-6 h-6" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">Priority Support</h3>
+              <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">{t('vip.prioritySupport')}</h3>
               <p className="text-gray-400 text-xs sm:text-sm">Get faster response times and dedicated support</p>
             </div>
             
@@ -379,7 +381,7 @@ const VIP = () => {
               <div className={`w-12 h-12 ${currentLevelInfo.benefitIcon} rounded-full flex items-center justify-center mx-auto mb-4`}>
                 <Zap className="w-6 h-6" />
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">Higher Limits</h3>
+              <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">{t('vip.higherLimits')}</h3>
               <p className="text-gray-400 text-xs sm:text-sm">Enjoy increased betting and withdrawal limits</p>
             </div>
           </div>

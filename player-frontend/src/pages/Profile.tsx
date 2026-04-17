@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
@@ -124,6 +125,7 @@ const gameHistoryData = [{
   roundId: '#R5544332'
 }];
 const Profile = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const {
     sidebarOpen,
@@ -233,7 +235,7 @@ const Profile = () => {
         <main className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6 overflow-x-hidden page-transition-enter max-w-full">
           
           {/* Mobile Header with Back Button */}
-          <MobilePageHeader title="Profile" />
+          <MobilePageHeader title={t('profile.title')} />
 
           {/* Profile Header Card - Tablet & Desktop */}
           <div className="hidden md:block bg-card rounded-xl p-4 lg:p-6 border border-border">
@@ -493,11 +495,11 @@ const Profile = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left pl-6 pr-2 py-4 text-sm font-medium text-foreground">Game ID</th>
-                      <th className="text-left px-4 py-4 text-sm font-medium text-foreground">Date & time</th>
-                      <th className="text-left px-4 py-4 text-sm font-medium text-foreground">Game Name</th>
-                      <th className="text-right px-4 py-4 text-sm font-medium text-foreground">Amount</th>
-                      <th className="text-right px-4 pr-6 py-4 text-sm font-medium text-foreground">Status</th>
+                      <th className="text-left pl-6 pr-2 py-4 text-sm font-medium text-foreground">{t('profile.gameId')}</th>
+                      <th className="text-left px-4 py-4 text-sm font-medium text-foreground">{t('profile.dateTime')}</th>
+                      <th className="text-left px-4 py-4 text-sm font-medium text-foreground">{t('profile.gameName')}</th>
+                      <th className="text-right px-4 py-4 text-sm font-medium text-foreground">{t('common.amount')}</th>
+                      <th className="text-right px-4 pr-6 py-4 text-sm font-medium text-foreground">{t('common.status')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -546,10 +548,10 @@ const Profile = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-border bg-muted/30">
-                      <th className="text-left pl-3 pr-2 py-2.5 text-xs font-medium text-foreground w-[22%]">Date & ID</th>
-                      <th className="text-left px-2 py-2.5 text-xs font-medium text-foreground w-[30%]">Game</th>
-                      <th className="text-right px-2 py-2.5 text-xs font-medium text-foreground w-[20%]">Amount</th>
-                      <th className="text-right pr-3 pl-2 py-2.5 text-xs font-medium text-foreground w-[28%]">Status</th>
+                      <th className="text-left pl-3 pr-2 py-2.5 text-xs font-medium text-foreground w-[22%]">{t('profile.dateId')}</th>
+                      <th className="text-left px-2 py-2.5 text-xs font-medium text-foreground w-[30%]">{t('profile.game')}</th>
+                      <th className="text-right px-2 py-2.5 text-xs font-medium text-foreground w-[20%]">{t('common.amount')}</th>
+                      <th className="text-right pr-3 pl-2 py-2.5 text-xs font-medium text-foreground w-[28%]">{t('common.status')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -951,13 +953,13 @@ const Profile = () => {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-border bg-muted/30">
-                        <th className="text-left px-6 py-4 text-sm font-medium text-foreground">Transaction ID</th>
-                        <th className="text-left px-6 py-4 text-sm font-medium text-foreground">Date & time</th>
-                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">Coins</th>
-                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">Status</th>
-                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">Amount</th>
-                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">Method</th>
-                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">Action</th>
+                        <th className="text-left px-6 py-4 text-sm font-medium text-foreground">{t('profile.transactionId')}</th>
+                        <th className="text-left px-6 py-4 text-sm font-medium text-foreground">{t('profile.dateTime')}</th>
+                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">{t('profile.coins')}</th>
+                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">{t('common.status')}</th>
+                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">{t('common.amount')}</th>
+                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">{t('profile.method')}</th>
+                        <th className="text-center px-6 py-4 text-sm font-medium text-foreground">{t('profile.action')}</th>
                       </tr>
                     </thead>
                     <tbody>

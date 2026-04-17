@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
@@ -55,6 +56,7 @@ const useMegaJackpot = () => {
 };
 
 const Promotions = () => {
+  const { t } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const { sidebarOpen, toggleSidebar } = useSidebar();
@@ -206,8 +208,8 @@ const Promotions = () => {
             <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
               <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
               <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                <p className="text-red-400/90 text-[10px] sm:text-xs mb-0.5">Daily Spin</p>
-                <p className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">Free Spin!</p>
+                <p className="text-red-400/90 text-[10px] sm:text-xs mb-0.5">{t('promotions.dailySpin')}</p>
+                <p className="text-xl sm:text-2xl font-bold text-white mb-2 sm:mb-3">{t('promotions.freeSpin')}</p>
 
                 <div className="flex items-center gap-1.5 mb-2 sm:mb-3">
                   <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-red-400" />
@@ -231,18 +233,18 @@ const Promotions = () => {
 
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
                   <div>
-                    <p className="text-red-500/60 text-[8px] sm:text-[10px]">Status</p>
-                    <p className="text-cyan-400 font-semibold text-xs sm:text-sm">Available</p>
+                    <p className="text-red-500/60 text-[8px] sm:text-[10px]">{t('common.status')}</p>
+                    <p className="text-cyan-400 font-semibold text-xs sm:text-sm">{t('promotions.available')}</p>
                   </div>
                   <div>
                     <p className="text-red-500/60 text-[8px] sm:text-[10px]">Frequency</p>
-                    <p className="text-white font-semibold text-xs sm:text-sm">Every 24h</p>
+                    <p className="text-white font-semibold text-xs sm:text-sm">{t('promotions.every24h')}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-2">
                   <button className="px-3 sm:px-5 py-1.5 sm:py-2 bg-gradient-to-r from-red-500 to-orange-400 hover:from-red-600 hover:to-orange-500 text-white font-semibold rounded-lg text-[10px] sm:text-sm transition-all shadow-lg shadow-red-500/20">
-                    Spin Now!
+                    {t('promotions.spinNow')}
                   </button>
                 </div>
               </div>
@@ -262,21 +264,21 @@ const Promotions = () => {
             <div className="absolute left-0 top-0 bottom-0 w-[60%] sm:w-[55%] rounded-r-2xl overflow-hidden">
               <div className="absolute inset-0 backdrop-blur-xl bg-white/5 border-r border-white/20 shadow-[inset_0_0_30px_rgba(255,255,255,0.05)]" />
               <div className="relative h-full p-4 sm:p-5 flex flex-col justify-center">
-                <p className="text-rose-400/90 text-[10px] sm:text-xs mb-0.5">Mega Jackpot</p>
+                <p className="text-rose-400/90 text-[10px] sm:text-xs mb-0.5">{t('promotions.megaJackpot')}</p>
                 <p className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3">
                   <span className="text-green-400">$</span>
                   <span className="text-white tabular-nums">{megaJackpot}</span>
                 </p>
 
-                <p className="text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4">Win the ultimate prize!</p>
+                <p className="text-gray-300 text-xs sm:text-sm mb-3 sm:mb-4">{t('promotions.winUltimatePrize')}</p>
 
                 <div className="grid grid-cols-2 gap-x-2 gap-y-1 sm:gap-y-1.5 mb-2 sm:mb-3">
                   <div>
-                    <p className="text-rose-500/60 text-[8px] sm:text-[10px]">Winners</p>
+                    <p className="text-rose-500/60 text-[8px] sm:text-[10px]">{t('promotions.winners')}</p>
                     <p className="text-white font-semibold text-xs sm:text-sm">142</p>
                   </div>
                   <div>
-                    <p className="text-rose-500/60 text-[8px] sm:text-[10px]">Last Winner</p>
+                    <p className="text-rose-500/60 text-[8px] sm:text-[10px]">{t('promotions.lastWinner')}</p>
                     <p className="text-white font-semibold text-xs sm:text-sm">$523,000</p>
                   </div>
                 </div>
@@ -320,15 +322,15 @@ const Promotions = () => {
         <main className="page-transition-enter max-w-full">
           <div className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6">
 
-          <MobilePageHeader title="" />
+          <MobilePageHeader title={t('promotions.title')} />
 
           <div className="-mb-0.5">
             <h1 className="text-2xl sm:text-3xl font-bold text-white">
               <span className="bg-gradient-to-r from-blue-400 via-cyan-300 to-blue-500 bg-clip-text text-transparent">
-                Promotions
+                {t('promotions.title')}
               </span>
             </h1>
-            <p className="text-gray-400 text-sm mt-0 mb-0">Claim your daily bonuses and rewards</p>
+            <p className="text-gray-400 text-sm mt-0 mb-0">{t('promotions.subtitle')}</p>
           </div>
 
           {loading ? (
@@ -349,8 +351,8 @@ const Promotions = () => {
 
               {promotions.length === 0 && !loading && (
                 <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-white/40 text-lg font-medium">No promotions available</p>
-                  <p className="text-white/25 text-sm mt-1">Check back soon for new offers</p>
+                  <p className="text-white/40 text-lg font-medium">{t('promotions.noPromotions')}</p>
+                  <p className="text-white/25 text-sm mt-1">{t('promotions.checkBack')}</p>
                 </div>
               )}
 

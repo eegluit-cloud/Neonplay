@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import { Search as SearchIcon, ChevronDown, Flame, Sparkles, Zap, Star, Play, Heart } from 'lucide-react';
 import { useSidebar } from '@/hooks/useSidebar';
@@ -100,6 +101,7 @@ function GameCard({ game }: { game: typeof games[0] }) {
 }
 
 const Search = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -137,7 +139,7 @@ const Search = () => {
         <main className="p-2 md:p-4 lg:p-6 space-y-3 md:space-y-4 page-transition-enter max-w-full">
           {/* Mobile Page Header */}
           <div className="md:hidden">
-            <MobilePageHeader title="Search" />
+            <MobilePageHeader title={t('pages.search')} />
           </div>
 
           {/* Search Bar with Category Dropdown */}

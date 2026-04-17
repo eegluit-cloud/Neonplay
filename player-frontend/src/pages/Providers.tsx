@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '@/hooks/useSidebar';
@@ -15,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useGameProviders } from '@/hooks/useGames';
 
 const Providers = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -49,7 +51,7 @@ const Providers = () => {
         <main className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6 overflow-x-hidden max-w-full">
 
           {/* Mobile Header with Back Button */}
-          <MobilePageHeader title="Providers" />
+          <MobilePageHeader title={t('pages.providers')} />
 
 
           {/* Search and Filters */}

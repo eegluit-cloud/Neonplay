@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -179,6 +180,7 @@ const ProviderCard = ({ provider }: { provider: GameProvider }) => {
 };
 
 const Casino = () => {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -235,7 +237,7 @@ const Casino = () => {
       <div className={`transition-all duration-300 pt-14 md:pt-16 pb-20 md:pb-0 ${sidebarOpen ? 'md:ml-56' : 'md:ml-16'}`}>
         <main className="p-3 md:p-4 lg:p-6 space-y-4 md:space-y-6 overflow-x-hidden page-transition-enter max-w-full">
 
-          <MobilePageHeader title="Casino" />
+          <MobilePageHeader title={t('pages.casino')} />
 
           <HeroSection onOpenSignUp={() => setSignUpOpen(true)} />
 
@@ -246,7 +248,7 @@ const Casino = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search a game..."
+                placeholder={t('common.searchGames')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-9 md:h-12 pl-9 pr-3 rounded-lg md:rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -263,7 +265,7 @@ const Casino = () => {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Providers</SelectItem>
+                  <SelectItem value="all">{t('games.allProviders')}</SelectItem>
                   {providers.map(p => (
                     <SelectItem key={p.id} value={p.slug}>{p.name}</SelectItem>
                   ))}
@@ -278,10 +280,10 @@ const Casino = () => {
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Volatility</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="all">{t('games.allVolatility')}</SelectItem>
+                  <SelectItem value="low">{t('games.low')}</SelectItem>
+                  <SelectItem value="medium">{t('games.medium')}</SelectItem>
+                  <SelectItem value="high">{t('games.high')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -306,7 +308,7 @@ const Casino = () => {
           {!filteredGames && (
             <>
               <GameSection
-                title="Hot Games"
+                title={t('games.hotGames')}
                 icon={<Flame className="w-4 h-4 text-orange-500" />}
                 games={hotGames}
                 viewAllPath="/hot-games"
@@ -315,7 +317,7 @@ const Casino = () => {
                 onToggleFavorite={handleToggleFavorite}
               />
               <GameSection
-                title="Slots"
+                title={t('games.slots')}
                 icon={<Sparkles className="w-4 h-4 text-purple-500" />}
                 games={slotsGames}
                 viewAllPath="/slots"
@@ -324,7 +326,7 @@ const Casino = () => {
                 onToggleFavorite={handleToggleFavorite}
               />
               <GameSection
-                title="New Games"
+                title={t('games.newGames')}
                 icon={<TrendingUp className="w-4 h-4 text-cyan-500" />}
                 games={newGames}
                 viewAllPath="/slots"
@@ -333,7 +335,7 @@ const Casino = () => {
                 onToggleFavorite={handleToggleFavorite}
               />
               <GameSection
-                title="Live Casino"
+                title={t('games.liveCasino')}
                 icon={<Tv className="w-4 h-4 text-red-500" />}
                 games={liveGames}
                 viewAllPath="/live-casino"
