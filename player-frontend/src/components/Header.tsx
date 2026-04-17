@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Gift, DollarSign, Bitcoin, Wallet } from 'lucide-react';
+import { Bell, Gift, DollarSign, Bitcoin, Wallet, Globe } from 'lucide-react';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { CoinBalancePill } from '@/components/CoinBalancePill';
 import { NeonPlayLogo } from '@/components/NeonPlayLogo';
@@ -8,6 +8,8 @@ import { WalletModal } from '@/components/WalletModal';
 import { useUserAvatar } from '@/hooks/useUserAvatar';
 import { useLeaderboardData } from '@/hooks/useLeaderboardData';
 import { useWallet } from '@/contexts/AppModeContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from 'react-i18next';
 
 interface HeaderProps {
   onOpenSignIn: () => void;
@@ -24,11 +26,15 @@ export function Header({
   const { playerPosition } = useLeaderboardData();
   const { balances, primaryCurrency, formatCurrency, refresh } = useWallet();
   const navigate = useNavigate();
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [balanceDropdownOpen, setBalanceDropdownOpen] = useState(false);
   const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const balanceDropdownRef = useRef<HTMLDivElement>(null);
   const dropdownMenuRef = useRef<HTMLDivElement>(null);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -51,6 +57,17 @@ export function Header({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [balanceDropdownOpen]);
+
+  useEffect(() => {
+    if (!langDropdownOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!langDropdownRef.current?.contains(event.target as Node)) {
+        setLangDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [langDropdownOpen]);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 header-bar border-b border-amber-500/40" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
@@ -143,6 +160,15 @@ export function Header({
             </button>
           </div>
 
+          {/* Language Toggle (mobile) */}
+          <button
+            onClick={() => setLanguage(language === 'en' ? 'ko' : 'en')}
+            className="w-9 h-9 flex items-center justify-center bg-card rounded-xl border border-border text-xs font-bold text-muted-foreground hover:bg-secondary transition-colors shrink-0"
+            title={t('common.language')}
+          >
+            {language === 'en' ? '🇰🇷' : '🇺🇸'}
+          </button>
+
           {/* User Avatar */}
           <button
             onClick={(e) => {
@@ -207,6 +233,38 @@ export function Header({
               <Bell className="w-4 lg:w-5 h-4 lg:h-5 text-muted-foreground" strokeWidth={1.5} />
               <span className="absolute -top-0.5 lg:-top-1 -right-0 lg:-right-0.5 min-w-4 lg:min-w-5 h-4 lg:h-5 px-0.5 lg:px-1 bg-red-500 rounded-full text-[10px] lg:text-xs font-bold flex items-center justify-center text-white shadow-lg badge-pulse">11</span>
             </button>
+          </div>
+
+          {/* Language Selector */}
+          <div className="relative" ref={langDropdownRef}>
+            <button
+              onClick={() => setLangDropdownOpen(prev => !prev)}
+              className="flex items-center gap-1.5 h-9 px-2.5 bg-card rounded-full border border-border hover:bg-secondary transition-colors shrink-0"
+              title={t('common.language')}
+            >
+              <Globe className="w-4 h-4 text-muted-foreground" strokeWidth={1.5} />
+              <span className="text-xs font-semibold text-muted-foreground uppercase">{language}</span>
+            </button>
+
+            {langDropdownOpen && (
+              <div className="absolute right-0 top-11 w-36 bg-card rounded-xl border border-border shadow-xl overflow-hidden animate-fade-in z-50">
+                <button
+                  onClick={() => { setLanguage('en'); setLangDropdownOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-secondary transition-colors ${language === 'en' ? 'text-amber-400 font-semibold' : 'text-foreground'}`}
+                >
+                  <span>🇺🇸</span>
+                  <span>{t('common.english')}</span>
+                </button>
+                <div className="h-px bg-border" />
+                <button
+                  onClick={() => { setLanguage('ko'); setLangDropdownOpen(false); }}
+                  className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm hover:bg-secondary transition-colors ${language === 'ko' ? 'text-amber-400 font-semibold' : 'text-foreground'}`}
+                >
+                  <span>🇰🇷</span>
+                  <span>{t('common.korean')}</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* User Avatar */}

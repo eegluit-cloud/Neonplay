@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Gift, Star, Users, Gamepad2, Tv, Trophy, TrendingUp,
@@ -50,92 +51,94 @@ interface SidebarProps {
 // NAVIGATION CONFIG
 // ============================================
 
-const navigationConfig: NavSection[] = [
+type TFunction = (key: string) => string;
+
+const buildNavigationConfig = (t: TFunction): NavSection[] => [
   {
     id: 'lobby-standalone',
     items: [
-      { id: 'lobby', label: 'Lobby', icon: Home, href: '/lobby' },
+      { id: 'lobby', label: t('nav.lobby'), icon: Home, href: '/lobby' },
     ],
   },
   {
     id: 'sports',
-    title: 'Sports',
+    title: t('nav.sports'),
     collapsible: true,
     icon: Volleyball,
     items: [
-      { id: 'sports-home', label: 'Sports Home', icon: Volleyball, href: '/sports' },
-      { id: 'live-sports', label: 'Live', icon: Globe, href: '/sports?filter=live' },
-      { id: 'soccer', label: 'Soccer', icon: Target, href: '/sports?filter=soccer' },
-      { id: 'basketball', label: 'Basketball', icon: Trophy, href: '/sports?filter=basketball' },
-      { id: 'tennis', label: 'Tennis', icon: Target, href: '/sports?filter=tennis' },
-      { id: 'esports', label: 'Esports', icon: Gamepad2, href: '/sports?filter=esports' },
+      { id: 'sports-home', label: t('nav.sportsHome'), icon: Volleyball, href: '/sports' },
+      { id: 'live-sports', label: t('nav.live'), icon: Globe, href: '/sports?filter=live' },
+      { id: 'soccer', label: t('nav.soccer'), icon: Target, href: '/sports?filter=soccer' },
+      { id: 'basketball', label: t('nav.basketball'), icon: Trophy, href: '/sports?filter=basketball' },
+      { id: 'tennis', label: t('nav.tennis'), icon: Target, href: '/sports?filter=tennis' },
+      { id: 'esports', label: t('nav.esports'), icon: Gamepad2, href: '/sports?filter=esports' },
     ],
   },
   {
     id: 'casino',
-    title: 'Casino',
+    title: t('nav.casino'),
     collapsible: true,
     icon: Gamepad2,
     items: [
-      { id: 'casino-home', label: 'All Games', icon: Gamepad2, href: '/casino' },
-      { id: 'favorites', label: 'Favorites', icon: Heart, href: '/favorites' },
-      { id: 'hot-games', label: 'Hot Games', icon: TrendingUp, href: '/hot-games' },
-      { id: 'slots', label: 'Slots', icon: Gamepad2, href: '/slots' },
-      { id: 'crash-games', label: 'Crash Games', icon: Star, href: '/crash-games' },
-      { id: 'live-casino', label: 'Live Casino', icon: Tv, href: '/live-casino' },
-      { id: 'providers', label: 'Providers', icon: Package, href: '/providers' },
+      { id: 'casino-home', label: t('nav.allGames'), icon: Gamepad2, href: '/casino' },
+      { id: 'favorites', label: t('nav.favorites'), icon: Heart, href: '/favorites' },
+      { id: 'hot-games', label: t('nav.hotGames'), icon: TrendingUp, href: '/hot-games' },
+      { id: 'slots', label: t('nav.slots'), icon: Gamepad2, href: '/slots' },
+      { id: 'crash-games', label: t('nav.crashGames'), icon: Star, href: '/crash-games' },
+      { id: 'live-casino', label: t('nav.liveCasino'), icon: Tv, href: '/live-casino' },
+      { id: 'providers', label: t('nav.providers'), icon: Package, href: '/providers' },
     ],
   },
   {
     id: 'promotions',
-    title: 'Promotions',
+    title: t('nav.promotions'),
     collapsible: true,
     icon: Gift,
     items: [
-      { id: 'all-promotions', label: 'All Promotions', icon: Gift, href: '/promotions' },
-      { id: 'vip-club', label: 'VIP Club', icon: Crown, href: '/vip' },
-      { id: 'refer-friend', label: 'Refer a Friend', icon: Share2, href: '/refer-friend' },
-      { id: 'prizes-promo', label: 'Prizes', icon: Trophy, href: '/prizes' },
-      { id: 'leaderboard', label: 'Leaderboard', icon: TrendingUp, href: '/leaderboard' },
+      { id: 'all-promotions', label: t('nav.allPromotions'), icon: Gift, href: '/promotions' },
+      { id: 'vip-club', label: t('nav.vipClub'), icon: Crown, href: '/vip' },
+      { id: 'refer-friend', label: t('nav.referFriend'), icon: Share2, href: '/refer-friend' },
+      { id: 'prizes-promo', label: t('nav.prizes'), icon: Trophy, href: '/prizes' },
+      { id: 'leaderboard', label: t('nav.leaderboard'), icon: TrendingUp, href: '/leaderboard' },
     ],
   },
   {
     id: 'account',
-    title: 'Account',
+    title: t('nav.account'),
     collapsible: true,
     icon: Users,
     items: [
-      { id: 'profile', label: 'Profile', icon: Users, href: '/profile' },
-      { id: 'wallet', label: 'Wallet', icon: Wallet, href: '/profile?tab=transactions' },
+      { id: 'profile', label: t('nav.profile'), icon: Users, href: '/profile' },
+      { id: 'wallet', label: t('nav.wallet'), icon: Wallet, href: '/profile?tab=transactions' },
     ],
   },
   {
     id: 'support',
-    title: 'Support & Info',
+    title: t('nav.support'),
     collapsible: true,
     icon: Headphones,
     items: [
-      { id: 'live-chat', label: 'Live Chat', icon: MessageCircle, href: '/faq' },
-      { id: 'telegram', label: 'Telegram', icon: Send, href: 'https://t.me/neonplay' },
-      { id: 'whatsapp', label: 'WhatsApp', icon: Phone, href: 'https://wa.me/neonplay' },
-      { id: 'provably-fair', label: 'Provably Fair', icon: Scale, href: '/provably-fair' },
-      { id: 'responsible', label: 'Responsible Gambling', icon: ShieldCheck, href: '/responsible-gambling' },
+      { id: 'live-chat', label: t('nav.liveChat'), icon: MessageCircle, href: '/faq' },
+      { id: 'telegram', label: t('nav.telegram'), icon: Send, href: 'https://t.me/neonplay' },
+      { id: 'whatsapp', label: t('nav.whatsapp'), icon: Phone, href: 'https://wa.me/neonplay' },
+      { id: 'provably-fair', label: t('nav.provablyFair'), icon: Scale, href: '/provably-fair' },
+      { id: 'responsible', label: t('nav.responsibleGambling'), icon: ShieldCheck, href: '/responsible-gambling' },
     ],
   },
   {
     id: 'legal',
-    title: 'Legal',
+    title: t('nav.legal'),
     collapsible: true,
     icon: FileText,
     items: [
-      { id: 'terms', label: 'Terms & Conditions', icon: FileText, href: '/terms' },
-      { id: 'privacy', label: 'Privacy Policy', icon: FileText, href: '/privacy' },
+      { id: 'terms', label: t('nav.termsConditions'), icon: FileText, href: '/terms' },
+      { id: 'privacy', label: t('nav.privacyPolicy'), icon: FileText, href: '/privacy' },
     ],
   },
   {
     id: 'logout-standalone',
     items: [
-      { id: 'logout', label: 'Log Out', icon: LogOut, href: '#logout' },
+      { id: 'logout', label: t('nav.logOut'), icon: LogOut, href: '#logout' },
     ],
   },
 ];
@@ -166,6 +169,7 @@ const useCountdown = (initialSeconds: number) => {
 // ============================================
 
 const ClaimableCoinsWidget = ({ onClaim }: { onClaim?: () => void }) => {
+  const { t } = useTranslation();
   const countdown = useCountdown(86400); // 24 hours = 86400 seconds
 
   const handleClaim = () => {
@@ -184,7 +188,7 @@ const ClaimableCoinsWidget = ({ onClaim }: { onClaim?: () => void }) => {
       <div className="relative">
         <div className="backdrop-blur-md bg-black/30 border-r border-white/10 p-3">
           {/* Title */}
-          <p className="text-amber-400/90 text-[10px] mb-0.5">Daily Bonus</p>
+          <p className="text-amber-400/90 text-[10px] mb-0.5">{t('sidebar.dailyBonus')}</p>
           <p className="text-lg font-bold mb-2">
             <span className="text-green-400">$</span>
             <span className="text-white">100</span>
@@ -215,7 +219,7 @@ const ClaimableCoinsWidget = ({ onClaim }: { onClaim?: () => void }) => {
             onClick={handleClaim}
             className="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-600 hover:to-yellow-500 text-white font-semibold rounded-lg text-xs transition-all shadow-lg shadow-amber-500/20"
           >
-            Claim Now
+            {t('sidebar.claimNow')}
           </button>
         </div>
       </div>
@@ -224,6 +228,7 @@ const ClaimableCoinsWidget = ({ onClaim }: { onClaim?: () => void }) => {
 };
 
 const DailyWinnersWidget = () => {
+  const { t } = useTranslation();
   const { winners, playerPosition } = useLeaderboardData();
 
   const getPositionStyle = (position: number) => {
@@ -242,8 +247,8 @@ const DailyWinnersWidget = () => {
       <div className="flex items-center gap-3 mb-3">
         <img src={levelUpImg} alt="Level Up" className="w-14 h-14" />
         <div>
-          <h3 className="font-bold text-base text-foreground">Daily Winners</h3>
-          <p className="text-xs text-muted-foreground">View Leaderboard</p>
+          <h3 className="font-bold text-base text-foreground">{t('sidebar.dailyWinners')}</h3>
+          <p className="text-xs text-muted-foreground">{t('sidebar.viewLeaderboard')}</p>
         </div>
       </div>
 
@@ -357,18 +362,20 @@ const ThemeToggle = () => {
   );
 };
 
-const SettingsWidget = () => (
-  <div className="p-3 bg-sidebar-accent rounded-xl space-y-3">
-    <div className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity">
-      <div className="flex items-center gap-2">
-        <Globe className="w-5 h-5 text-muted-foreground" />
-        <span className="text-sm font-medium text-foreground">English</span>
+const SettingsWidget = () => {
+  const { t } = useTranslation();
+  return (
+    <div className="p-3 bg-sidebar-accent rounded-xl space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Globe className="w-5 h-5 text-muted-foreground" />
+          <span className="text-sm font-medium text-foreground">{t('common.language')}</span>
+        </div>
       </div>
-      <ChevronDown className="w-4 h-4 text-muted-foreground rotate-[-90deg]" />
+      <ThemeToggle />
     </div>
-    <ThemeToggle />
-  </div>
-);
+  );
+};
 
 // ============================================
 // NAVIGATION COMPONENTS
@@ -577,6 +584,7 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const { t } = useTranslation();
 
   const isActive = (href: string) => {
     if (href === '/') return location.pathname === '/';
@@ -645,11 +653,12 @@ export function Sidebar({ isOpen, onToggle, onOpenSpinGift, onOpenBonusClaimed }
     }, 0);
   };
 
+  const navigationConfig = useMemo(() => buildNavigationConfig(t as TFunction), [t]);
   const collapsibleSections = useMemo(() =>
-    navigationConfig.filter(s => s.collapsible), []);
+    navigationConfig.filter(s => s.collapsible), [navigationConfig]);
 
   const staticSections = useMemo(() =>
-    navigationConfig.filter(s => !s.collapsible), []);
+    navigationConfig.filter(s => !s.collapsible), [navigationConfig]);
 
   return (
     <>

@@ -3,6 +3,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import App from "./App.tsx";
 import "./index.css";
+import "./i18n";
 
 gsap.registerPlugin(ScrollTrigger);
 

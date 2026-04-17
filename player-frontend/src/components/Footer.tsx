@@ -1,5 +1,6 @@
 import { useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import discordIcon from '@/assets/social/discord.png';
@@ -30,6 +31,7 @@ const footerStyles = {
 };
 
 export function Footer() {
+  const { t } = useTranslation();
   const footerRef = useRef<HTMLElement>(null);
   const topSectionRef = useRef<HTMLDivElement>(null);
   const socialRef = useRef<HTMLDivElement>(null);
@@ -70,11 +72,63 @@ export function Footer() {
   }, { scope: footerRef });
 
   const columns = [
-    { title: 'Casino', links: ['Casino Home', 'Slots', 'Live Casino', 'New Releases', 'Recommended', 'Table Game', 'BlackJack', 'Roulette', 'Baccarat'] },
-    { title: 'Sports', links: ['Sports Home', 'Live', 'Rules', 'Sport Betting Insights'] },
-    { title: 'Promo', links: ['VIP Club', 'Affiliate', 'Promotions', 'Lottery', 'Refer a friend', 'AMOE'] },
-    { title: 'Support/Legal', links: ['Help center', 'Important Announcement', 'Responsible Gambling', 'Gamble Aware', 'Fairness', 'FAQ', 'Privacy Policy', 'Terms Of Service'] },
-    { title: 'About us', links: ['News', 'Work with us', 'Business Contacts', 'Help Desk', 'Verify Representative'] },
+    {
+      title: t('footer.casino'),
+      links: [
+        { label: t('footer.casinoHome'), route: '/casino' },
+        { label: t('footer.slots'), route: '/slots' },
+        { label: t('footer.liveCasino'), route: '/live-casino' },
+        { label: t('footer.newReleases'), route: '/new-releases' },
+        { label: t('footer.recommended'), route: '/featured' },
+        { label: t('footer.tableGame'), route: '/table-games' },
+        { label: t('footer.blackjack'), route: '/blackjack' },
+        { label: t('footer.roulette'), route: '/roulette' },
+        { label: t('footer.baccarat'), route: '/table-games' },
+      ],
+    },
+    {
+      title: t('footer.sports'),
+      links: [
+        { label: t('footer.sportsHome'), route: '/sports' },
+        { label: t('footer.live'), route: '/sports' },
+        { label: t('footer.rules'), route: '/faq' },
+        { label: t('footer.sportsBettingInsights'), route: '/sports' },
+      ],
+    },
+    {
+      title: t('footer.promo'),
+      links: [
+        { label: t('footer.vipClub'), route: '/vip' },
+        { label: t('footer.affiliate'), route: '/refer-friend' },
+        { label: t('footer.promotions'), route: '/promotions' },
+        { label: t('footer.lottery'), route: '/promotions' },
+        { label: t('footer.referFriend'), route: '/refer-friend' },
+        { label: t('footer.amoe'), route: '/amoe' },
+      ],
+    },
+    {
+      title: t('footer.supportLegal'),
+      links: [
+        { label: t('footer.helpCenter'), route: '/page/help-center' },
+        { label: t('footer.importantAnnouncement'), route: '/page/important-announcement' },
+        { label: t('footer.responsibleGambling'), route: '/page/responsible-gambling' },
+        { label: t('footer.gambleAware'), route: '/page/gamble-aware' },
+        { label: t('footer.fairness'), route: '/page/fairness' },
+        { label: t('footer.faq'), route: '/page/faq' },
+        { label: t('footer.privacyPolicy'), route: '/page/privacy-policy' },
+        { label: t('footer.termsOfService'), route: '/terms' },
+      ],
+    },
+    {
+      title: t('footer.aboutUs'),
+      links: [
+        { label: t('footer.news'), route: '/lobby' },
+        { label: t('footer.workWithUs'), route: '/faq' },
+        { label: t('footer.businessContacts'), route: '/faq' },
+        { label: t('footer.helpDesk'), route: '/faq' },
+        { label: t('footer.verifyRepresentative'), route: '/faq' },
+      ],
+    },
   ];
 
   return (
@@ -112,51 +166,13 @@ export function Footer() {
           <div key={col.title} className={footerStyles.section}>
             <h4 className={footerStyles.title}>{col.title}</h4>
             <ul className={footerStyles.linkList}>
-              {col.links.map((link) => {
-                const linkRoutes: Record<string, string> = {
-                  'Casino Home': '/casino',
-                  'Slots': '/slots',
-                  'Live Casino': '/live-casino',
-                  'New Releases': '/new-releases',
-                  'Recommended': '/featured',
-                  'Table Game': '/table-games',
-                  'BlackJack': '/blackjack',
-                  'Roulette': '/roulette',
-                  'Baccarat': '/table-games',
-                  'Sports Home': '/sports',
-                  'Live': '/sports',
-                  'Rules': '/faq',
-                  'Sport Betting Insights': '/sports',
-                  'VIP Club': '/vip',
-                  'Affiliate': '/refer-friend',
-                  'Promotions': '/promotions',
-                  'Lottery': '/promotions',
-                  'Refer a friend': '/refer-friend',
-                  'AMOE': '/amoe',
-                  'Help center': '/page/help-center',
-                  'Important Announcement': '/page/important-announcement',
-                  'Responsible Gambling': '/page/responsible-gambling',
-                  'Gamble Aware': '/page/gamble-aware',
-                  'Fairness': '/page/fairness',
-                  'FAQ': '/page/faq',
-                  'Privacy Policy': '/page/privacy-policy',
-                  'Terms Of Service': '/terms',
-                  'News': '/lobby',
-                  'Work with us': '/faq',
-                  'Business Contacts': '/faq',
-                  'Help Desk': '/faq',
-                  'Verify Representative': '/faq',
-                };
-                const route = linkRoutes[link] || '/faq';
-
-                return (
-                  <li key={link}>
-                    <Link to={route} className={footerStyles.link}>
-                      {link}
-                    </Link>
-                  </li>
-                );
-              })}
+              {col.links.map((link) => (
+                <li key={link.route + link.label}>
+                  <Link to={link.route} className={footerStyles.link}>
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
         ))}
@@ -166,16 +182,16 @@ export function Footer() {
       <div className="md:hidden pt-4 border-t border-border mb-3">
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2">
           <Link to="/terms" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            Terms of Service
+            {t('footer.termsOfService')}
           </Link>
           <Link to="/page/privacy-policy" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            Privacy Policy
+            {t('footer.privacyPolicy')}
           </Link>
           <Link to="/page/responsible-gambling" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            Responsible Gambling
+            {t('footer.responsibleGambling')}
           </Link>
           <Link to="/page/faq" className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">
-            FAQ
+            {t('footer.faq')}
           </Link>
         </div>
       </div>
@@ -183,7 +199,7 @@ export function Footer() {
       {/* Copyright */}
       <div className="md:mt-8 pt-4 md:border-t border-border text-center">
         <p className="text-xs text-muted-foreground">
-          &copy; {new Date().getFullYear()} Neon Play &mdash; Powered by EEGLUSOFT. All rights reserved.
+          &copy; {new Date().getFullYear()} Neon Play &mdash; Powered by EEGLUSOFT. {t('footer.allRightsReserved')}
         </p>
       </div>
     </footer>
