@@ -4,34 +4,36 @@ import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { LobbyMode } from './LobbyModeSwitcher';
 
-const casinoCategoryTabs = [
-  { id: 'lobby', label: 'Lobby', icon: Home, path: '/lobby' },
-  { id: 'favorites', label: 'Favorites', icon: Heart, path: '/favorites' },
-  { id: 'hot', label: 'Hot Games', icon: Flame, path: '/hot-games' },
-  { id: 'slots', label: 'Slots', icon: Sparkles, path: '/slots' },
-  { id: 'crash', label: 'Crash Games', icon: TrendingUp, path: '/crash-games' },
-  { id: 'live', label: 'Live Casino', icon: Tv, path: '/live-casino' },
-  { id: 'game-shows', label: 'Game Shows', icon: Clapperboard, path: '/game-shows' },
-  { id: 'table-games', label: 'Table Games', icon: Layers, path: '/table-games' },
-  { id: 'blackjack', label: 'Blackjack', icon: Spade, path: '/blackjack' },
-  { id: 'roulette', label: 'Roulette', icon: CircleDot, path: '/roulette' },
-  { id: 'new-releases', label: 'New Releases', icon: Rocket, path: '/new-releases' },
-  { id: 'burst-games', label: 'Burst Games', icon: Zap, path: '/burst-games' },
-  { id: 'featured', label: 'Featured', icon: Star, path: '/featured' },
-  { id: 'providers', label: 'Providers', icon: Package, path: '/providers' },
+const buildCasinoCategoryTabs = (t: TFunction) => [
+  { id: 'lobby', label: t('nav.lobby'), icon: Home, path: '/lobby' },
+  { id: 'favorites', label: t('nav.favorites'), icon: Heart, path: '/favorites' },
+  { id: 'hot', label: t('nav.hotGames'), icon: Flame, path: '/hot-games' },
+  { id: 'slots', label: t('nav.slots'), icon: Sparkles, path: '/slots' },
+  { id: 'crash', label: t('nav.crashGames'), icon: TrendingUp, path: '/crash-games' },
+  { id: 'live', label: t('nav.liveCasino'), icon: Tv, path: '/live-casino' },
+  { id: 'game-shows', label: t('nav.gameShows'), icon: Clapperboard, path: '/game-shows' },
+  { id: 'table-games', label: t('nav.tableGames'), icon: Layers, path: '/table-games' },
+  { id: 'blackjack', label: t('nav.blackjack'), icon: Spade, path: '/blackjack' },
+  { id: 'roulette', label: t('nav.roulette'), icon: CircleDot, path: '/roulette' },
+  { id: 'new-releases', label: t('nav.newReleases'), icon: Rocket, path: '/new-releases' },
+  { id: 'burst-games', label: t('nav.burstGames'), icon: Zap, path: '/burst-games' },
+  { id: 'featured', label: t('nav.featured'), icon: Star, path: '/featured' },
+  { id: 'providers', label: t('nav.providers'), icon: Package, path: '/providers' },
 ];
 
-const sportsCategoryTabs = [
-  { id: 'sports-home', label: 'Sports Home', icon: Volleyball, path: '/sports' },
-  { id: 'live-sports', label: 'Live', icon: Wifi, path: '/sports?filter=live' },
-  { id: 'soccer', label: 'Soccer', icon: Target, path: '/sports?filter=soccer' },
-  { id: 'basketball', label: 'Basketball', icon: Trophy, path: '/sports?filter=basketball' },
-  { id: 'tennis', label: 'Tennis', icon: Target, path: '/sports?filter=tennis' },
-  { id: 'esports', label: 'Esports', icon: Gamepad2, path: '/sports?filter=esports' },
-  { id: 'hockey', label: 'Ice Hockey', icon: Target, path: '/sports?filter=hockey' },
-  { id: 'american-football', label: 'American Football', icon: Trophy, path: '/sports?filter=american-football' },
+const buildSportsCategoryTabs = (t: TFunction) => [
+  { id: 'sports-home', label: t('nav.sportsHome'), icon: Volleyball, path: '/sports' },
+  { id: 'live-sports', label: t('nav.live'), icon: Wifi, path: '/sports?filter=live' },
+  { id: 'soccer', label: t('nav.soccer'), icon: Target, path: '/sports?filter=soccer' },
+  { id: 'basketball', label: t('nav.basketball'), icon: Trophy, path: '/sports?filter=basketball' },
+  { id: 'tennis', label: t('nav.tennis'), icon: Target, path: '/sports?filter=tennis' },
+  { id: 'esports', label: t('nav.esports'), icon: Gamepad2, path: '/sports?filter=esports' },
+  { id: 'hockey', label: t('nav.hockey'), icon: Target, path: '/sports?filter=hockey' },
+  { id: 'american-football', label: t('nav.americanFootball'), icon: Trophy, path: '/sports?filter=american-football' },
 ];
 
 interface GameCategoryNavProps {
@@ -41,6 +43,7 @@ interface GameCategoryNavProps {
 
 export function GameCategoryNav({ activeTab = 'lobby', mode = 'all' }: GameCategoryNavProps) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
 
@@ -86,6 +89,9 @@ export function GameCategoryNav({ activeTab = 'lobby', mode = 'all' }: GameCateg
     }
   }, { scope: containerRef, dependencies: [mode] });
 
+  const casinoCategoryTabs = useMemo(() => buildCasinoCategoryTabs(t as TFunction), [t]);
+  const sportsCategoryTabs = useMemo(() => buildSportsCategoryTabs(t as TFunction), [t]);
+
   const tabs = useMemo(() => {
     switch (mode) {
       case 'casino':
@@ -100,9 +106,9 @@ export function GameCategoryNav({ activeTab = 'lobby', mode = 'all' }: GameCateg
           ...casinoCategoryTabs.slice(1), // Everything after Lobby
         ];
     }
-  }, [mode]);
+  }, [mode, casinoCategoryTabs, sportsCategoryTabs]);
 
-  const handleTabClick = (e: React.MouseEvent, tab: typeof casinoCategoryTabs[0]) => {
+  const handleTabClick = (e: React.MouseEvent, tab: ReturnType<typeof buildCasinoCategoryTabs>[0]) => {
     e.preventDefault();
     e.stopPropagation();
     if (tab.id !== activeTab) {
@@ -138,4 +144,4 @@ export function GameCategoryNav({ activeTab = 'lobby', mode = 'all' }: GameCateg
   );
 }
 
-export { casinoCategoryTabs as categoryTabs };
+export { buildCasinoCategoryTabs as categoryTabs };

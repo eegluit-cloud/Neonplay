@@ -34,7 +34,16 @@
     "legal": "Legal",
     "termsConditions": "Terms & Conditions",
     "privacyPolicy": "Privacy Policy",
-    "logOut": "Log Out"
+    "logOut": "Log Out",
+    "gameShows": "Game Shows",
+    "tableGames": "Table Games",
+    "blackjack": "Blackjack",
+    "roulette": "Roulette",
+    "newReleases": "New Releases",
+    "burstGames": "Burst Games",
+    "featured": "Featured",
+    "hockey": "Ice Hockey",
+    "americanFootball": "American Football"
   },
   "header": {
     "signIn": "Sign In",

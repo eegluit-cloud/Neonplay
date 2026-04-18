@@ -34,7 +34,16 @@
     "legal": "법적 고지",
     "termsConditions": "이용약관",
     "privacyPolicy": "개인정보 처리방침",
-    "logOut": "로그아웃"
+    "logOut": "로그아웃",
+    "gameShows": "게임쇼",
+    "tableGames": "테이블 게임",
+    "blackjack": "블랙잭",
+    "roulette": "룰렛",
+    "newReleases": "신규 출시",
+    "burstGames": "버스트 게임",
+    "featured": "추천",
+    "hockey": "아이스하키",
+    "americanFootball": "미식축구"
   },
   "header": {
     "signIn": "로그인",
