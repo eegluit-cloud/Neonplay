@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 // import phibetLogo from '../assets/phibet-logo.png';
 
 const Login = () => {
@@ -11,6 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,7 +24,7 @@ const Login = () => {
       localStorage.setItem("admin_token", response.token);
       navigate('/dashboard');
     } catch (err) {
-      setError('Invalid email or password');
+      setError(t('login.invalidCredentials'));
     } finally {
       setLoading(false);
     }
@@ -36,16 +38,15 @@ const Login = () => {
           {/* Logo removed - replaced with text below */}
           {/* <img src={phibetLogo} alt="Neon Play" className="auth-logo-img" /> */}
           <span className="auth-logo-text" style={{fontSize: '24px', fontWeight: 'bold', color: '#f59e0b', paddingTop: '10px'}}>Neon Play</span>
-          <span className="auth-logo-text">ADMIN BACKOFFICE</span>
+          <span className="auth-logo-text">{t('login.adminBackoffice')}</span>
         </div>
 
         <h1 className="auth-headline">
-          Powerful casino<br />
-          <span>management tools</span>
+          {t('login.headline')}
         </h1>
 
         <p className="auth-subtext">
-          Everything you need to manage your online casino operations efficiently and securely.
+          {t('login.subtext')}
         </p>
 
         <div className="auth-features">
@@ -55,8 +56,8 @@ const Login = () => {
                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
               </svg>
             </div>
-            <div className="auth-feature-title">Enterprise Security</div>
-            <div className="auth-feature-desc">2FA, IP allowlisting, audit logging</div>
+            <div className="auth-feature-title">{t('login.enterpriseSecurity')}</div>
+            <div className="auth-feature-desc">{t('login.enterpriseSecurityDesc')}</div>
           </div>
 
           <div className="auth-feature">
@@ -65,8 +66,8 @@ const Login = () => {
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
               </svg>
             </div>
-            <div className="auth-feature-title">Real-time Analytics</div>
-            <div className="auth-feature-desc">Live dashboards and KPIs</div>
+            <div className="auth-feature-title">{t('login.realTimeAnalytics')}</div>
+            <div className="auth-feature-desc">{t('login.realTimeAnalyticsDesc')}</div>
           </div>
 
           <div className="auth-feature">
@@ -78,8 +79,8 @@ const Login = () => {
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
             </div>
-            <div className="auth-feature-title">Player Management</div>
-            <div className="auth-feature-desc">Complete CRM capabilities</div>
+            <div className="auth-feature-title">{t('login.playerManagement')}</div>
+            <div className="auth-feature-desc">{t('login.playerManagementDesc')}</div>
           </div>
 
           <div className="auth-feature">
@@ -90,8 +91,8 @@ const Login = () => {
                 <line x1="6" y1="20" x2="6" y2="14"/>
               </svg>
             </div>
-            <div className="auth-feature-title">Financial Reports</div>
-            <div className="auth-feature-desc">Comprehensive transaction tracking</div>
+            <div className="auth-feature-title">{t('reports.title')}</div>
+            <div className="auth-feature-desc">{t('reports.totalDeposits')}</div>
           </div>
         </div>
 
@@ -138,7 +139,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <label className="form-label">Email address</label>
+              <label className="form-label">{t('login.emailAddress')}</label>
               <div className="input-with-icon">
                 <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
@@ -156,7 +157,7 @@ const Login = () => {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Password</label>
+              <label className="form-label">{t('login.password')}</label>
               <div className="input-with-icon">
                 <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -194,7 +195,7 @@ const Login = () => {
             </div>
 
             <button type="submit" className="btn btn-primary btn-login" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? t('login.signingIn') : t('login.signIn')}
               {!loading && (
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <line x1="5" y1="12" x2="19" y2="12"/>

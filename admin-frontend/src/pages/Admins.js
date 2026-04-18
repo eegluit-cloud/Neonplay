@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import {
   getAdmins, createAdmin, updateAdmin,
   updateAdminStatus, resetAdminPassword
 } from '../services/api';
 
 const Admins = () => {
+  const { t } = useTranslation();
   const { admin: currentAdmin } = useAuth();
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -140,9 +142,9 @@ const Admins = () => {
     <div>
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">Admin Users</h3>
+          <h3 className="card-title">{t('admins.title')}</h3>
           <button className="btn btn-primary" onClick={() => { resetForm(); setShowModal('create'); }}>
-            Add Admin
+            {t('admins.addAdmin')}
           </button>
         </div>
 
@@ -153,11 +155,11 @@ const Admins = () => {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Admin</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th>{t('layout.adminUsers')}</th>
+                  <th>{t('common.role')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.created')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -181,17 +183,17 @@ const Admins = () => {
                     <td>
                       <div className="table-actions">
                         <button onClick={() => openEditModal(admin)} className="btn btn-sm btn-secondary">
-                          Edit
+                          {t('common.edit')}
                         </button>
                         <button onClick={() => handleResetPassword(admin.id)} className="btn btn-sm btn-warning">
-                          Reset Password
+                          {t('admins.resetPassword')}
                         </button>
                         {admin.id !== currentAdmin.id && (
                           <button
                             onClick={() => handleStatusChange(admin.id, admin.status === 'active' ? 'disabled' : 'active')}
                             className={`btn btn-sm ${admin.status === 'active' ? 'btn-danger' : 'btn-success'}`}
                           >
-                            {admin.status === 'active' ? 'Disable' : 'Enable'}
+                            {admin.status === 'active' ? t('common.disable') : t('common.enable')}
                           </button>
                         )}
                       </div>
@@ -209,7 +211,7 @@ const Admins = () => {
         <div className="modal-overlay" onClick={() => { setShowModal(null); setEditAdmin(null); setError(''); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">{showModal === 'create' ? 'Add Admin' : 'Edit Admin'}</h3>
+              <h3 className="modal-title">{showModal === 'create' ? t('admins.addAdmin') : t('admins.editAdmin')}</h3>
               <button className="modal-close" onClick={() => { setShowModal(null); setEditAdmin(null); setError(''); }}>×</button>
             </div>
 
@@ -218,7 +220,7 @@ const Admins = () => {
             <form onSubmit={showModal === 'create' ? handleCreateAdmin : handleUpdateAdmin}>
               <div className="grid grid-2 gap-2">
                 <div className="form-group">
-                  <label className="form-label">First Name</label>
+                  <label className="form-label">{t('admins.firstName')}</label>
                   <input
                     type="text"
                     className="form-input"
@@ -227,7 +229,7 @@ const Admins = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Last Name</label>
+                  <label className="form-label">{t('admins.lastName')}</label>
                   <input
                     type="text"
                     className="form-input"
@@ -240,7 +242,7 @@ const Admins = () => {
               {showModal === 'create' && (
                 <>
                   <div className="form-group">
-                    <label className="form-label">Email</label>
+                    <label className="form-label">{t('common.email')}</label>
                     <input
                       type="email"
                       className="form-input"
@@ -250,7 +252,7 @@ const Admins = () => {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Password</label>
+                    <label className="form-label">{t('common.password')}</label>
                     <input
                       type="password"
                       className="form-input"
@@ -277,33 +279,33 @@ const Admins = () => {
               )}
 
               <div className="form-group">
-                <label className="form-label">Role</label>
+                <label className="form-label">{t('common.role')}</label>
                 <select
                   className="form-select"
                   value={formData.role}
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 >
-                  <option value="support">Support</option>
-                  <option value="manager">Manager</option>
-                  <option value="super_admin">Super Admin</option>
+                  <option value="support">{t('admins.support')}</option>
+                  <option value="manager">{t('admins.manager')}</option>
+                  <option value="super_admin">{t('admins.superAdmin')}</option>
                 </select>
               </div>
 
               <div style={{ fontSize: '0.85rem', color: 'var(--gray)', marginBottom: '20px' }}>
-                <strong>Role Permissions:</strong>
+                <strong>{t('admins.rolePermissions')}:</strong>
                 <ul style={{ marginTop: '5px', paddingLeft: '20px' }}>
-                  <li><strong>Support:</strong> View players, add notes, view KYC</li>
-                  <li><strong>Manager:</strong> All support + approve KYC, manage bonuses, adjust balances</li>
-                  <li><strong>Super Admin:</strong> Full access including admin management</li>
+                  <li><strong>{t('admins.support')}:</strong> {t('admins.supportDesc')}</li>
+                  <li><strong>{t('admins.manager')}:</strong> {t('admins.managerDesc')}</li>
+                  <li><strong>{t('admins.superAdmin')}:</strong> {t('admins.superAdminDesc')}</li>
                 </ul>
               </div>
 
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={() => { setShowModal(null); setEditAdmin(null); setError(''); }}>
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {showModal === 'create' ? 'Create Admin' : 'Save Changes'}
+                  {showModal === 'create' ? t('admins.createAdmin') : t('admins.saveChanges')}
                 </button>
               </div>
             </form>

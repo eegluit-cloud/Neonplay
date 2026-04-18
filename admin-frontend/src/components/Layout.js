@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-// import phibetLogo from '../assets/phibet-logo.png';
+import { useTranslation } from 'react-i18next';
 
 const getSectionForPath = (path) => {
   if (path === '/dashboard') return 'overview';
@@ -15,11 +15,11 @@ const Layout = () => {
   const { admin, logout, hasPermission } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t, i18n } = useTranslation();
 
-  // Mobile sidebar state
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [currentLang, setCurrentLang] = useState(localStorage.getItem('admin_language') || 'en');
 
-  // Collapsible sections state - persisted in localStorage
   const [expandedSections, setExpandedSections] = useState(() => {
     try {
       const saved = localStorage.getItem('admin_sidebar_sections');
@@ -27,12 +27,10 @@ const Layout = () => {
     } catch { return { overview: true, management: true, analytics: true, settings: true }; }
   });
 
-  // Persist collapsed state
   useEffect(() => {
     localStorage.setItem('admin_sidebar_sections', JSON.stringify(expandedSections));
   }, [expandedSections]);
 
-  // Auto-expand section for active route
   useEffect(() => {
     const activeSection = getSectionForPath(location.pathname);
     if (activeSection && !expandedSections[activeSection]) {
@@ -40,33 +38,25 @@ const Layout = () => {
     }
   }, [location.pathname]);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  // Escape key closes mobile sidebar
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && mobileSidebarOpen) {
-        setMobileSidebarOpen(false);
-      }
+      if (e.key === 'Escape' && mobileSidebarOpen) setMobileSidebarOpen(false);
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [mobileSidebarOpen]);
 
-  // Body scroll lock when mobile sidebar is open
   useEffect(() => {
     document.body.style.overflow = mobileSidebarOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [mobileSidebarOpen]);
 
   const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
   const handleLogout = () => {
@@ -74,39 +64,41 @@ const Layout = () => {
     navigate('/login');
   };
 
+  const handleLangChange = (lang) => {
+    i18n.changeLanguage(lang);
+    localStorage.setItem('admin_language', lang);
+    setCurrentLang(lang);
+  };
+
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard') return 'Dashboard';
-    if (path === '/players' || path.startsWith('/players/')) return 'Players';
-    if (path === '/kyc') return 'KYC Management';
-    if (path === '/games') return 'Games Management';
-    if (path === '/bonuses' || path.startsWith('/bonuses/')) return 'Bonus Management';
-    if (path === '/segments' || path.startsWith('/segments/')) return 'Segmentation';
-    if (path === '/cms' || path.startsWith('/cms/')) return 'CMS Pages';
-    if (path === '/banners' || path.startsWith('/banners/')) return 'Hero Banners';
-    if (path === '/vip') return 'VIP Management';
-    if (path === '/reports') return 'Reports';
-    if (path === '/admins') return 'Admin Users';
-    if (path === '/casino-management') return 'Casino Management';
-    return 'Admin Panel';
+    if (path === '/dashboard') return t('pageTitles.dashboard');
+    if (path === '/players' || path.startsWith('/players/')) return t('pageTitles.players');
+    if (path === '/kyc') return t('pageTitles.kyc');
+    if (path === '/games') return t('pageTitles.games');
+    if (path === '/bonuses' || path.startsWith('/bonuses/')) return t('pageTitles.bonuses');
+    if (path === '/segments' || path.startsWith('/segments/')) return t('pageTitles.segments');
+    if (path === '/cms' || path.startsWith('/cms/')) return t('pageTitles.cms');
+    if (path === '/banners' || path.startsWith('/banners/')) return t('pageTitles.banners');
+    if (path === '/vip') return t('pageTitles.vip');
+    if (path === '/reports') return t('pageTitles.reports');
+    if (path === '/admins') return t('pageTitles.admins');
+    if (path === '/casino-management') return t('pageTitles.casinoManagement');
+    return t('pageTitles.adminPanel');
   };
 
   const closeMobileSidebar = () => setMobileSidebarOpen(false);
 
   return (
     <div className="admin-layout">
-      {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && <div className="sidebar-overlay" onClick={closeMobileSidebar} />}
 
-      {/* Sidebar */}
       <aside className={`sidebar ${mobileSidebarOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-logo">
-            {/* Logo removed - replaced with text below */}
-            {/* <img src={phibetLogo} alt="Neon Play" className="sidebar-logo-img" /> */}
             <span style={{fontSize: '18px', fontWeight: 'bold', color: '#f59e0b', display: 'block', paddingTop: '4px'}}>Neon Play</span>
           </div>
-          <div className="sidebar-subtitle">Admin Backoffice</div>
+          <div className="sidebar-subtitle">{t('layout.adminBackoffice')}</div>
         </div>
 
         <nav className="sidebar-nav">
@@ -115,7 +107,7 @@ const Layout = () => {
               className={`sidebar-section-title collapsible ${expandedSections.overview ? 'expanded' : ''}`}
               onClick={() => toggleSection('overview')}
             >
-              <span>Overview</span>
+              <span>{t('layout.overview')}</span>
               <svg className="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -130,7 +122,7 @@ const Layout = () => {
                     <rect x="3" y="14" width="7" height="7"/>
                   </svg>
                 </span>
-                Dashboard
+                {t('layout.dashboard')}
               </NavLink>
             </div>
           </div>
@@ -140,7 +132,7 @@ const Layout = () => {
               className={`sidebar-section-title collapsible ${expandedSections.management ? 'expanded' : ''}`}
               onClick={() => toggleSection('management')}
             >
-              <span>Management</span>
+              <span>{t('layout.management')}</span>
               <svg className="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -155,7 +147,7 @@ const Layout = () => {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
                 </span>
-                Players
+                {t('layout.players')}
               </NavLink>
               <NavLink to="/kyc" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -164,7 +156,7 @@ const Layout = () => {
                     <polyline points="9 12 11 14 15 10"/>
                   </svg>
                 </span>
-                KYC Verification
+                {t('layout.kycVerification')}
               </NavLink>
               <NavLink to="/games" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -173,7 +165,7 @@ const Layout = () => {
                     <polygon points="10 8 16 12 10 16 10 8"/>
                   </svg>
                 </span>
-                Games
+                {t('layout.games')}
               </NavLink>
               <NavLink to="/bonuses" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/bonuses/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -185,7 +177,7 @@ const Layout = () => {
                     <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
                   </svg>
                 </span>
-                Bonuses
+                {t('layout.bonuses')}
               </NavLink>
               <NavLink to="/segments" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/segments/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -196,7 +188,7 @@ const Layout = () => {
                     <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                   </svg>
                 </span>
-                Segmentation
+                {t('layout.segmentation')}
               </NavLink>
               <NavLink to="/vip" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -204,7 +196,7 @@ const Layout = () => {
                     <path d="M12 2L15 8L22 9L17 14L18 21L12 18L6 21L7 14L2 9L9 8L12 2Z"/>
                   </svg>
                 </span>
-                VIP
+                {t('layout.vip')}
               </NavLink>
               <NavLink to="/casino-management" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -214,7 +206,7 @@ const Layout = () => {
                     <line x1="12" y1="17" x2="12" y2="21"/>
                   </svg>
                 </span>
-                Casino Management
+                {t('layout.casinoManagement')}
               </NavLink>
               <NavLink to="/cms" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/cms/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -226,7 +218,7 @@ const Layout = () => {
                     <polyline points="10 9 9 9 8 9"/>
                   </svg>
                 </span>
-                CMS Pages
+                {t('layout.cmsPages')}
               </NavLink>
               <NavLink to="/banners" className={({ isActive }) => `sidebar-link ${isActive || location.pathname.startsWith('/banners/') ? 'active' : ''}`} onClick={closeMobileSidebar}>
                 <span className="sidebar-link-icon">
@@ -235,7 +227,7 @@ const Layout = () => {
                     <line x1="3" y1="10" x2="21" y2="10"/>
                   </svg>
                 </span>
-                Hero Banners
+                {t('layout.heroBanners')}
               </NavLink>
             </div>
           </div>
@@ -245,7 +237,7 @@ const Layout = () => {
               className={`sidebar-section-title collapsible ${expandedSections.analytics ? 'expanded' : ''}`}
               onClick={() => toggleSection('analytics')}
             >
-              <span>Analytics</span>
+              <span>{t('layout.analytics')}</span>
               <svg className="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="6 9 12 15 18 9"/>
               </svg>
@@ -259,7 +251,7 @@ const Layout = () => {
                     <line x1="6" y1="20" x2="6" y2="14"/>
                   </svg>
                 </span>
-                Reports
+                {t('layout.reports')}
               </NavLink>
             </div>
           </div>
@@ -270,7 +262,7 @@ const Layout = () => {
                 className={`sidebar-section-title collapsible ${expandedSections.settings ? 'expanded' : ''}`}
                 onClick={() => toggleSection('settings')}
               >
-                <span>Settings</span>
+                <span>{t('layout.settings')}</span>
                 <svg className="collapse-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="6 9 12 15 18 9"/>
                 </svg>
@@ -283,7 +275,7 @@ const Layout = () => {
                       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
                   </span>
-                  Admin Users
+                  {t('layout.adminUsers')}
                 </NavLink>
               </div>
             </div>
@@ -291,7 +283,6 @@ const Layout = () => {
         </nav>
       </aside>
 
-      {/* Main Content */}
       <main className="main-content">
         <div className="topbar">
           <button className="mobile-menu-btn" onClick={() => setMobileSidebarOpen(true)}>
@@ -303,6 +294,41 @@ const Layout = () => {
           </button>
           <div className="topbar-title">{getPageTitle()}</div>
           <div className="topbar-user">
+            {/* Language Switcher */}
+            <div style={{ display: 'flex', gap: '4px', marginRight: '12px' }}>
+              <button
+                onClick={() => handleLangChange('en')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  background: currentLang === 'en' ? '#f59e0b' : 'transparent',
+                  borderColor: currentLang === 'en' ? '#f59e0b' : 'rgba(255,255,255,0.2)',
+                  color: currentLang === 'en' ? '#000' : 'inherit',
+                  fontWeight: currentLang === 'en' ? '600' : '400',
+                }}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => handleLangChange('ko')}
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  border: '1px solid',
+                  fontSize: '0.8rem',
+                  cursor: 'pointer',
+                  background: currentLang === 'ko' ? '#f59e0b' : 'transparent',
+                  borderColor: currentLang === 'ko' ? '#f59e0b' : 'rgba(255,255,255,0.2)',
+                  color: currentLang === 'ko' ? '#000' : 'inherit',
+                  fontWeight: currentLang === 'ko' ? '600' : '400',
+                }}
+              >
+                한국어
+              </button>
+            </div>
             <div className="topbar-user-info">
               <div className="topbar-user-name">{admin?.firstName} {admin?.lastName}</div>
               <div className="topbar-user-role">{admin?.role?.replace('_', ' ')}</div>
@@ -313,7 +339,7 @@ const Layout = () => {
                 <polyline points="16 17 21 12 16 7"/>
                 <line x1="21" y1="12" x2="9" y2="12"/>
               </svg>
-              Logout
+              {t('layout.logout')}
             </button>
           </div>
         </div>

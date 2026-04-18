@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   getPlayerReport, getTransactionReport, getBankingReport,
@@ -5,6 +6,7 @@ import {
 } from '../services/api';
 
 const Reports = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('players');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -239,19 +241,19 @@ const Reports = () => {
       <div className="tabs-container">
         <div className="tabs">
           <button className={`tab ${activeTab === 'players' ? 'active' : ''}`} onClick={() => setActiveTab('players')}>
-            Player Management
+            {t('reports.playerReport')}
           </button>
           <button className={`tab ${activeTab === 'casino' ? 'active' : ''}`} onClick={() => setActiveTab('casino')}>
-            Casino Transactions
+            {t('reports.gameReport')}
           </button>
           <button className={`tab ${activeTab === 'banking' ? 'active' : ''}`} onClick={() => setActiveTab('banking')}>
-            Banking
+            {t('reports.bankingReport')}
           </button>
           <button className={`tab ${activeTab === 'bonus' ? 'active' : ''}`} onClick={() => setActiveTab('bonus')}>
-            Bonus
+            {t('reports.bonusReport')}
           </button>
           <button className={`tab ${activeTab === 'kyc' ? 'active' : ''}`} onClick={() => setActiveTab('kyc')}>
-            KYC
+            {t('kyc.title')}
           </button>
         </div>
       </div>

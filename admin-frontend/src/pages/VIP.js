@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import {
   getVipTiers,
@@ -7,6 +8,7 @@ import {
 } from '../services/api';
 
 const VIP = () => {
+  const { t } = useTranslation();
   const [tiers, setTiers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -74,7 +76,7 @@ const VIP = () => {
   if (loading) {
     return (
       <div className="page-container">
-        <div className="loading">Loading...</div>
+        <div className="loading">{t('common.loading')}</div>
       </div>
     );
   }
@@ -82,12 +84,12 @@ const VIP = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1>VIP Tiers</h1>
+        <h1>{t('vip.vipTiers')}</h1>
         <button
           onClick={() => { setEditingTier(null); setShowTierModal(true); }}
           className="btn btn-primary"
         >
-          Create New Tier
+          {t('vip.createNewTier')}
         </button>
       </div>
 

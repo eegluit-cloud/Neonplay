@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   getGames, getCategories, getProviders, getAggregators,
   updateGame, updateCategory, updateProvider, updateAggregator,
@@ -6,6 +7,7 @@ import {
 } from '../services/api';
 
 const Games = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('games');
   const [games, setGames] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -169,10 +171,10 @@ const Games = () => {
 
       {/* Tabs */}
       <div className="tabs">
-        <button className={`tab ${activeTab === 'games' ? 'active' : ''}`} onClick={() => setActiveTab('games')}>Games</button>
-        <button className={`tab ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>Categories</button>
-        <button className={`tab ${activeTab === 'providers' ? 'active' : ''}`} onClick={() => setActiveTab('providers')}>Providers</button>
-        <button className={`tab ${activeTab === 'aggregators' ? 'active' : ''}`} onClick={() => setActiveTab('aggregators')}>Aggregators</button>
+        <button className={`tab ${activeTab === 'games' ? 'active' : ''}`} onClick={() => setActiveTab('games')}>{t('layout.games')}</button>
+        <button className={`tab ${activeTab === 'categories' ? 'active' : ''}`} onClick={() => setActiveTab('categories')}>{t('games.categories')}</button>
+        <button className={`tab ${activeTab === 'providers' ? 'active' : ''}`} onClick={() => setActiveTab('providers')}>{t('games.providers')}</button>
+        <button className={`tab ${activeTab === 'aggregators' ? 'active' : ''}`} onClick={() => setActiveTab('aggregators')}>{t('games.aggregators')}</button>
       </div>
 
       {/* Games Tab */}
@@ -183,7 +185,7 @@ const Games = () => {
               <input
                 type="text"
                 className="form-input"
-                placeholder="Search games..."
+                placeholder={t('games.searchGames')}
                 value={filters.search}
                 onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                 style={{ flex: 2 }}
@@ -193,7 +195,7 @@ const Games = () => {
                 value={filters.providerId}
                 onChange={(e) => setFilters({ ...filters, providerId: e.target.value })}
               >
-                <option value="">All Providers</option>
+                <option value="">{t('games.allProviders')}</option>
                 {providers.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
               <select
@@ -201,7 +203,7 @@ const Games = () => {
                 value={filters.categoryId}
                 onChange={(e) => setFilters({ ...filters, categoryId: e.target.value })}
               >
-                <option value="">All Categories</option>
+                <option value="">{t('games.allCategories')}</option>
                 {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
               <select
@@ -209,9 +211,9 @@ const Games = () => {
                 value={filters.status}
                 onChange={(e) => setFilters({ ...filters, status: e.target.value })}
               >
-                <option value="">All Status</option>
-                <option value="active">Active</option>
-                <option value="disabled">Disabled</option>
+                <option value="">{t('games.allStatus')}</option>
+                <option value="active">{t('common.active')}</option>
+                <option value="disabled">{t('common.disabled')}</option>
               </select>
             </div>
           </div>
@@ -224,11 +226,11 @@ const Games = () => {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Game</th>
-                      <th>Provider</th>
-                      <th>RTP</th>
-                      <th>Status</th>
-                      <th>Actions</th>
+                      <th>{t('games.game')}</th>
+                      <th>{t('games.provider')}</th>
+                      <th>{t('games.rtp')}</th>
+                      <th>{t('common.status')}</th>
+                      <th>{t('common.actions')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -250,7 +252,7 @@ const Games = () => {
                             onClick={() => handleUpdateGame(game.id, { status: game.status === 'active' ? 'disabled' : 'active' })}
                             className={`btn btn-sm ${game.status === 'active' ? 'btn-danger' : 'btn-success'}`}
                           >
-                            {game.status === 'active' ? 'Disable' : 'Enable'}
+                            {game.status === 'active' ? t('common.disable') : t('common.enable')}
                           </button>
                         </td>
                       </tr>
@@ -274,19 +276,19 @@ const Games = () => {
       {activeTab === 'categories' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Categories</h3>
-            <button className="btn btn-primary" onClick={() => setShowModal('category')}>Add Category</button>
+            <h3 className="card-title">{t('games.categories')}</h3>
+            <button className="btn btn-primary" onClick={() => setShowModal('category')}>{t('games.addCategory')}</button>
           </div>
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Order</th>
-                  <th>Category</th>
-                  <th>Type</th>
-                  <th>Games</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t('common.order')}</th>
+                  <th>{t('games.categories')}</th>
+                  <th>{t('common.type')}</th>
+                  <th>{t('common.games')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -318,18 +320,18 @@ const Games = () => {
       {activeTab === 'providers' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Providers</h3>
+            <h3 className="card-title">{t('games.providers')}</h3>
           </div>
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Provider</th>
-                  <th>Aggregator</th>
-                  <th>Commission</th>
-                  <th>Games</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t('games.provider')}</th>
+                  <th>{t('games.aggregator')}</th>
+                  <th>{t('games.commission')}</th>
+                  <th>{t('common.games')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -360,7 +362,7 @@ const Games = () => {
       {activeTab === 'aggregators' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Aggregators</h3>
+            <h3 className="card-title">{t('games.aggregators')}</h3>
           </div>
           <div className="table-container">
             <table className="table">
@@ -401,29 +403,29 @@ const Games = () => {
         <div className="modal-overlay" onClick={() => setShowModal(null)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Add Category</h3>
+              <h3 className="modal-title">{t('games.addCategory')}</h3>
               <button className="modal-close" onClick={() => setShowModal(null)}>×</button>
             </div>
             <form onSubmit={handleCreateCategory}>
               <div className="form-group">
-                <label className="form-label">Name</label>
+                <label className="form-label">{t('common.name')}</label>
                 <input type="text" name="name" className="form-input" required />
               </div>
               <div className="form-group">
-                <label className="form-label">Slug</label>
+                <label className="form-label">{t('common.slug')}</label>
                 <input type="text" name="slug" className="form-input" pattern="[a-z0-9-]+" required />
               </div>
               <div className="form-group">
-                <label className="form-label">Icon (emoji)</label>
+                <label className="form-label">{t('games.categoryIcon')}</label>
                 <input type="text" name="icon" className="form-input" />
               </div>
               <div className="form-group">
-                <label className="form-label">Description</label>
+                <label className="form-label">{t('common.description')}</label>
                 <textarea name="description" className="form-input" rows="3" />
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(null)}>Cancel</button>
-                <button type="submit" className="btn btn-primary">Create</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(null)}>{t('common.cancel')}</button>
+                <button type="submit" className="btn btn-primary">{t('common.create')}</button>
               </div>
             </form>
           </div>

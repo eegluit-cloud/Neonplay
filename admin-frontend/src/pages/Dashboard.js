@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getDashboardSummary } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const Dashboard = () => {
   const { admin } = useAuth();
+  const { t } = useTranslation();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,7 +28,7 @@ const Dashboard = () => {
       setLoading(false);
     } catch (err) {
       console.error('Dashboard load error:', err);
-      setError(err.message || 'Failed to load dashboard');
+      setError(err.message || t('dashboard.failedToLoad'));
       setLoading(false);
     }
   };
@@ -141,10 +143,10 @@ const Dashboard = () => {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
             </svg>
-            Dashboard
+            {t('layout.dashboard')}
           </div>
-          <h1 className="welcome-title">{getGreeting()}, {admin?.firstName || 'Admin'}</h1>
-          <p className="welcome-subtitle">Here's what's happening in your casino today</p>
+          <h1 className="welcome-title">{t('dashboard.welcome')}, {admin?.firstName || 'Admin'}</h1>
+          <p className="welcome-subtitle">{t('dashboard.chartRevenue')}</p>
         </div>
         {getTotalAlerts() > 0 && (
           <div className="alert-badge">
@@ -198,7 +200,7 @@ const Dashboard = () => {
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
             </svg>
           </div>
-          <span>Review Withdrawals</span>
+          <span>{t('players.title')}</span>
           {data?.pendingWithdrawals?.count > 0 && <span className="action-badge">{data.pendingWithdrawals.count}</span>}
         </Link>
         <Link to="/kyc" className="quick-action-btn">
@@ -207,7 +209,7 @@ const Dashboard = () => {
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
-          <span>Pending KYC</span>
+          <span>{t('dashboard.pendingKyc')}</span>
           {data?.pendingKyc?.count > 0 && <span className="action-badge">{data.pendingKyc.count}</span>}
         </Link>
         <Link to="/players" className="quick-action-btn">
@@ -217,7 +219,7 @@ const Dashboard = () => {
               <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
             </svg>
           </div>
-          <span>Risk Alerts</span>
+          <span>{t('dashboard.recentActivity')}</span>
         </Link>
         <Link to="/bonuses" className="quick-action-btn">
           <div className="quick-action-icon green">
@@ -225,7 +227,7 @@ const Dashboard = () => {
               <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/>
             </svg>
           </div>
-          <span>Manage Bonuses</span>
+          <span>{t('layout.bonuses')}</span>
           <span className="action-badge success">{data?.totalActiveBonuses}</span>
         </Link>
         <Link to="/games" className="quick-action-btn">
@@ -234,7 +236,7 @@ const Dashboard = () => {
               <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
             </svg>
           </div>
-          <span>Game Management</span>
+          <span>{t('layout.games')}</span>
         </Link>
         <Link to="/reports" className="quick-action-btn">
           <div className="quick-action-icon orange">
@@ -242,19 +244,19 @@ const Dashboard = () => {
               <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
             </svg>
           </div>
-          <span>View Reports</span>
+          <span>{t('dashboard.viewReports')}</span>
         </Link>
       </div>
 
       {/* Key Metrics Section */}
       <div className="section-header">
-        <h2 className="section-title">Key Metrics</h2>
+        <h2 className="section-title">{t('dashboard.topGames')}</h2>
       </div>
 
       <div className="metrics-grid">
         <div className="metric-card">
           <div className="metric-header">
-            <span className="metric-label">Total Players</span>
+            <span className="metric-label">{t('dashboard.totalPlayers')}</span>
             <div className="metric-icon blue">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
@@ -269,7 +271,7 @@ const Dashboard = () => {
 
         <div className="metric-card highlight">
           <div className="metric-header">
-            <span className="metric-label">Today's Revenue</span>
+            <span className="metric-label">{t('dashboard.revenue')}</span>
             <div className="metric-icon green">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
@@ -283,7 +285,7 @@ const Dashboard = () => {
 
         <div className="metric-card">
           <div className="metric-header">
-            <span className="metric-label">Today's Deposits</span>
+            <span className="metric-label">{t('dashboard.newDeposits')}</span>
             <div className="metric-icon cyan">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
@@ -297,7 +299,7 @@ const Dashboard = () => {
 
         <div className="metric-card">
           <div className="metric-header">
-            <span className="metric-label">Today's Withdrawals</span>
+            <span className="metric-label">{t('dashboard.totalWithdrawals')}</span>
             <div className="metric-icon orange">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -311,7 +313,7 @@ const Dashboard = () => {
 
         <div className="metric-card">
           <div className="metric-header">
-            <span className="metric-label">Total GGR</span>
+            <span className="metric-label">{t('dashboard.totalGGR')}</span>
             <div className="metric-icon red">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
@@ -325,7 +327,7 @@ const Dashboard = () => {
 
         <div className="metric-card highlight-teal">
           <div className="metric-header">
-            <span className="metric-label">Total NGR</span>
+            <span className="metric-label">{t('dashboard.totalNGR')}</span>
             <div className="metric-icon teal">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
@@ -346,7 +348,7 @@ const Dashboard = () => {
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
           </div>
-          <div><span className="metric-label-sm">Pending KYC</span><div className="metric-value-sm">{data?.pendingKyc?.count?.toLocaleString()}</div></div>
+          <div><span className="metric-label-sm">{t('dashboard.pendingKyc')}</span><div className="metric-value-sm">{data?.pendingKyc?.count?.toLocaleString()}</div></div>
         </div>
         <div className="metric-card-sm">
           <div className="metric-icon-sm warning">
@@ -354,7 +356,7 @@ const Dashboard = () => {
               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             </svg>
           </div>
-          <div><span className="metric-label-sm">Pending Withdrawals</span><div className="metric-value-sm">{data?.pendingWithdrawals?.count}</div></div>
+          <div><span className="metric-label-sm">{t('dashboard.pendingWithdrawals')}</span><div className="metric-value-sm">{data?.pendingWithdrawals?.count}</div></div>
         </div>
         <div className="metric-card-sm">
           <div className="metric-icon-sm success">
@@ -362,7 +364,7 @@ const Dashboard = () => {
               <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/>
             </svg>
           </div>
-          <div><span className="metric-label-sm">Active Bonuses</span><div className="metric-value-sm">{data?.activeBonuses?.count}</div></div>
+          <div><span className="metric-label-sm">{t('dashboard.activeBonuses')}</span><div className="metric-value-sm">{data?.activeBonuses?.count}</div></div>
         </div>
         <div className="metric-card-sm">
           <div className="metric-icon-sm purple">
@@ -370,21 +372,21 @@ const Dashboard = () => {
               <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
             </svg>
           </div>
-          <div><span className="metric-label-sm">Total Games</span><div className="metric-value-sm">{data?.totalGames}</div></div>
+          <div><span className="metric-label-sm">{t('reports.totalBets')}</span><div className="metric-value-sm">{data?.totalGames}</div></div>
         </div>
       </div>
 
       {/* Revenue & Games Section */}
-      <div className="section-header"><h2 className="section-title">Revenue & Games</h2></div>
+      <div className="section-header"><h2 className="section-title">{t('dashboard.revenue')}</h2></div>
 
       <div className="revenue-games-grid">
         <div className="card revenue-card">
           <div className="card-header">
-            <div><h3 className="card-title">Revenue Overview</h3><p className="card-subtitle">GGR and deposits over time</p></div>
+            <div><h3 className="card-title">{t('dashboard.chartRevenue')}</h3><p className="card-subtitle">GGR</p></div>
             <div className="period-selector">
-              <button className={`period-btn ${chartPeriod === '7' ? 'active' : ''}`} onClick={() => setChartPeriod('7')}>7 Days</button>
-              <button className={`period-btn ${chartPeriod === '14' ? 'active' : ''}`} onClick={() => setChartPeriod('14')}>14 Days</button>
-              <button className={`period-btn ${chartPeriod === '30' ? 'active' : ''}`} onClick={() => setChartPeriod('30')}>30 Days</button>
+              <button className={`period-btn ${chartPeriod === '7' ? 'active' : ''}`} onClick={() => setChartPeriod('7')}>{t('dashboard.period7')}</button>
+              <button className={`period-btn ${chartPeriod === '14' ? 'active' : ''}`} onClick={() => setChartPeriod('14')}>14</button>
+              <button className={`period-btn ${chartPeriod === '30' ? 'active' : ''}`} onClick={() => setChartPeriod('30')}>{t('dashboard.period30')}</button>
             </div>
           </div>
           <div className="revenue-summary">
@@ -392,13 +394,13 @@ const Dashboard = () => {
               <div className="revenue-stat-icon green">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
               </div>
-              <div><span className="revenue-stat-label">Total GGR</span><div className="revenue-stat-value">{formatCurrency(data?.totalGGR)}</div><span className="revenue-stat-change positive">+12.4%</span></div>
+              <div><span className="revenue-stat-label">{t('dashboard.totalGGR')}</span><div className="revenue-stat-value">{formatCurrency(data?.totalGGR)}</div><span className="revenue-stat-change positive">+12.4%</span></div>
             </div>
             <div className="revenue-stat">
               <div className="revenue-stat-icon blue">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
               </div>
-              <div><span className="revenue-stat-label">Total Deposits</span><div className="revenue-stat-value">{formatCurrency(data?.totalDeposits)}</div><span className="revenue-stat-change positive">+8.7%</span></div>
+              <div><span className="revenue-stat-label">{t('dashboard.totalDeposits')}</span><div className="revenue-stat-value">{formatCurrency(data?.totalDeposits)}</div><span className="revenue-stat-change positive">+8.7%</span></div>
             </div>
           </div>
           <div className="chart-container">
@@ -411,14 +413,14 @@ const Dashboard = () => {
                   </div>
                 ))}
               </div>
-            ) : <div className="empty-state">No data</div>}
+            ) : <div className="empty-state">{t('dashboard.noData')}</div>}
           </div>
         </div>
 
         <div className="card top-games-card">
           <div className="card-header">
-            <div><h3 className="card-title">Top Games</h3><p className="card-subtitle">Real-time performance</p></div>
-            <Link to="/games" className="view-all-link">View All</Link>
+            <div><h3 className="card-title">{t('dashboard.topGames')}</h3><p className="card-subtitle">Real-time</p></div>
+            <Link to="/games" className="view-all-link">{t('dashboard.viewReports')}</Link>
           </div>
           <div className="top-games-list">
             {data?.topGames?.map((game, index) => (
@@ -436,13 +438,13 @@ const Dashboard = () => {
       </div>
 
       {/* Financial & Activity Section */}
-      <div className="section-header"><h2 className="section-title">Financial Overview & Activity</h2></div>
+      <div className="section-header"><h2 className="section-title">{t('dashboard.totalDeposits')}</h2></div>
 
       <div className="dashboard-bottom-grid">
         {/* Financial Summary */}
         <div className="card financial-summary-card">
           <div className="card-header">
-            <div><h3 className="card-title">Financial Summary</h3><p className="card-subtitle">All-time balances</p></div>
+            <div><h3 className="card-title">{t('reports.bankingReport')}</h3><p className="card-subtitle"></p></div>
           </div>
           <div className="financial-stats">
             <div className="financial-stat">
@@ -452,7 +454,7 @@ const Dashboard = () => {
                 </svg>
               </div>
               <div className="financial-stat-info">
-                <span className="financial-stat-label">Total Deposits</span>
+                <span className="financial-stat-label">{t('reports.totalDeposits')}</span>
                 <span className="financial-stat-value">{formatCurrency(data?.totalDeposits)}</span>
               </div>
             </div>
@@ -463,7 +465,7 @@ const Dashboard = () => {
                 </svg>
               </div>
               <div className="financial-stat-info">
-                <span className="financial-stat-label">Total Withdrawals</span>
+                <span className="financial-stat-label">{t('reports.totalWithdrawals')}</span>
                 <span className="financial-stat-value">{formatCurrency(data?.totalWithdrawals)}</span>
               </div>
             </div>
@@ -474,7 +476,7 @@ const Dashboard = () => {
                 </svg>
               </div>
               <div className="financial-stat-info">
-                <span className="financial-stat-label">Net Cashflow</span>
+                <span className="financial-stat-label">{t('reports.netRevenue')}</span>
                 <span className="financial-stat-value positive">{formatCurrency(data?.netCashflow)}</span>
               </div>
             </div>
@@ -485,7 +487,7 @@ const Dashboard = () => {
                 </svg>
               </div>
               <div className="financial-stat-info">
-                <span className="financial-stat-label">Player Balances</span>
+                <span className="financial-stat-label">{t('players.balance')}</span>
                 <span className="financial-stat-value">{formatCurrency(data?.totalBalance?.total)}</span>
               </div>
             </div>
@@ -496,7 +498,7 @@ const Dashboard = () => {
                 </svg>
               </div>
               <div className="financial-stat-info">
-                <span className="financial-stat-label">Bonus Liability</span>
+                <span className="financial-stat-label">{t('players.bonus')}</span>
                 <span className="financial-stat-value">{formatCurrency(data?.totalBonusBalance?.total)}</span>
               </div>
             </div>
@@ -507,7 +509,7 @@ const Dashboard = () => {
                 </svg>
               </div>
               <div className="financial-stat-info">
-                <span className="financial-stat-label">Avg. Balance</span>
+                <span className="financial-stat-label">{t('players.balance')}</span>
                 <span className="financial-stat-value">{formatCurrency(data?.avgPlayerBalance)}</span>
               </div>
             </div>
@@ -517,8 +519,8 @@ const Dashboard = () => {
         {/* Recent Activity */}
         <div className="card recent-activity-card">
           <div className="card-header">
-            <div><h3 className="card-title">Recent Activity</h3><p className="card-subtitle">Latest transactions</p></div>
-            <Link to="/reports" className="view-all-link">View All</Link>
+            <div><h3 className="card-title">{t('dashboard.recentActivity')}</h3><p className="card-subtitle"></p></div>
+            <Link to="/reports" className="view-all-link">{t('dashboard.viewReports')}</Link>
           </div>
           <div className="activity-feed">
             {recentActivity.map(activity => (
@@ -560,31 +562,31 @@ const Dashboard = () => {
         {/* Conversion Metrics */}
         <div className="card conversion-card">
           <div className="card-header">
-            <div><h3 className="card-title">Conversion Metrics</h3><p className="card-subtitle">Player funnel</p></div>
+            <div><h3 className="card-title">{t('reports.playerReport')}</h3><p className="card-subtitle"></p></div>
           </div>
           <div className="conversion-metrics">
             <div className="conversion-metric">
-              <div className="conversion-label">Total Registered</div>
+              <div className="conversion-label">{t('dashboard.totalPlayers')}</div>
               <div className="conversion-value">{data?.totalPlayers?.count}</div>
               <div className="conversion-bar"><div className="conversion-fill" style={{width: '100%'}}></div></div>
             </div>
             <div className="conversion-metric">
-              <div className="conversion-label">Active Players</div>
+              <div className="conversion-label">{t('dashboard.activePlayers')}</div>
               <div className="conversion-value">{data?.activePlayers?.count}</div>
               <div className="conversion-bar"><div className="conversion-fill" style={{width: `${(data?.activePlayers?.count / data?.totalPlayers?.count) * 100}%`}}></div></div>
             </div>
             <div className="conversion-metric">
-              <div className="conversion-label">KYC Verified</div>
+              <div className="conversion-label">{t('kyc.verifiedPlayers')}</div>
               <div className="conversion-value">{data?.verifiedPlayers?.count} <span className="conversion-rate">({data?.kycConversion}%)</span></div>
               <div className="conversion-bar"><div className="conversion-fill green" style={{width: `${data?.kycConversion}%`}}></div></div>
             </div>
             <div className="conversion-metric">
-              <div className="conversion-label">Made Deposit</div>
+              <div className="conversion-label">{t('dashboard.newDeposits')}</div>
               <div className="conversion-value"><span className="conversion-rate">{data?.depositConversion}%</span></div>
               <div className="conversion-bar"><div className="conversion-fill blue" style={{width: `${data?.depositConversion}%`}}></div></div>
             </div>
             <div className="conversion-metric warning">
-              <div className="conversion-label">Blocked Players</div>
+              <div className="conversion-label">{t('common.blocked')}</div>
               <div className="conversion-value">{data?.blockedPlayers?.count}</div>
               <div className="conversion-bar"><div className="conversion-fill red" style={{width: `${(data?.blockedPlayers?.count / data?.totalPlayers?.count) * 100}%`}}></div></div>
             </div>

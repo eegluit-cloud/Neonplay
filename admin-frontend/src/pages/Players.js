@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getPlayers, updatePlayerStatus } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const Players = () => {
+  const { t } = useTranslation();
   const [players, setPlayers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -218,31 +220,31 @@ const Players = () => {
           className={`quick-filter ${!filters.status && !filters.kycStatus ? 'active' : ''}`}
           onClick={() => { setFilters({ ...filters, status: '', kycStatus: '' }); setPagination({ ...pagination, page: 1 }); }}
         >
-          All Players
+          {t('players.allPlayers')}
         </button>
         <button
           className={`quick-filter ${filters.status === 'active' && !filters.kycStatus ? 'active' : ''}`}
           onClick={() => { setFilters({ ...filters, status: 'active', kycStatus: '' }); setPagination({ ...pagination, page: 1 }); }}
         >
-          Active
+          {t('common.active')}
         </button>
         <button
           className={`quick-filter ${filters.status === 'blocked' && !filters.kycStatus ? 'active' : ''}`}
           onClick={() => { setFilters({ ...filters, status: 'blocked', kycStatus: '' }); setPagination({ ...pagination, page: 1 }); }}
         >
-          Blocked
+          {t('common.blocked')}
         </button>
         <button
           className={`quick-filter ${filters.kycStatus === 'pending' && !filters.status ? 'active' : ''}`}
           onClick={() => { setFilters({ ...filters, status: '', kycStatus: 'pending' }); setPagination({ ...pagination, page: 1 }); }}
         >
-          KYC Pending
+          {t('players.kycPending')}
         </button>
         <button
           className={`quick-filter ${filters.kycStatus === 'verified' && !filters.status ? 'active' : ''}`}
           onClick={() => { setFilters({ ...filters, status: '', kycStatus: 'verified' }); setPagination({ ...pagination, page: 1 }); }}
         >
-          KYC Verified
+          {t('players.kycVerified')}
         </button>
       </div>
 
@@ -253,7 +255,7 @@ const Players = () => {
             <input
               type="text"
               className="form-input"
-              placeholder="Search by ID, email, name, or phone..."
+              placeholder={t('players.searchPlaceholder')}
               value={filters.search}
               onChange={(e) => handleFilterChange('search', e.target.value)}
             />
@@ -264,10 +266,10 @@ const Players = () => {
               value={filters.status}
               onChange={(e) => handleFilterChange('status', e.target.value)}
             >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="blocked">Blocked</option>
-              <option value="suspended">Suspended</option>
+              <option value="">{t('players.allStatus')}</option>
+              <option value="active">{t('common.active')}</option>
+              <option value="blocked">{t('common.blocked')}</option>
+              <option value="suspended">{t('common.suspended')}</option>
             </select>
           </div>
           <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
@@ -276,11 +278,11 @@ const Players = () => {
               value={filters.kycStatus}
               onChange={(e) => handleFilterChange('kycStatus', e.target.value)}
             >
-              <option value="">All KYC</option>
-              <option value="pending">Pending</option>
-              <option value="verified">Verified</option>
-              <option value="rejected">Rejected</option>
-              <option value="under_review">Under Review</option>
+              <option value="">{t('players.allKyc')}</option>
+              <option value="pending">{t('common.pending')}</option>
+              <option value="verified">{t('common.verified')}</option>
+              <option value="rejected">{t('common.rejected')}</option>
+              <option value="under_review">{t('players.underReview')}</option>
             </select>
           </div>
           <button
@@ -300,7 +302,7 @@ const Players = () => {
           <div className="advanced-filters">
             <div className="form-inline" style={{ marginTop: '15px' }}>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                <label className="form-label-sm">Min Balance</label>
+                <label className="form-label-sm">{t('players.minBalance')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -310,7 +312,7 @@ const Players = () => {
                 />
               </div>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                <label className="form-label-sm">Max Balance</label>
+                <label className="form-label-sm">{t('players.maxBalance')}</label>
                 <input
                   type="number"
                   className="form-input"
@@ -320,7 +322,7 @@ const Players = () => {
                 />
               </div>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                <label className="form-label-sm">Registered From</label>
+                <label className="form-label-sm">{t('players.registeredFrom')}</label>
                 <input
                   type="date"
                   className="form-input"
@@ -329,7 +331,7 @@ const Players = () => {
                 />
               </div>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                <label className="form-label-sm">Registered To</label>
+                <label className="form-label-sm">{t('players.registeredTo')}</label>
                 <input
                   type="date"
                   className="form-input"
@@ -338,31 +340,31 @@ const Players = () => {
                 />
               </div>
               <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-                <label className="form-label-sm">Sort By</label>
+                <label className="form-label-sm">{t('players.sortBy')}</label>
                 <select
                   className="form-select"
                   value={filters.sortBy}
                   onChange={(e) => handleFilterChange('sortBy', e.target.value)}
                 >
-                  <option value="createdAt">Registration Date</option>
-                  <option value="lastLogin">Last Login</option>
-                  <option value="balance">Balance</option>
-                  <option value="bonusBalance">Bonus Balance</option>
+                  <option value="createdAt">{t('players.registrationDate')}</option>
+                  <option value="lastLogin">{t('players.lastLogin')}</option>
+                  <option value="balance">{t('players.balance')}</option>
+                  <option value="bonusBalance">{t('players.bonusBalance')}</option>
                 </select>
               </div>
               <div className="form-group" style={{ flex: 0.5, marginBottom: 0 }}>
-                <label className="form-label-sm">Order</label>
+                <label className="form-label-sm">{t('players.order')}</label>
                 <select
                   className="form-select"
                   value={filters.sortOrder}
                   onChange={(e) => handleFilterChange('sortOrder', e.target.value)}
                 >
-                  <option value="desc">Desc</option>
-                  <option value="asc">Asc</option>
+                  <option value="desc">{t('players.desc')}</option>
+                  <option value="asc">{t('players.asc')}</option>
                 </select>
               </div>
               <button className="btn btn-secondary btn-sm" onClick={clearFilters} style={{ alignSelf: 'flex-end' }}>
-                Clear All
+                {t('common.clearAll')}
               </button>
             </div>
           </div>
@@ -372,26 +374,26 @@ const Players = () => {
       {/* Bulk Actions Bar */}
       {selectedPlayers.length > 0 && (
         <div className="bulk-actions-bar">
-          <span className="bulk-count">{selectedPlayers.length} player(s) selected</span>
+          <span className="bulk-count">{selectedPlayers.length} {t('players.selected')}</span>
           <div className="bulk-buttons">
             <button className="btn btn-sm btn-success" onClick={() => { setBulkAction('activate'); setShowBulkModal(true); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-              Activate
+              {t('players.activate')}
             </button>
             <button className="btn btn-sm btn-warning" onClick={() => { setBulkAction('suspend'); setShowBulkModal(true); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
-              Suspend
+              {t('players.suspend')}
             </button>
             <button className="btn btn-sm btn-danger" onClick={() => { setBulkAction('block'); setShowBulkModal(true); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
-              Block
+              {t('players.block')}
             </button>
             <button className="btn btn-sm btn-secondary" onClick={handleExport}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Export Selected
+              {t('players.exportSelected')}
             </button>
             <button className="btn btn-sm btn-secondary" onClick={() => setSelectedPlayers([])}>
-              Clear Selection
+              {t('common.clearSelection')}
             </button>
           </div>
         </div>
@@ -400,7 +402,7 @@ const Players = () => {
       {/* Players Table */}
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">Players ({pagination.total})</h3>
+          <h3 className="card-title">{t('players.title')} ({pagination.total})</h3>
           <div className="card-header-actions">
             <button className="btn btn-secondary btn-sm" onClick={handleExport}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -408,7 +410,7 @@ const Players = () => {
                 <polyline points="7 10 12 15 17 10"/>
                 <line x1="12" y1="15" x2="12" y2="3"/>
               </svg>
-              Export All
+              {t('players.exportAll')}
             </button>
           </div>
         </div>
@@ -430,13 +432,13 @@ const Players = () => {
                       className="table-checkbox"
                     />
                   </th>
-                  <th>Player</th>
-                  <th>Balance</th>
-                  <th>Bonus</th>
-                  <th>Status</th>
-                  <th>KYC</th>
-                  <th>Registered</th>
-                  <th>Actions</th>
+                  <th>{t('players.player')}</th>
+                  <th>{t('players.balance')}</th>
+                  <th>{t('players.bonus')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('players.kyc')}</th>
+                  <th>{t('common.registered')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -489,21 +491,21 @@ const Players = () => {
                     <td>
                       <div className="table-actions">
                         <Link to={`/players/${player.id}`} className="btn btn-sm btn-primary">
-                          View
+                          {t('common.view')}
                         </Link>
                         {player.status === 'active' ? (
                           <button
                             onClick={() => handleStatusChange(player.id, 'blocked')}
                             className="btn btn-sm btn-danger"
                           >
-                            Block
+                            {t('players.block')}
                           </button>
                         ) : (
                           <button
                             onClick={() => handleStatusChange(player.id, 'active')}
                             className="btn btn-sm btn-success"
                           >
-                            Unblock
+                            {t('players.unblock')}
                           </button>
                         )}
                       </div>
@@ -515,7 +517,7 @@ const Players = () => {
           </div>
         ) : (
           <div className="empty-state">
-            <p>No players found</p>
+            <p>{t('players.noPlayersFound')}</p>
           </div>
         )}
 
@@ -526,16 +528,16 @@ const Players = () => {
               disabled={pagination.page === 1}
               onClick={() => setPagination({ ...pagination, page: pagination.page - 1 })}
             >
-              Previous
+              {t('common.previous')}
             </button>
             <span style={{ padding: '8px 14px', color: 'var(--gray)' }}>
-              Page {pagination.page} of {pagination.pages}
+              {t('common.page')} {pagination.page} {t('common.of')} {pagination.pages}
             </span>
             <button
               disabled={pagination.page === pagination.pages}
               onClick={() => setPagination({ ...pagination, page: pagination.page + 1 })}
             >
-              Next
+              {t('common.next')}
             </button>
           </div>
         )}
@@ -546,7 +548,7 @@ const Players = () => {
         <div className="modal-overlay" onClick={() => setShowBulkModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Confirm Bulk Action</h3>
+              <h3 className="modal-title">{t('players.confirmBulkAction')}</h3>
               <button className="modal-close" onClick={() => setShowBulkModal(false)}>×</button>
             </div>
             <div className="modal-body">
@@ -560,17 +562,17 @@ const Players = () => {
                     <line x1="12" y1="9" x2="12" y2="13"/>
                     <line x1="12" y1="17" x2="12.01" y2="17"/>
                   </svg>
-                  This action will immediately affect all selected players.
+                  {t('players.bulkActionWarning')}
                 </div>
               )}
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowBulkModal(false)}>Cancel</button>
+              <button className="btn btn-secondary" onClick={() => setShowBulkModal(false)}>{t('common.cancel')}</button>
               <button
                 className={`btn ${bulkAction === 'activate' ? 'btn-success' : bulkAction === 'suspend' ? 'btn-warning' : 'btn-danger'}`}
                 onClick={handleBulkAction}
               >
-                {bulkAction === 'activate' ? 'Activate' : bulkAction === 'suspend' ? 'Suspend' : 'Block'} Players
+                {bulkAction === 'activate' ? t('players.activatePlayers') : bulkAction === 'suspend' ? t('players.suspendPlayers') : t('players.blockPlayers')}
               </button>
             </div>
           </div>

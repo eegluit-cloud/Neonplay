@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getKycStats, getKycQueue, reviewDocument } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const KYC = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({});
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -90,19 +92,19 @@ const KYC = () => {
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-title">Pending Documents</div>
+          <div className="stat-card-title">{t('kyc.pendingDocuments')}</div>
           <div className="stat-card-value" style={{ color: 'var(--warning)' }}>{stats.pending_documents || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-title">Verified Players</div>
+          <div className="stat-card-title">{t('kyc.verifiedPlayers')}</div>
           <div className="stat-card-value" style={{ color: 'var(--success)' }}>{stats.verified_players || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-title">Under Review</div>
+          <div className="stat-card-title">{t('kyc.underReview')}</div>
           <div className="stat-card-value">{stats.under_review_players || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-title">Rejected</div>
+          <div className="stat-card-title">{t('kyc.rejected')}</div>
           <div className="stat-card-value" style={{ color: 'var(--danger)' }}>{stats.rejected_players || 0}</div>
         </div>
       </div>
@@ -113,26 +115,26 @@ const KYC = () => {
           className={`quick-filter ${status === 'pending' ? 'active' : ''}`}
           onClick={() => { setStatus('pending'); setPagination({ ...pagination, page: 1 }); }}
         >
-          Pending ({stats.pending_documents || 0})
+          {t('common.pending')} ({stats.pending_documents || 0})
         </button>
         <button
           className={`quick-filter ${status === 'verified' ? 'active' : ''}`}
           onClick={() => { setStatus('verified'); setPagination({ ...pagination, page: 1 }); }}
         >
-          Verified
+          {t('common.verified')}
         </button>
         <button
           className={`quick-filter ${status === 'rejected' ? 'active' : ''}`}
           onClick={() => { setStatus('rejected'); setPagination({ ...pagination, page: 1 }); }}
         >
-          Rejected
+          {t('common.rejected')}
         </button>
       </div>
 
       {/* Documents Queue */}
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">KYC Documents</h3>
+          <h3 className="card-title">{t('kyc.kycDocuments')}</h3>
         </div>
 
         {loading ? (
@@ -144,11 +146,11 @@ const KYC = () => {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Player</th>
-                  <th>Document Type</th>
-                  <th>Status</th>
-                  <th>Uploaded</th>
-                  <th>Actions</th>
+                  <th>{t('players.player')}</th>
+                  <th>{t('kyc.documentType')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('kyc.uploaded')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -170,7 +172,7 @@ const KYC = () => {
                     <td>
                       <div className="table-actions">
                         <button onClick={() => setSelectedDoc(doc)} className="btn btn-sm btn-primary">
-                          Review
+                          {t('kyc.reviewDocument')}
                         </button>
                       </div>
                     </td>
@@ -181,7 +183,7 @@ const KYC = () => {
           </div>
         ) : (
           <div className="empty-state">
-            <p>No documents to review</p>
+            <p>{t('kyc.noDocuments')}</p>
           </div>
         )}
 
@@ -211,25 +213,25 @@ const KYC = () => {
         <div className="modal-overlay" onClick={() => setSelectedDoc(null)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
             <div className="modal-header">
-              <h3 className="modal-title">Review Document</h3>
+              <h3 className="modal-title">{t('kyc.reviewDocument')}</h3>
               <button className="modal-close" onClick={() => setSelectedDoc(null)}>×</button>
             </div>
 
             <div className="grid grid-2 gap-2 mb-2">
               <div>
-                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>Player</div>
+                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>{t('players.player')}</div>
                 <div>{selectedDoc.playerName || selectedDoc.playerEmail}</div>
               </div>
               <div>
-                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>Document Type</div>
+                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>{t('kyc.documentType')}</div>
                 <div>{getDocTypeLabel(selectedDoc.documentType)}</div>
               </div>
               <div>
-                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>Uploaded</div>
+                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>{t('kyc.uploaded')}</div>
                 <div>{formatDate(selectedDoc.submittedAt)}</div>
               </div>
               <div>
-                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>Status</div>
+                <div style={{ color: 'var(--gray)', marginBottom: '5px' }}>{t('common.status')}</div>
                 <span className={`badge badge-${selectedDoc.status === 'approved' ? 'success' : selectedDoc.status === 'rejected' ? 'danger' : 'warning'}`}>
                   {selectedDoc.status}
                 </span>
@@ -254,22 +256,22 @@ const KYC = () => {
             {selectedDoc.status === 'pending' && (
               <>
                 <div className="form-group">
-                  <label className="form-label">Review Notes</label>
+                  <label className="form-label">{t('kyc.reviewNotes')}</label>
                   <textarea
                     className="form-input"
                     rows="3"
                     value={reviewNotes}
                     onChange={(e) => setReviewNotes(e.target.value)}
-                    placeholder="Add notes about this document..."
+                    placeholder={t('kyc.addReviewNotes')}
                   />
                 </div>
 
                 <div className="modal-footer">
                   <button className="btn btn-danger" onClick={() => handleReview('reject')}>
-                    Reject
+                    {t('common.reject')}
                   </button>
                   <button className="btn btn-success" onClick={() => handleReview('approve')}>
-                    Approve
+                    {t('common.approve')}
                   </button>
                 </div>
               </>

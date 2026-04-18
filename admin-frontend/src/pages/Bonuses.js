@@ -1,8 +1,10 @@
+import { useTranslation } from 'react-i18next';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBonusStats, getBonuses, getPlayerBonuses, cancelPlayerBonus } from '../services/api';
 
 const Bonuses = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState('bonuses');
@@ -47,36 +49,36 @@ const Bonuses = () => {
       {/* Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-card-title">Active Campaigns</div>
+          <div className="stat-card-title">{t('bonuses.activeCampaigns')}</div>
           <div className="stat-card-value">{stats.active_bonuses || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-title">Active Player Bonuses</div>
+          <div className="stat-card-title">{t('bonuses.activePlayerBonuses')}</div>
           <div className="stat-card-value">{stats.active_player_bonuses || 0}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-title">Total Bonus Given</div>
+          <div className="stat-card-title">{t('bonuses.totalBonusGiven')}</div>
           <div className="stat-card-value">{fmt(stats.total_bonus_given)}</div>
         </div>
         <div className="stat-card">
-          <div className="stat-card-title">Total Wagered</div>
+          <div className="stat-card-title">{t('bonuses.totalWagered')}</div>
           <div className="stat-card-value">{fmt(stats.total_wagered_on_bonuses)}</div>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="tabs">
-        <button className={`tab ${activeTab === 'bonuses' ? 'active' : ''}`} onClick={() => setActiveTab('bonuses')}>Bonus Campaigns</button>
-        <button className={`tab ${activeTab === 'player-bonuses' ? 'active' : ''}`} onClick={() => setActiveTab('player-bonuses')}>Player Bonuses</button>
+        <button className={`tab ${activeTab === 'bonuses' ? 'active' : ''}`} onClick={() => setActiveTab('bonuses')}>{t('bonuses.bonusCampaigns')}</button>
+        <button className={`tab ${activeTab === 'player-bonuses' ? 'active' : ''}`} onClick={() => setActiveTab('player-bonuses')}>{t('bonuses.playerBonuses')}</button>
       </div>
 
       {/* Bonus Campaigns */}
       {activeTab === 'bonuses' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Bonus Campaigns</h3>
+            <h3 className="card-title">{t('bonuses.bonusCampaigns')}</h3>
             <button className="btn btn-primary" onClick={() => navigate('/bonuses/new')}>
-              + Create Bonus
+              {t('bonuses.createBonus')}
             </button>
           </div>
 
@@ -87,15 +89,15 @@ const Bonuses = () => {
               <table className="table">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Amount</th>
-                    <th>Wagering</th>
-                    <th>Games</th>
-                    <th>Auto Credit</th>
-                    <th>Claims</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th>{t('common.name')}</th>
+                    <th>{t('common.type')}</th>
+                    <th>{t('common.amount')}</th>
+                    <th>{t('bonuses.wagering')}</th>
+                    <th>{t('common.games')}</th>
+                    <th>{t('bonuses.autoCredit')}</th>
+                    <th>{t('bonuses.claims')}</th>
+                    <th>{t('common.status')}</th>
+                    <th>{t('common.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -165,13 +167,13 @@ const Bonuses = () => {
       {activeTab === 'player-bonuses' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Player Bonuses</h3>
+            <h3 className="card-title">{t('bonuses.playerBonuses')}</h3>
           </div>
           {loading ? <div className="loading"><div className="spinner"></div></div> : (
             <div className="table-container">
               <table className="table">
                 <thead>
-                  <tr><th>Player</th><th>Bonus</th><th>Amount</th><th>Progress</th><th>Status</th><th>Actions</th></tr>
+                  <tr><th>{t('players.player')}</th><th>{t('bonuses.bonusName')}</th><th>{t('common.amount')}</th><th>{t('bonuses.progress')}</th><th>{t('common.status')}</th><th>{t('common.actions')}</th></tr>
                 </thead>
                 <tbody>
                   {playerBonusesList.length === 0 ? (
