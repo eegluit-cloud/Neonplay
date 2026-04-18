@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Zap } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -8,6 +9,7 @@ import { HighlightCard } from '@/components/sports/HighlightCard';
 import { highlightMatches } from '@/data/sportsData';
 
 export const LiveSportsHighlights = () => {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const cardsRef = useRef<HTMLDivElement>(null);
 
@@ -57,11 +59,11 @@ export const LiveSportsHighlights = () => {
         title={
           <>
             <Zap className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
-            Live Sports
+            {t('nav.liveSports')}
           </>
         }
         linkTo="/sports"
-        linkText="View All"
+        linkText={t('common.viewAll')}
         showNavigation={true}
         showAllButton={true}
       />

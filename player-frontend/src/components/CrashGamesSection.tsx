@@ -1,4 +1,5 @@
 import { memo, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Zap, Loader2 } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -10,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 
 export const CrashGamesSection = memo(function CrashGamesSection() {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -89,7 +91,7 @@ export const CrashGamesSection = memo(function CrashGamesSection() {
           title={
             <>
               <Zap className="w-4 md:w-5 h-4 md:h-5 text-yellow-500" />
-              Crash Games
+              {t('nav.crashGames')}
             </>
           }
           linkTo="/crash-games"

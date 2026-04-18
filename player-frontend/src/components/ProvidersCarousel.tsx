@@ -1,4 +1,5 @@
 import { memo, useRef, useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -65,6 +66,7 @@ const ProviderItem = memo(function ProviderItem({
 });
 
 export const ProvidersCarousel = memo(function ProvidersCarousel() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
@@ -134,7 +136,7 @@ export const ProvidersCarousel = memo(function ProvidersCarousel() {
 
   return (
     <section ref={sectionRef} className="py-4 md:py-6 overflow-hidden">
-      <h2 ref={titleRef} className="text-lg md:text-xl font-bold mb-4 px-1">Providers</h2>
+      <h2 ref={titleRef} className="text-lg md:text-xl font-bold mb-4 px-1">{t('nav.providers')}</h2>
 
       <div ref={logoRowRef} className="relative overflow-hidden">
         <div

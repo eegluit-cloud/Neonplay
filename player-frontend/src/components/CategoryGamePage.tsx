@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSidebar } from '@/hooks/useSidebar';
 import { Sidebar } from '@/components/Sidebar';
 import { Header } from '@/components/Header';
@@ -26,6 +27,7 @@ interface CategoryGamePageProps {
 }
 
 export function CategoryGamePage({ title, activeTab, category, filterFn, emptyMessage }: CategoryGamePageProps) {
+  const { t } = useTranslation();
   const { sidebarOpen, toggleSidebar } = useSidebar();
   const [signInOpen, setSignInOpen] = useState(false);
   const [signUpOpen, setSignUpOpen] = useState(false);
@@ -88,7 +90,7 @@ export function CategoryGamePage({ title, activeTab, category, filterFn, emptyMe
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search a game..."
+                placeholder={t('common.searchGames')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full h-9 md:h-12 pl-9 pr-3 rounded-lg md:rounded-xl bg-card border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -100,11 +102,11 @@ export function CategoryGamePage({ title, activeTab, category, filterFn, emptyMe
                 <SelectTrigger className="h-12 w-[160px] bg-card border-border rounded-xl">
                   <div className="flex items-center gap-2">
                     <User className="w-4 h-4" />
-                    <SelectValue placeholder="Providers" />
+                    <SelectValue placeholder={t('games.providers')} />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Providers</SelectItem>
+                  <SelectItem value="all">{t('games.allProviders')}</SelectItem>
                   {providers.map(p => (
                     <SelectItem key={p.id} value={p.slug}>{p.name}</SelectItem>
                   ))}
@@ -115,14 +117,14 @@ export function CategoryGamePage({ title, activeTab, category, filterFn, emptyMe
                 <SelectTrigger className="h-12 w-[160px] bg-card border-border rounded-xl">
                   <div className="flex items-center gap-2">
                     <LayoutGrid className="w-4 h-4" />
-                    <SelectValue placeholder="Volatility" />
+                    <SelectValue placeholder={t('games.volatility')} />
                   </div>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Volatility</SelectItem>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
+                  <SelectItem value="all">{t('games.allVolatility')}</SelectItem>
+                  <SelectItem value="low">{t('games.low')}</SelectItem>
+                  <SelectItem value="medium">{t('games.medium')}</SelectItem>
+                  <SelectItem value="high">{t('games.high')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>

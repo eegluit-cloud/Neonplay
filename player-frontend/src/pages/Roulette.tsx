@@ -1,12 +1,16 @@
+import { useTranslation } from 'react-i18next';
 import { CategoryGamePage } from '@/components/CategoryGamePage';
 
-const Roulette = () => (
-  <CategoryGamePage
-    title="Roulette"
-    activeTab="roulette"
-    category="roulette"
-    emptyMessage="No roulette games found"
-  />
-);
+const Roulette = () => {
+  const { t } = useTranslation();
+  return (
+    <CategoryGamePage
+      title={t('nav.roulette')}
+      activeTab="roulette"
+      category="roulette"
+      emptyMessage={t('games.noGamesFound')}
+    />
+  );
+};
 
 export default Roulette;

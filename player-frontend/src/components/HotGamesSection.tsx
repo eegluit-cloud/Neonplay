@@ -1,4 +1,5 @@
 import { memo, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Flame, Loader2 } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -10,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useFavorites } from '@/hooks/useFavorites';
 
 export const HotGamesSection = memo(function HotGamesSection() {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
@@ -81,8 +83,8 @@ export const HotGamesSection = memo(function HotGamesSection() {
           title={
             <>
               <Flame className="w-4 md:w-5 h-4 md:h-5 text-orange-500" />
-              Hot Games
-              <span className="text-[10px] md:text-xs bg-orange-500/20 text-orange-400 px-1.5 md:px-2 py-0.5 rounded-full">Trending</span>
+              {t('nav.hotGames')}
+              <span className="text-[10px] md:text-xs bg-orange-500/20 text-orange-400 px-1.5 md:px-2 py-0.5 rounded-full">{t('common.trending')}</span>
             </>
           }
           linkTo="/hot-games"

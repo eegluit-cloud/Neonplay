@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Home, Gamepad2, Volleyball } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -11,13 +12,13 @@ interface LobbyModeSwitcherProps {
   onModeChange: (mode: LobbyMode) => void;
 }
 
-const modes = [
-  { id: 'all' as const, label: 'All', icon: Home },
-  { id: 'casino' as const, label: 'Casino', icon: Gamepad2 },
-  { id: 'sports' as const, label: 'Sports', icon: Volleyball },
-];
-
 export function LobbyModeSwitcher({ activeMode, onModeChange }: LobbyModeSwitcherProps) {
+  const { t } = useTranslation();
+  const modes = [
+    { id: 'all' as const, label: t('nav.all'), icon: Home },
+    { id: 'casino' as const, label: t('nav.casino'), icon: Gamepad2 },
+    { id: 'sports' as const, label: t('nav.sports'), icon: Volleyball },
+  ];
   const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {

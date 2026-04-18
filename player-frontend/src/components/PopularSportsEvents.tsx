@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Crown, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SectionHeaderRow } from './SectionHeaderRow';
@@ -12,6 +13,7 @@ import { useMatches } from '@/hooks/useSports';
 import { getTeamLogoUrl } from '@/data/teamLogos';
 
 export function PopularSportsEvents() {
+  const { t } = useTranslation();
   const [activeSport, setActiveSport] = useState<string>('all');
 
   const { matches: apiMatches, isLoading } = useMatches({ limit: 12 });
@@ -72,11 +74,11 @@ export function PopularSportsEvents() {
         title={
           <span className="flex items-center gap-1.5">
             <Crown className="w-4 h-4 md:w-5 md:h-5 text-yellow-500" />
-            Popular Sports
+            {t('nav.popularSports')}
           </span>
         }
         linkTo="/sports"
-        linkText="View All"
+        linkText={t('common.viewAll')}
         showNavigation={true}
         showAllButton={true}
       />
@@ -93,7 +95,7 @@ export function PopularSportsEvents() {
                 : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white border border-white/10"
             )}
           >
-            All Sports
+            {t('common.allSports')}
           </button>
           {sportChips.map((sport) => (
             <button

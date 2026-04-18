@@ -35,6 +35,9 @@
     "termsConditions": "Terms & Conditions",
     "privacyPolicy": "Privacy Policy",
     "logOut": "Log Out",
+    "liveSports": "Live Sports",
+    "popularSports": "Popular Sports",
+    "all": "All",
     "gameShows": "Game Shows",
     "tableGames": "Table Games",
     "blackjack": "Blackjack",
@@ -126,7 +129,12 @@
     "loss": "Loss",
     "you": "(You)",
     "amount": "Amount",
-    "status": "Status"
+    "status": "Status",
+    "viewAll": "View All",
+    "trending": "Trending",
+    "recentBigWins": "Recent Big Wins",
+    "allSports": "All Sports",
+    "all": "All"
   },
   "auth": {
     "signIn": "Sign In",

@@ -35,6 +35,9 @@
     "termsConditions": "이용약관",
     "privacyPolicy": "개인정보 처리방침",
     "logOut": "로그아웃",
+    "liveSports": "라이브 스포츠",
+    "popularSports": "인기 스포츠",
+    "all": "전체",
     "gameShows": "게임쇼",
     "tableGames": "테이블 게임",
     "blackjack": "블랙잭",
@@ -126,7 +129,12 @@
     "loss": "패배",
     "you": "(나)",
     "amount": "금액",
-    "status": "상태"
+    "status": "상태",
+    "viewAll": "전체 보기",
+    "trending": "트렌딩",
+    "recentBigWins": "최근 대형 승리",
+    "allSports": "전체 스포츠",
+    "all": "전체"
   },
   "auth": {
     "signIn": "로그인",

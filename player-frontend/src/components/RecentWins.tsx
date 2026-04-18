@@ -1,4 +1,5 @@
 import { memo, useRef, useState, useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DollarSign } from 'lucide-react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -119,6 +120,7 @@ const WinCard = memo(function WinCard({
 });
 
 export const RecentWins = memo(function RecentWins() {
+  const { t } = useTranslation();
   const scrollRef = useRef<HTMLDivElement>(null);
   const sectionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -197,7 +199,7 @@ export const RecentWins = memo(function RecentWins() {
             <div className="absolute w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping" />
             <div className="absolute w-4 h-4 rounded-full bg-amber-500/30 animate-pulse" />
           </div>
-          <h2 className="text-base font-bold text-foreground">Recent Big Wins</h2>
+          <h2 className="text-base font-bold text-foreground">{t('common.recentBigWins')}</h2>
         </div>
 
         {/* Carousel with CSS animation for smooth scrolling */}
