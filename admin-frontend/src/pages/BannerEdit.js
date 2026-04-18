@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getBanner, createBanner, updateBanner, uploadImage } from '../services/api';
 
 const hint = { fontSize: '0.72rem', color: 'var(--gray)', marginTop: '3px', lineHeight: 1.4 };
@@ -35,6 +36,7 @@ const DISPLAY_PAGES = [
 const API_BASE = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:8002';
 
 const BannerEdit = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { bannerId } = useParams();
   const isNew = bannerId === 'new';
@@ -158,14 +160,14 @@ const BannerEdit = () => {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary" onClick={() => navigate('/banners')}>← Banners</button>
+        <button className="btn btn-secondary" onClick={() => navigate('/banners')}>{t('banners.backToBanners')}</button>
         <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>
-          {isNew ? 'New Banner' : `Edit Banner`}
+          {isNew ? t('banners.newBannerTitle') : t('banners.editBannerTitle')}
         </h2>
         <div style={{ marginLeft: 'auto' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
             <input type="checkbox" checked={form.isActive} onChange={e => set('isActive', e.target.checked)} />
-            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>Active</span>
+            <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>{t('banners.active')}</span>
           </label>
         </div>
       </div>
@@ -177,17 +179,17 @@ const BannerEdit = () => {
 
             {/* Basic Info */}
             <div className="card">
-              <div className="card-header"><h3 className="card-title">Banner Content</h3></div>
+              <div className="card-header"><h3 className="card-title">{t('banners.bannerContent')}</h3></div>
 
               <div className="grid grid-2 gap-2">
                 <div className="form-group">
-                  <label className="form-label">Title *</label>
+                  <label className="form-label">{t('banners.titleLabel')} *</label>
                   <input className="form-input" value={form.title} onChange={e => set('title', e.target.value)}
                     required placeholder="e.g. Welcome Bonus — Up to $500" />
                   <div style={hint}>Main heading shown on the banner (bold, large text).</div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Subtitle / Eyebrow</label>
+                  <label className="form-label">{t('banners.subtitleEyebrow')}</label>
                   <input className="form-input" value={form.subtitle} onChange={e => set('subtitle', e.target.value)}
                     placeholder="e.g. LIMITED TIME OFFER" />
                   <div style={hint}>Small text shown above the title (e.g. uppercase label).</div>
@@ -196,13 +198,13 @@ const BannerEdit = () => {
 
               <div className="grid grid-2 gap-2">
                 <div className="form-group">
-                  <label className="form-label">CTA Button Text</label>
+                  <label className="form-label">{t('banners.ctaButtonText')}</label>
                   <input className="form-input" value={form.ctaText} onChange={e => set('ctaText', e.target.value)}
                     placeholder="e.g. Claim Now" />
                   <div style={hint}>Text for the call-to-action button. Leave blank to hide the button.</div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Target Page (on click)</label>
+                  <label className="form-label">{t('banners.targetPage')}</label>
                   <select className="form-select" value={ctaLinkMode === 'custom' ? '__custom__' : (form.ctaLink || '')}
                     onChange={e => {
                       if (e.target.value === '__custom__') { setCtaLinkMode('custom'); }
@@ -222,10 +224,10 @@ const BannerEdit = () => {
 
             {/* Media */}
             <div className="card">
-              <div className="card-header"><h3 className="card-title">Media</h3></div>
+              <div className="card-header"><h3 className="card-title">{t('banners.media')}</h3></div>
 
               <div className="form-group">
-                <label className="form-label">Upload Image</label>
+                <label className="form-label">{t('banners.uploadImage')}</label>
                 <input type="file" className="form-input" accept="image/jpeg,image/png,image/webp,image/gif"
                   onChange={handleImageUpload} disabled={uploading} />
                 <div style={hint}>Recommended: 1200×500px or 16:5 ratio. Max 5MB. JPG/PNG/WebP.</div>
@@ -242,14 +244,14 @@ const BannerEdit = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Or: Image URL</label>
+                <label className="form-label">{t('banners.orImageUrl')}</label>
                 <input className="form-input" value={form.imageUrl} onChange={e => set('imageUrl', e.target.value)}
                   placeholder="https://cdn.example.com/banner.jpg" />
                 <div style={hint}>Paste an external image URL instead of uploading.</div>
               </div>
 
               <div className="form-group">
-                <label className="form-label">Background Gradient (CSS)</label>
+                <label className="form-label">{t('banners.backgroundGradient')}</label>
                 <input className="form-input" value={form.backgroundGradient}
                   onChange={e => set('backgroundGradient', e.target.value)}
                   placeholder="linear-gradient(135deg, #6366f1, #8b5cf6)" />
@@ -259,18 +261,18 @@ const BannerEdit = () => {
 
             {/* Settings */}
             <div className="card">
-              <div className="card-header"><h3 className="card-title">Settings</h3></div>
+              <div className="card-header"><h3 className="card-title">{t('banners.settings')}</h3></div>
 
               <div className="grid grid-2 gap-2" style={{ marginBottom: '12px' }}>
                 <div className="form-group">
-                  <label className="form-label">Display Page</label>
+                  <label className="form-label">{t('banners.displayPage')}</label>
                   <select className="form-select" value={form.displayPage} onChange={e => set('displayPage', e.target.value)}>
                     {DISPLAY_PAGES.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                   </select>
                   <div style={hint}>Which page in the player app shows this banner.</div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Target Audience</label>
+                  <label className="form-label">{t('banners.targetAudience')}</label>
                   <select className="form-select" value={form.targetAudience} onChange={e => set('targetAudience', e.target.value)}>
                     <option value="all">Everyone</option>
                     <option value="authenticated">Logged-in only</option>
@@ -282,7 +284,7 @@ const BannerEdit = () => {
 
               <div className="grid grid-3 gap-2">
                 <div className="form-group">
-                  <label className="form-label">Platform</label>
+                  <label className="form-label">{t('banners.platform')}</label>
                   <select className="form-select" value={form.platform} onChange={e => set('platform', e.target.value)}>
                     <option value="all">All Devices</option>
                     <option value="desktop">Desktop only</option>
@@ -292,7 +294,7 @@ const BannerEdit = () => {
                   <div style={hint}>Which device sizes show this banner.</div>
                 </div>
                 <div className="form-group" style={{ gridColumn: 'span 2' }}>
-                  <label className="form-label">Sort Order</label>
+                  <label className="form-label">{t('banners.sortOrderLabel')}</label>
                   <input type="number" className="form-input" value={form.sortOrder}
                     onChange={e => set('sortOrder', e.target.value)} min="0" />
                   <div style={hint}>Lower = shown first. Drag to reorder on list page.</div>
@@ -301,13 +303,13 @@ const BannerEdit = () => {
 
               <div className="grid grid-2 gap-2">
                 <div className="form-group">
-                  <label className="form-label">Active From</label>
+                  <label className="form-label">{t('banners.activeFrom')}</label>
                   <input type="datetime-local" className="form-input" value={form.startsAt}
                     onChange={e => set('startsAt', e.target.value)} />
                   <div style={hint}>Leave blank to show immediately.</div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Active Until</label>
+                  <label className="form-label">{t('banners.activeUntil')}</label>
                   <input type="datetime-local" className="form-input" value={form.endsAt}
                     onChange={e => set('endsAt', e.target.value)} />
                   <div style={hint}>Leave blank to show indefinitely.</div>
@@ -319,7 +321,7 @@ const BannerEdit = () => {
           {/* Right column - Preview */}
           <div style={{ position: 'sticky', top: '16px' }}>
             <div className="card">
-              <div className="card-header"><h3 className="card-title">Preview</h3></div>
+              <div className="card-header"><h3 className="card-title">{t('banners.preview')}</h3></div>
 
               <div style={{
                 width: '100%', aspectRatio: '16/7', borderRadius: '10px', overflow: 'hidden',
@@ -379,10 +381,10 @@ const BannerEdit = () => {
             {/* Action buttons */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
               <button type="submit" className="btn btn-primary" disabled={saving} style={{ width: '100%' }}>
-                {saving ? 'Saving…' : isNew ? 'Create Banner' : 'Save Changes'}
+                {saving ? t('bonuses.saving') : isNew ? t('banners.createBannerAction') : t('banners.saveChanges')}
               </button>
               <button type="button" className="btn btn-secondary" onClick={() => navigate('/banners')} style={{ width: '100%' }}>
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>

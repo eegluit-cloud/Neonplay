@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   getCategories, getAggregators, getProviders, getGames,
   createCategory, updateCategory, deleteCategory,
@@ -6,6 +7,7 @@ import {
 } from '../services/api';
 
 const CasinoManagement = () => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('categories');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -243,7 +245,7 @@ const CasinoManagement = () => {
       {loading && (
         <div className="loading" style={{ marginBottom: '20px' }}>
           <div className="spinner"></div>
-          <p>Loading casino management data...</p>
+          <p>{t('casino.loadingData')}</p>
         </div>
       )}
 
@@ -254,25 +256,25 @@ const CasinoManagement = () => {
             className={`tab ${activeTab === 'categories' ? 'active' : ''}`}
             onClick={() => setActiveTab('categories')}
           >
-            Categories
+            {t('casino.categories')}
           </button>
           <button
             className={`tab ${activeTab === 'aggregators' ? 'active' : ''}`}
             onClick={() => setActiveTab('aggregators')}
           >
-            Aggregators
+            {t('casino.aggregators')}
           </button>
           <button
             className={`tab ${activeTab === 'providers' ? 'active' : ''}`}
             onClick={() => setActiveTab('providers')}
           >
-            Providers
+            {t('casino.providers')}
           </button>
           <button
             className={`tab ${activeTab === 'games' ? 'active' : ''}`}
             onClick={() => setActiveTab('games')}
           >
-            Games
+            {t('casino.games')}
           </button>
         </div>
       </div>
@@ -281,13 +283,13 @@ const CasinoManagement = () => {
       {activeTab === 'categories' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Custom Game Categories</h3>
+            <h3 className="card-title">{t('casino.customCategories')}</h3>
             <button className="btn btn-primary" onClick={() => setShowCategoryModal(true)}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
               </svg>
-              Add Category
+              {t('casino.addCategory')}
             </button>
           </div>
 
@@ -295,13 +297,13 @@ const CasinoManagement = () => {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Order</th>
-                  <th>Category</th>
-                  <th>Description</th>
-                  <th>Games</th>
-                  <th>Homepage</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t('casino.displayOrder')}</th>
+                  <th>{t('casino.categories')}</th>
+                  <th>{t('casino.description')}</th>
+                  <th>{t('casino.games')}</th>
+                  <th>{t('casino.homepage')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -327,13 +329,13 @@ const CasinoManagement = () => {
                     <td>
                       <div className="table-actions">
                         <button onClick={() => openEditCategory(category)} className="btn btn-sm btn-secondary">
-                          Edit
+                          {t('common.edit')}
                         </button>
                         <button onClick={() => toggleCategoryStatus(category.id)} className="btn btn-sm btn-warning">
-                          {category.status === 'active' ? 'Disable' : 'Enable'}
+                          {category.status === 'active' ? t('common.disable') : t('common.enable')}
                         </button>
                         <button onClick={() => deleteCategory(category.id)} className="btn btn-sm btn-danger">
-                          Delete
+                          {t('common.delete')}
                         </button>
                       </div>
                     </td>
@@ -349,20 +351,20 @@ const CasinoManagement = () => {
       {activeTab === 'aggregators' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Game Aggregators</h3>
+            <h3 className="card-title">{t('casino.gameAggregators')}</h3>
           </div>
 
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Aggregator</th>
-                  <th>API Endpoint</th>
-                  <th>Providers</th>
-                  <th>Games</th>
-                  <th>Last Sync</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t('casino.aggregators')}</th>
+                  <th>{t('casino.apiEndpoint')}</th>
+                  <th>{t('casino.providers')}</th>
+                  <th>{t('casino.games')}</th>
+                  <th>{t('casino.lastSync')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -384,10 +386,10 @@ const CasinoManagement = () => {
                     <td>
                       <div className="table-actions">
                         <button onClick={() => syncAggregator(agg.id)} className="btn btn-sm btn-primary">
-                          Sync
+                          {t('casino.sync')}
                         </button>
                         <button onClick={() => toggleAggregatorStatus(agg.id)} className={`btn btn-sm ${agg.status === 'active' ? 'btn-danger' : 'btn-success'}`}>
-                          {agg.status === 'active' ? 'Disable' : 'Enable'}
+                          {agg.status === 'active' ? t('common.disable') : t('common.enable')}
                         </button>
                       </div>
                     </td>
@@ -403,7 +405,7 @@ const CasinoManagement = () => {
       {activeTab === 'providers' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Game Providers</h3>
+            <h3 className="card-title">{t('casino.gameProviders')}</h3>
           </div>
 
           <div className="filters-bar">
@@ -412,7 +414,7 @@ const CasinoManagement = () => {
               value={providerFilter.aggregator}
               onChange={(e) => setProviderFilter({ ...providerFilter, aggregator: e.target.value })}
             >
-              <option value="">All Aggregators</option>
+              <option value="">{t('casino.allAggregators')}</option>
               {aggregators.map(a => (
                 <option key={a.id} value={a.id}>{a.name}</option>
               ))}
@@ -422,9 +424,9 @@ const CasinoManagement = () => {
               value={providerFilter.status}
               onChange={(e) => setProviderFilter({ ...providerFilter, status: e.target.value })}
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="">{t('casino.allStatuses')}</option>
+              <option value="active">{t('common.active')}</option>
+              <option value="inactive">{t('common.disabled')}</option>
             </select>
           </div>
 
@@ -432,14 +434,14 @@ const CasinoManagement = () => {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Provider</th>
-                  <th>Aggregator</th>
-                  <th>Games</th>
-                  <th>Total Bets</th>
-                  <th>Total Wins</th>
-                  <th>GGR</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t('casino.providers')}</th>
+                  <th>{t('casino.aggregators')}</th>
+                  <th>{t('casino.games')}</th>
+                  <th>{t('casino.totalBets')}</th>
+                  <th>{t('casino.totalWins')}</th>
+                  <th>{t('casino.ggr')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -466,7 +468,7 @@ const CasinoManagement = () => {
                         onClick={() => toggleProviderStatus(provider.id)}
                         className={`btn btn-sm ${provider.status === 'active' ? 'btn-danger' : 'btn-success'}`}
                       >
-                        {provider.status === 'active' ? 'Disable' : 'Enable'}
+                        {provider.status === 'active' ? t('common.disable') : t('common.enable')}
                       </button>
                     </td>
                   </tr>
@@ -481,13 +483,13 @@ const CasinoManagement = () => {
       {activeTab === 'games' && (
         <div className="card">
           <div className="card-header">
-            <h3 className="card-title">Games Management</h3>
+            <h3 className="card-title">{t('casino.gamesManagement')}</h3>
             {selectedGames.length > 0 && (
               <div className="bulk-actions">
-                <span className="bulk-count">{selectedGames.length} selected</span>
-                <button onClick={() => bulkToggleStatus('active')} className="btn btn-sm btn-success">Enable</button>
-                <button onClick={() => bulkToggleStatus('inactive')} className="btn btn-sm btn-danger">Disable</button>
-                <button onClick={() => setShowAssignModal(true)} className="btn btn-sm btn-primary">Assign to Category</button>
+                <span className="bulk-count">{selectedGames.length} {t('casino.selected')}</span>
+                <button onClick={() => bulkToggleStatus('active')} className="btn btn-sm btn-success">{t('common.enable')}</button>
+                <button onClick={() => bulkToggleStatus('inactive')} className="btn btn-sm btn-danger">{t('common.disable')}</button>
+                <button onClick={() => setShowAssignModal(true)} className="btn btn-sm btn-primary">{t('casino.assignToCategory')}</button>
               </div>
             )}
           </div>
@@ -506,7 +508,7 @@ const CasinoManagement = () => {
               value={gameFilter.provider}
               onChange={(e) => setGameFilter({ ...gameFilter, provider: e.target.value })}
             >
-              <option value="">All Providers</option>
+              <option value="">{t('games.allProviders')}</option>
               {providers.map(p => (
                 <option key={p.id} value={p.id}>{p.name}</option>
               ))}
@@ -516,9 +518,9 @@ const CasinoManagement = () => {
               value={gameFilter.status}
               onChange={(e) => setGameFilter({ ...gameFilter, status: e.target.value })}
             >
-              <option value="">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="">{t('casino.allStatuses')}</option>
+              <option value="active">{t('common.active')}</option>
+              <option value="inactive">{t('common.disabled')}</option>
             </select>
           </div>
 
@@ -533,12 +535,12 @@ const CasinoManagement = () => {
                       onChange={selectAllGames}
                     />
                   </th>
-                  <th>Game</th>
-                  <th>Provider</th>
-                  <th>RTP</th>
-                  <th>Categories</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t('games.game')}</th>
+                  <th>{t('games.provider')}</th>
+                  <th>{t('games.rtp')}</th>
+                  <th>{t('games.categories')}</th>
+                  <th>{t('common.status')}</th>
+                  <th>{t('common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -592,7 +594,7 @@ const CasinoManagement = () => {
                         onClick={() => toggleGameStatus(game.id)}
                         className={`btn btn-sm ${game.status === 'active' ? 'btn-danger' : 'btn-success'}`}
                       >
-                        {game.status === 'active' ? 'Disable' : 'Enable'}
+                        {game.status === 'active' ? t('common.disable') : t('common.enable')}
                       </button>
                     </td>
                   </tr>
@@ -613,13 +615,13 @@ const CasinoManagement = () => {
         <div className="modal-overlay" onClick={closeCategoryModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">{editCategory ? 'Edit Category' : 'Add Category'}</h3>
+              <h3 className="modal-title">{editCategory ? t('casino.editCategory') : t('casino.addCategory')}</h3>
               <button className="modal-close" onClick={closeCategoryModal}>×</button>
             </div>
 
             <form onSubmit={handleCategorySubmit}>
               <div className="form-group">
-                <label className="form-label">Category Name</label>
+                <label className="form-label">{t('casino.categoryName')}</label>
                 <input
                   type="text"
                   className="form-input"
@@ -631,7 +633,7 @@ const CasinoManagement = () => {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Description</label>
+                <label className="form-label">{t('casino.description')}</label>
                 <textarea
                   className="form-input"
                   value={categoryForm.description}
@@ -643,7 +645,7 @@ const CasinoManagement = () => {
 
               <div className="grid grid-2 gap-2">
                 <div className="form-group">
-                  <label className="form-label">Icon</label>
+                  <label className="form-label">{t('casino.icon')}</label>
                   <select
                     className="form-select"
                     value={categoryForm.icon}
@@ -656,7 +658,7 @@ const CasinoManagement = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Display Order</label>
+                  <label className="form-label">{t('casino.displayOrder')}</label>
                   <input
                     type="number"
                     className="form-input"
@@ -669,36 +671,36 @@ const CasinoManagement = () => {
 
               <div className="grid grid-2 gap-2">
                 <div className="form-group">
-                  <label className="form-label">Status</label>
+                  <label className="form-label">{t('common.status')}</label>
                   <select
                     className="form-select"
                     value={categoryForm.status}
                     onChange={(e) => setCategoryForm({ ...categoryForm, status: e.target.value })}
                   >
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="active">{t('common.active')}</option>
+                    <option value="inactive">{t('common.disabled')}</option>
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Show on Homepage</label>
+                  <label className="form-label">{t('casino.showOnHomepage')}</label>
                   <select
                     className="form-select"
                     value={categoryForm.showOnHomepage ? 'yes' : 'no'}
                     onChange={(e) => setCategoryForm({ ...categoryForm, showOnHomepage: e.target.value === 'yes' })}
                   >
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
+                    <option value="yes">{t('common.yes')}</option>
+                    <option value="no">{t('common.no')}</option>
                   </select>
                 </div>
               </div>
 
               <div className="modal-footer">
                 <button type="button" className="btn btn-secondary" onClick={closeCategoryModal}>
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editCategory ? 'Save Changes' : 'Create Category'}
+                  {editCategory ? t('common.saveChanges') : t('casino.createCategory')}
                 </button>
               </div>
             </form>
@@ -711,7 +713,7 @@ const CasinoManagement = () => {
         <div className="modal-overlay" onClick={() => setShowAssignModal(false)}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3 className="modal-title">Assign Games to Category</h3>
+              <h3 className="modal-title">{t('casino.assignGamesToCategory')}</h3>
               <button className="modal-close" onClick={() => setShowAssignModal(false)}>×</button>
             </div>
 
@@ -736,7 +738,7 @@ const CasinoManagement = () => {
 
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowAssignModal(false)}>
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getBanners, deleteBanner, reorderBanners } from '../services/api';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8002/api';
@@ -15,6 +16,7 @@ const platformBadge = (p) => {
 };
 
 const Banners = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -87,14 +89,14 @@ const Banners = () => {
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>Hero Banners</h2>
+          <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 700 }}>{t('banners.heroBannersTitle')}</h2>
           <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--gray)' }}>
             Manage banners shown in the lobby hero carousel. Drag to reorder.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          {savingOrder && <span style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>Saving order…</span>}
-          <button className="btn btn-primary" onClick={() => navigate('/banners/new')}>+ New Banner</button>
+          {savingOrder && <span style={{ fontSize: '0.8rem', color: 'var(--gray)' }}>{t('banners.savingOrder')}</span>}
+          <button className="btn btn-primary" onClick={() => navigate('/banners/new')}>{t('banners.newBanner')}</button>
         </div>
       </div>
 
@@ -103,9 +105,9 @@ const Banners = () => {
       ) : banners.length === 0 ? (
         <div className="card" style={{ padding: '48px', textAlign: 'center', color: 'var(--gray)' }}>
           <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>🖼️</div>
-          <div style={{ fontWeight: 600, marginBottom: '6px' }}>No banners yet</div>
-          <div style={{ fontSize: '0.875rem', marginBottom: '20px' }}>Create your first banner to display in the lobby hero section.</div>
-          <button className="btn btn-primary" onClick={() => navigate('/banners/new')}>+ Create Banner</button>
+          <div style={{ fontWeight: 600, marginBottom: '6px' }}>{t('banners.noBannersYet')}</div>
+          <div style={{ fontSize: '0.875rem', marginBottom: '20px' }}>{t('banners.createFirstBanner')}</div>
+          <button className="btn btn-primary" onClick={() => navigate('/banners/new')}>{t('banners.createBannerBtn')}</button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -155,7 +157,7 @@ const Banners = () => {
                 <div style={{ fontWeight: 600, fontSize: '0.95rem', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {banner.title}
                   {!banner.isActive && (
-                    <span style={{ background: '#f3f4f6', color: '#9ca3af', padding: '1px 7px', borderRadius: '9999px', fontSize: '0.68rem', fontWeight: 700 }}>INACTIVE</span>
+                    <span style={{ background: '#f3f4f6', color: '#9ca3af', padding: '1px 7px', borderRadius: '9999px', fontSize: '0.68rem', fontWeight: 700 }}>{t('banners.inactive')}</span>
                   )}
                 </div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--gray)', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
@@ -184,18 +186,18 @@ const Banners = () => {
                     fontSize: '0.75rem',
                   }}
                   onClick={() => handleToggleActive(banner)}
-                  title={banner.isActive ? 'Deactivate' : 'Activate'}
+                  title={banner.isActive ? t('banners.deactivate') : t('banners.activate')}
                 >
-                  {banner.isActive ? 'Deactivate' : 'Activate'}
+                  {banner.isActive ? t('banners.deactivate') : t('banners.activate')}
                 </button>
-                <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/banners/${banner.id}`)}>Edit</button>
+                <button className="btn btn-secondary btn-sm" onClick={() => navigate(`/banners/${banner.id}`)}>{t('common.edit')}</button>
                 <button
                   className="btn btn-sm"
                   style={{ background: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }}
                   onClick={() => handleDelete(banner)}
                   disabled={deleting === banner.id}
                 >
-                  {deleting === banner.id ? '…' : 'Delete'}
+                  {deleting === banner.id ? '…' : t('common.delete')}
                 </button>
               </div>
             </div>

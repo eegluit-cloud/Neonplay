@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { createBonus, uploadImage, getSegments } from '../services/api';
 
 const hint = { fontSize: '0.72rem', color: 'var(--gray)', marginTop: '3px', lineHeight: '1.4' };
 
 const BonusCreate = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState({
@@ -79,13 +81,13 @@ const BonusCreate = () => {
     <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary" onClick={() => navigate('/bonuses')}>← Bonuses</button>
-        <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>Create Bonus</h2>
+        <button className="btn btn-secondary" onClick={() => navigate('/bonuses')}>{t('bonuses.backToBonuses')}</button>
+        <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>{t('bonuses.createBonus')}</h2>
       </div>
 
       <div className="card">
         <div className="card-header">
-          <h3 className="card-title">Bonus Details</h3>
+          <h3 className="card-title">{t('bonuses.bonusDetails')}</h3>
           <p style={{ margin: 0, fontSize: '0.875rem', color: 'var(--gray)' }}>
             After creating, you'll be taken to the bonus page to configure game contributions.
           </p>
@@ -95,13 +97,13 @@ const BonusCreate = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Name *</label>
+              <label className="form-label">{t('bonuses.nameLabel')} *</label>
               <input type="text" className="form-input" value={formData.name}
                 onChange={e => set('name', e.target.value)} required placeholder="e.g. Welcome Deposit Bonus" />
               <div style={hint}>Internal name shown in the admin panel and optionally to players.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Code (optional)</label>
+              <label className="form-label">{t('bonuses.codeOptional')}</label>
               <input type="text" className="form-input" value={formData.code}
                 onChange={e => set('code', e.target.value.toUpperCase())} placeholder="e.g. WELCOME50" />
               <div style={hint}>Players enter this promo code to claim the bonus. Leave blank if no code is required.</div>
@@ -110,7 +112,7 @@ const BonusCreate = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Type *</label>
+              <label className="form-label">{t('bonuses.typeLabel')} *</label>
               <select className="form-select" value={formData.type} onChange={e => set('type', e.target.value)}>
                 <option value="deposit">Deposit Bonus — triggered on deposit</option>
                 <option value="joining">Joining / Welcome — given on registration</option>
@@ -122,7 +124,7 @@ const BonusCreate = () => {
               <div style={hint}>Determines when and how the bonus is triggered. Affects eligibility logic.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Bonus Value Type</label>
+              <label className="form-label">{t('bonuses.bonusValueType')}</label>
               <select className="form-select" value={formData.bonusValueType} onChange={e => set('bonusValueType', e.target.value)}>
                 <option value="fixed">Fixed Amount — player always gets a set USDC amount</option>
                 <option value="percentage">Percentage — player gets % of their deposit</option>
@@ -133,19 +135,19 @@ const BonusCreate = () => {
 
           <div className="grid grid-3 gap-2">
             <div className="form-group">
-              <label className="form-label">Fixed Amount (USDC)</label>
+              <label className="form-label">{t('bonuses.fixedAmountUsdc')}</label>
               <input type="number" step="0.01" min="0" className="form-input" value={formData.amount}
                 onChange={e => set('amount', e.target.value)} placeholder="e.g. 50" />
               <div style={hint}>Flat bonus credited to the player. Used when Value Type is "Fixed".</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Percentage Bonus (%)</label>
+              <label className="form-label">{t('bonuses.percentageBonus')}</label>
               <input type="number" step="1" min="0" max="1000" className="form-input" value={formData.percentage}
                 onChange={e => set('percentage', e.target.value)} placeholder="e.g. 100" />
               <div style={hint}>100 = 100% match. Player deposits $100 → gets $100 bonus (subject to Max Cap). Used when Value Type is "Percentage".</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Max Bonus Cap (USDC)</label>
+              <label className="form-label">{t('bonuses.maxBonusCapLabel')}</label>
               <input type="number" step="0.01" min="0" className="form-input" value={formData.maxBonusCap}
                 onChange={e => set('maxBonusCap', e.target.value)} placeholder="No cap" />
               <div style={hint}>Limits the maximum bonus a player can receive. E.g. 100% match with $200 cap → deposit $500 but only get $200 bonus.</div>
@@ -154,19 +156,19 @@ const BonusCreate = () => {
 
           <div className="grid grid-3 gap-2">
             <div className="form-group">
-              <label className="form-label">Wagering Requirement (x) *</label>
+              <label className="form-label">{t('bonuses.wageringRequirement')} *</label>
               <input type="number" step="1" min="0" className="form-input" value={formData.wageringReq}
                 onChange={e => set('wageringReq', e.target.value)} required />
               <div style={hint}>Player must wager this many times the bonus before withdrawing. 30x on $50 bonus = must wager $1,500 total. Set 0 for no wagering.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Min Deposit (USDC)</label>
+              <label className="form-label">{t('bonuses.minDeposit')}</label>
               <input type="number" step="0.01" min="0" className="form-input" value={formData.minDeposit}
                 onChange={e => set('minDeposit', e.target.value)} placeholder="No minimum" />
               <div style={hint}>Player's deposit must be at least this amount to qualify for the bonus. Leave blank for no minimum.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Expiry Days After Claim</label>
+              <label className="form-label">{t('bonuses.expiryDays')}</label>
               <input type="number" step="1" min="1" className="form-input" value={formData.expiryDays}
                 onChange={e => set('expiryDays', e.target.value)} placeholder="Never expires" />
               <div style={hint}>Bonus expires this many days after being claimed. E.g. 30 means player has 30 days to complete wagering. Leave blank = never expires.</div>
@@ -175,9 +177,9 @@ const BonusCreate = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Target Segment</label>
+              <label className="form-label">{t('bonuses.targetSegment')}</label>
               <select className="form-select" value={formData.segmentId} onChange={e => set('segmentId', e.target.value)}>
-                <option value="">All Players (no segment)</option>
+                <option value="">{t('bonuses.allPlayersNoSegment')}</option>
                 {segments.map(s => (
                   <option key={s.id} value={s.id}>{s.name}{s.comment ? ` — ${s.comment}` : ''}</option>
                 ))}
@@ -193,7 +195,7 @@ const BonusCreate = () => {
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Country Restrictions</label>
+              <label className="form-label">{t('bonuses.countryRestrictions')}</label>
               <input type="text" className="form-input" value={formData.countryRestrictions}
                 onChange={e => set('countryRestrictions', e.target.value)} placeholder="e.g. US, GB, CA" />
               <div style={hint}>Comma-separated ISO country codes. Only players from these countries can claim the bonus. Leave blank to allow all countries.</div>
@@ -204,14 +206,14 @@ const BonusCreate = () => {
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
               <input type="checkbox" checked={formData.isAutoCredit} onChange={e => set('isAutoCredit', e.target.checked)} />
               <div>
-                <strong>Auto Credit</strong>
+                <strong>{t('bonuses.autoCredit')}</strong>
                 <div style={hint}>Automatically credit the bonus when the trigger condition is met (e.g. on deposit). If off, the player must manually claim it.</div>
               </div>
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', userSelect: 'none' }}>
               <input type="checkbox" checked={formData.isStackable} onChange={e => set('isStackable', e.target.checked)} />
               <div>
-                <strong>Stackable</strong>
+                <strong>{t('bonuses.stackable')}</strong>
                 <div style={hint}>Allow this bonus to be active alongside other bonuses. If off, the player can only have one active bonus at a time.</div>
               </div>
             </label>
@@ -219,13 +221,13 @@ const BonusCreate = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Description</label>
+              <label className="form-label">{t('bonuses.descriptionLabel')}</label>
               <textarea className="form-input" rows="3" value={formData.description}
                 onChange={e => set('description', e.target.value)} placeholder="Short summary shown to players on the promotions page." />
               <div style={hint}>Shown to players in the app. Keep it brief and attractive.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Terms & Conditions</label>
+              <label className="form-label">{t('bonuses.terms')}</label>
               <textarea className="form-input" rows="3" value={formData.terms}
                 onChange={e => set('terms', e.target.value)} placeholder="Full T&C text for this bonus..." />
               <div style={hint}>Full legal terms for this bonus. Displayed in the bonus detail view in the player app.</div>
@@ -233,7 +235,7 @@ const BonusCreate = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Promotion Image</label>
+            <label className="form-label">{t('bonuses.promotionImage')}</label>
             <input type="file" className="form-input" accept="image/*" onChange={handleImageUpload} />
             <div style={hint}>Banner image shown on the promotions page. Recommended size: 600×300px.</div>
             {formData.imageUrl && (
@@ -246,9 +248,9 @@ const BonusCreate = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid #e5e7eb', marginTop: '8px' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => navigate('/bonuses')}>Cancel</button>
+            <button type="button" className="btn btn-secondary" onClick={() => navigate('/bonuses')}>{t('common.cancel')}</button>
             <button type="submit" className="btn btn-primary" disabled={submitting} style={{ minWidth: '200px' }}>
-              {submitting ? 'Creating…' : 'Create Bonus & Configure Games →'}
+              {submitting ? t('bonuses.creating') : t('bonuses.createBonusBtn')}
             </button>
           </div>
 

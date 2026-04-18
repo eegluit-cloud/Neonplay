@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { createSegment, updateSegment, getSegment } from '../services/api';
 
 const FIELDS = [
@@ -45,6 +46,7 @@ const emptyCondition = () => ({ field: 'deposit_amount', operator: '>=', value: 
 const getFieldDef = (field) => FIELDS.find(f => f.value === field) || FIELDS[0];
 
 const SegmentEdit = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { segmentId } = useParams();
   const isNew = !segmentId || segmentId === 'new';
@@ -116,9 +118,9 @@ const SegmentEdit = () => {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary" onClick={() => navigate('/segments')}>← Segments</button>
+        <button className="btn btn-secondary" onClick={() => navigate('/segments')}>{t('segments.backToSegments')}</button>
         <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>
-          {isNew ? 'Create Segmentation' : 'Edit Segmentation'}
+          {isNew ? t('segments.createSegmentation') : t('segments.editSegmentation')}
         </h2>
       </div>
 
@@ -127,20 +129,20 @@ const SegmentEdit = () => {
         <div className="card" style={{ marginBottom: '16px' }}>
           <div className="grid grid-2 gap-2">
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Segment Name *</label>
+              <label className="form-label">{t('segments.segmentName')} *</label>
               <input
                 className="form-input"
-                placeholder="Enter Segment Name"
+                placeholder={t('segments.segmentName')}
                 value={name}
                 onChange={e => setName(e.target.value)}
                 required
               />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Comment *</label>
+              <label className="form-label">{t('segments.comment')} *</label>
               <input
                 className="form-input"
-                placeholder="Enter comment"
+                placeholder={t('segments.comment')}
                 value={comment}
                 onChange={e => setComment(e.target.value)}
               />
@@ -159,7 +161,7 @@ const SegmentEdit = () => {
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 {/* Field */}
                 <div className="form-group" style={{ flex: '2', minWidth: '180px', marginBottom: 0 }}>
-                  <label className="form-label">Field *</label>
+                  <label className="form-label">{t('segments.field')} *</label>
                   <select
                     className="form-select"
                     value={cond.field}
@@ -173,7 +175,7 @@ const SegmentEdit = () => {
 
                 {/* Operator */}
                 <div className="form-group" style={{ flex: '1', minWidth: '130px', marginBottom: 0 }}>
-                  <label className="form-label">Operator *</label>
+                  <label className="form-label">{t('segments.operator')} *</label>
                   <select
                     className="form-select"
                     value={cond.operator}
@@ -187,7 +189,7 @@ const SegmentEdit = () => {
 
                 {/* Value */}
                 <div className="form-group" style={{ flex: '1', minWidth: '140px', marginBottom: 0 }}>
-                  <label className="form-label">{isBetween ? 'From' : 'Value'} *</label>
+                  <label className="form-label">{isBetween ? t('segments.from') : t('segments.value')} *</label>
                   {fieldDef.type === 'select' ? (
                     <select
                       className="form-select"
@@ -214,7 +216,7 @@ const SegmentEdit = () => {
                 {/* Value2 (between only) */}
                 {isBetween && (
                   <div className="form-group" style={{ flex: '1', minWidth: '140px', marginBottom: 0 }}>
-                    <label className="form-label">To *</label>
+                    <label className="form-label">{t('segments.to')} *</label>
                     <input
                       className="form-input"
                       type={fieldDef.type === 'date' ? 'date' : 'number'}
@@ -249,15 +251,15 @@ const SegmentEdit = () => {
             className="btn btn-secondary"
             onClick={addCondition}
           >
-            + Add Condition
+            {t('segments.addCondition')}
           </button>
 
           <div style={{ display: 'flex', gap: '12px' }}>
             <button type="button" className="btn btn-secondary" onClick={() => navigate('/segments')}>
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" className="btn btn-primary" disabled={submitting} style={{ minWidth: '120px' }}>
-              {submitting ? 'Saving…' : (isNew ? 'Create' : 'Save Changes')}
+              {submitting ? t('segments.saving') : (isNew ? t('common.create') : t('common.saveChanges'))}
             </button>
           </div>
         </div>

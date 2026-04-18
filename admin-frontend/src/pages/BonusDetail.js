@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   getBonus, updateBonus, getGames,
   setGameContributions, assignBonusToPlayer, getSegments
@@ -8,6 +9,7 @@ import {
 const hint = { fontSize: '0.72rem', color: 'var(--gray)', marginTop: '3px', lineHeight: '1.4' };
 
 const BonusDetail = () => {
+  const { t } = useTranslation();
   const { bonusId } = useParams();
   const navigate = useNavigate();
 
@@ -238,7 +240,7 @@ const BonusDetail = () => {
 
       {/* ── Page Header ─────────────────────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary" onClick={() => navigate('/bonuses')}>← Bonuses</button>
+        <button className="btn btn-secondary" onClick={() => navigate('/bonuses')}>{t('bonuses.backToBonuses')}</button>
         <div>
           <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>{bonus?.name}</h2>
           <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
@@ -254,19 +256,19 @@ const BonusDetail = () => {
       {/* ── Section 1: Bonus Details ─────────────────────────────────── */}
       <div className="card" style={{ marginBottom: '24px' }}>
         <div className="card-header">
-          <h3 className="card-title">Bonus Details</h3>
+          <h3 className="card-title">{t('bonuses.bonusDetails')}</h3>
         </div>
         <form onSubmit={handleSaveDetails} style={{ padding: '0 0 8px' }}>
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Name *</label>
+              <label className="form-label">{t('bonuses.nameLabel')} *</label>
               <input type="text" className="form-input" value={formData.name}
                 onChange={e => setFormData(f => ({ ...f, name: e.target.value }))} required />
               <div style={hint}>Internal name shown in the admin panel and optionally to players.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Code (optional)</label>
+              <label className="form-label">{t('bonuses.codeOptional')}</label>
               <input type="text" className="form-input" value={formData.code}
                 onChange={e => setFormData(f => ({ ...f, code: e.target.value.toUpperCase() }))} />
               <div style={hint}>Players enter this promo code to claim the bonus. Leave blank if no code is required.</div>
@@ -275,7 +277,7 @@ const BonusDetail = () => {
 
           <div className="grid grid-3 gap-2">
             <div className="form-group">
-              <label className="form-label">Type</label>
+              <label className="form-label">{t('bonuses.typeLabel')}</label>
               <select className="form-select" value={formData.type}
                 onChange={e => setFormData(f => ({ ...f, type: e.target.value }))}>
                 <option value="deposit">Deposit — triggered on deposit</option>
@@ -288,7 +290,7 @@ const BonusDetail = () => {
               <div style={hint}>Determines when and how the bonus is triggered. Affects eligibility logic.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Bonus Value Type</label>
+              <label className="form-label">{t('bonuses.bonusValueType')}</label>
               <select className="form-select" value={formData.bonusValueType}
                 onChange={e => setFormData(f => ({ ...f, bonusValueType: e.target.value }))}>
                 <option value="fixed">Fixed Amount — flat USDC amount</option>
@@ -297,7 +299,7 @@ const BonusDetail = () => {
               <div style={hint}>Fixed gives a flat amount (e.g. $50). Percentage matches a portion of the deposit (e.g. 100% up to $200).</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Status</label>
+              <label className="form-label">{t('bonuses.statusLabel')}</label>
               <select className="form-select" value={formData.status}
                 onChange={e => setFormData(f => ({ ...f, status: e.target.value }))}>
                 <option value="active">Active — players can claim this bonus</option>
@@ -309,19 +311,19 @@ const BonusDetail = () => {
 
           <div className="grid grid-3 gap-2">
             <div className="form-group">
-              <label className="form-label">Fixed Amount (USDC)</label>
+              <label className="form-label">{t('bonuses.fixedAmountUsdc')}</label>
               <input type="number" step="0.01" className="form-input" value={formData.amount}
                 onChange={e => setFormData(f => ({ ...f, amount: e.target.value }))} placeholder="0.00" />
               <div style={hint}>Flat bonus credited to the player. Used when Value Type is "Fixed".</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Percentage Bonus (%)</label>
+              <label className="form-label">{t('bonuses.percentageBonus')}</label>
               <input type="number" step="1" min="0" max="1000" className="form-input" value={formData.percentage}
                 onChange={e => setFormData(f => ({ ...f, percentage: e.target.value }))} placeholder="e.g. 100 for 100%" />
               <div style={hint}>100 = 100% match. Player deposits $100 → gets $100 bonus (subject to Max Cap). Used when Value Type is "Percentage".</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Max Bonus Cap (USDC)</label>
+              <label className="form-label">{t('bonuses.maxBonusCapLabel')}</label>
               <input type="number" step="0.01" className="form-input" value={formData.maxBonusCap}
                 onChange={e => setFormData(f => ({ ...f, maxBonusCap: e.target.value }))} placeholder="No cap" />
               <div style={hint}>Limits the maximum bonus a player can receive. E.g. 100% match with $200 cap → deposit $500 but only get $200 bonus.</div>
@@ -330,19 +332,19 @@ const BonusDetail = () => {
 
           <div className="grid grid-3 gap-2">
             <div className="form-group">
-              <label className="form-label">Wagering Requirement (x) *</label>
+              <label className="form-label">{t('bonuses.wageringRequirement')} *</label>
               <input type="number" step="1" min="0" className="form-input" value={formData.wageringReq}
                 onChange={e => setFormData(f => ({ ...f, wageringReq: e.target.value }))} required />
               <div style={hint}>Player must wager this many times the bonus before withdrawing. 30x on $50 = must wager $1,500. Set 0 for no wagering.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Min Deposit (USDC)</label>
+              <label className="form-label">{t('bonuses.minDeposit')}</label>
               <input type="number" step="0.01" className="form-input" value={formData.minDeposit}
                 onChange={e => setFormData(f => ({ ...f, minDeposit: e.target.value }))} placeholder="No minimum" />
               <div style={hint}>Player's deposit must be at least this amount to qualify for the bonus. Leave blank for no minimum.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Expiry Days After Claim</label>
+              <label className="form-label">{t('bonuses.expiryDays')}</label>
               <input type="number" step="1" min="1" className="form-input" value={formData.expiryDays}
                 onChange={e => setFormData(f => ({ ...f, expiryDays: e.target.value }))} placeholder="Never expires" />
               <div style={hint}>Bonus expires this many days after being claimed. Player must complete wagering within this window. Leave blank = never expires.</div>
@@ -351,10 +353,10 @@ const BonusDetail = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Target Segment</label>
+              <label className="form-label">{t('bonuses.targetSegment')}</label>
               <select className="form-select" value={formData.segmentId}
                 onChange={e => setFormData(f => ({ ...f, segmentId: e.target.value }))}>
-                <option value="">All Players (no segment)</option>
+                <option value="">{t('bonuses.allPlayersNoSegment')}</option>
                 {segments.map(s => (
                   <option key={s.id} value={s.id}>{s.name}{s.comment ? ` — ${s.comment}` : ''}</option>
                 ))}
@@ -370,7 +372,7 @@ const BonusDetail = () => {
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">Country Restrictions</label>
+              <label className="form-label">{t('bonuses.countryRestrictions')}</label>
               <input type="text" className="form-input" value={formData.countryRestrictions}
                 onChange={e => setFormData(f => ({ ...f, countryRestrictions: e.target.value }))}
                 placeholder="e.g. US, GB, CA" />
@@ -383,7 +385,7 @@ const BonusDetail = () => {
               <input type="checkbox" checked={formData.isAutoCredit}
                 onChange={e => setFormData(f => ({ ...f, isAutoCredit: e.target.checked }))} />
               <div>
-                <strong>Auto Credit</strong>
+                <strong>{t('bonuses.autoCredit')}</strong>
                 <div style={hint}>Automatically credit the bonus when the trigger condition is met (e.g. on deposit). If off, the player must manually claim it.</div>
               </div>
             </label>
@@ -391,7 +393,7 @@ const BonusDetail = () => {
               <input type="checkbox" checked={formData.isStackable}
                 onChange={e => setFormData(f => ({ ...f, isStackable: e.target.checked }))} />
               <div>
-                <strong>Stackable</strong>
+                <strong>{t('bonuses.stackable')}</strong>
                 <div style={hint}>Allow this bonus to be active alongside other bonuses. If off, the player can only have one active bonus at a time.</div>
               </div>
             </label>
@@ -399,13 +401,13 @@ const BonusDetail = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Description</label>
+              <label className="form-label">{t('bonuses.descriptionLabel')}</label>
               <textarea className="form-input" rows="3" value={formData.description}
                 onChange={e => setFormData(f => ({ ...f, description: e.target.value }))} />
               <div style={hint}>Shown to players in the app on the promotions page. Keep it brief and attractive.</div>
             </div>
             <div className="form-group">
-              <label className="form-label">Terms & Conditions</label>
+              <label className="form-label">{t('bonuses.terms')}</label>
               <textarea className="form-input" rows="3" value={formData.terms}
                 onChange={e => setFormData(f => ({ ...f, terms: e.target.value }))} />
               <div style={hint}>Full legal terms for this bonus. Displayed in the bonus detail view in the player app.</div>
@@ -414,7 +416,7 @@ const BonusDetail = () => {
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '8px' }}>
             <button type="submit" className="btn btn-primary" disabled={savingDetails}>
-              {savingDetails ? 'Saving…' : 'Save Details'}
+              {savingDetails ? t('bonuses.saving') : t('bonuses.saveDetails')}
             </button>
           </div>
         </form>
@@ -424,7 +426,7 @@ const BonusDetail = () => {
       <div className="card" style={{ marginBottom: '24px' }}>
         <div className="card-header">
           <div>
-            <h3 className="card-title">Game Wagering Contributions</h3>
+            <h3 className="card-title">{t('bonuses.gameContributions')}</h3>
             <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--gray)' }}>
               Only enabled games count toward wagering. Unlisted games = 0%.
             </p>
@@ -691,7 +693,7 @@ const BonusDetail = () => {
       <div className="card" style={{ marginBottom: '40px' }}>
         <div className="card-header">
           <div>
-            <h3 className="card-title">Assign to Player</h3>
+            <h3 className="card-title">{t('bonuses.assignToPlayer')}</h3>
             <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--gray)' }}>
               Manually assign this bonus to a player by their user ID.
             </p>
@@ -700,7 +702,7 @@ const BonusDetail = () => {
         <form onSubmit={handleAssign} style={{ paddingBottom: '8px' }}>
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
             <div className="form-group" style={{ flex: 1, marginBottom: 0 }}>
-              <label className="form-label">Player ID</label>
+              <label className="form-label">{t('bonuses.playerId')}</label>
               <input
                 type="text"
                 className="form-input"
@@ -713,7 +715,7 @@ const BonusDetail = () => {
               <div style={hint}>The player's UUID — find it on the Players page by clicking a player. The bonus will be added to their available bonuses.</div>
             </div>
             <button type="submit" className="btn btn-primary" disabled={assigning} style={{ flexShrink: 0 }}>
-              {assigning ? 'Assigning…' : 'Assign Bonus'}
+              {assigning ? t('bonuses.assigning') : t('bonuses.assignBonus')}
             </button>
           </div>
         </form>

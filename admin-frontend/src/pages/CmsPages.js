@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getCmsPages, deleteCmsPage } from '../services/api';
 
 const statusBadge = (status) => {
@@ -24,6 +25,7 @@ const statusBadge = (status) => {
 };
 
 const CmsPages = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [pages, setPages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,22 +65,26 @@ const CmsPages = () => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>CMS Pages</h2>
+          <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>{t('cms.cmsPages')}</h2>
           <p style={{ margin: '4px 0 0', fontSize: '0.875rem', color: 'var(--gray)' }}>
             Manage static content pages served to the player frontend.
           </p>
         </div>
         <button className="btn btn-primary" onClick={() => navigate('/cms/new')}>
-          + New Page
+          {t('cms.newPage')}
         </button>
       </div>
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-        {['all', 'published', 'draft'].map(f => (
+        {[
+          { key: 'all', label: t('cms.all') },
+          { key: 'published', label: t('cms.published') },
+          { key: 'draft', label: t('cms.draft') },
+        ].map(({ key, label }) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
+            key={key}
+            onClick={() => setFilter(key)}
             style={{
               padding: '6px 14px',
               borderRadius: '6px',
@@ -86,12 +92,12 @@ const CmsPages = () => {
               fontSize: '0.825rem',
               fontWeight: '600',
               cursor: 'pointer',
-              background: filter === f ? 'var(--primary)' : 'transparent',
-              color: filter === f ? '#fff' : 'var(--text)',
-              borderColor: filter === f ? 'var(--primary)' : '#e5e7eb',
+              background: filter === key ? 'var(--primary)' : 'transparent',
+              color: filter === key ? '#fff' : 'var(--text)',
+              borderColor: filter === key ? 'var(--primary)' : '#e5e7eb',
             }}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {label}
           </button>
         ))}
       </div>
@@ -110,21 +116,21 @@ const CmsPages = () => {
               <line x1="16" y1="17" x2="8" y2="17"/>
               <polyline points="10 9 9 9 8 9"/>
             </svg>
-            <div style={{ fontWeight: '600', marginBottom: '4px' }}>No pages yet</div>
+            <div style={{ fontWeight: '600', marginBottom: '4px' }}>{t('cms.noPagesYet')}</div>
             <div style={{ fontSize: '0.875rem' }}>Create your first CMS page to get started.</div>
             <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => navigate('/cms/new')}>
-              + New Page
+              {t('cms.newPage')}
             </button>
           </div>
         ) : (
           <table className="table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Slug</th>
-                <th>Status</th>
-                <th>Last Updated</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+                <th>{t('cms.titleHeader')}</th>
+                <th>{t('cms.slugHeader')}</th>
+                <th>{t('common.status')}</th>
+                <th>{t('cms.lastUpdated')}</th>
+                <th style={{ textAlign: 'right' }}>{t('common.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -154,7 +160,7 @@ const CmsPages = () => {
                         className="btn btn-secondary btn-sm"
                         onClick={() => navigate(`/cms/${page.id}`)}
                       >
-                        Edit
+                        {t('common.edit')}
                       </button>
                       <button
                         className="btn btn-sm"
@@ -162,7 +168,7 @@ const CmsPages = () => {
                         onClick={() => handleDelete(page)}
                         disabled={deleting === page.id}
                       >
-                        {deleting === page.id ? '…' : 'Delete'}
+                        {deleting === page.id ? '…' : t('common.delete')}
                       </button>
                     </div>
                   </td>

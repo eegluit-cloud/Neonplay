@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getCmsPage, createCmsPage, updateCmsPage } from '../services/api';
 
 const hint = { fontSize: '0.72rem', color: 'var(--gray)', marginTop: '3px', lineHeight: '1.4' };
@@ -38,6 +39,7 @@ const slugify = (text) =>
   text.toLowerCase().trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
 
 const CmsPageEdit = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { pageId } = useParams();
   const isNew = pageId === 'new';
@@ -179,9 +181,9 @@ const CmsPageEdit = () => {
     <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '24px' }}>
-        <button className="btn btn-secondary" onClick={() => navigate('/cms')}>← CMS Pages</button>
+        <button className="btn btn-secondary" onClick={() => navigate('/cms')}>{t('cms.backToCmsPages')}</button>
         <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: '700' }}>
-          {isNew ? 'New CMS Page' : `Edit: ${formData.title || '…'}`}
+          {isNew ? t('cms.newCmsPage') : `${t('cms.editPrefix')} ${formData.title || '…'}`}
         </h2>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', alignItems: 'center' }}>
           {/* Status badge */}
@@ -193,7 +195,7 @@ const CmsPageEdit = () => {
             background: formData.status === 'published' ? '#dcfce7' : '#fef9c3',
             color: formData.status === 'published' ? '#166534' : '#854d0e',
           }}>
-            {formData.status === 'published' ? 'Published' : 'Draft'}
+            {formData.status === 'published' ? t('cms.published') : t('cms.draft')}
           </span>
         </div>
       </div>
@@ -202,12 +204,12 @@ const CmsPageEdit = () => {
         {/* Meta fields */}
         <div className="card" style={{ marginBottom: '16px' }}>
           <div className="card-header">
-            <h3 className="card-title">Page Details</h3>
+            <h3 className="card-title">{t('cms.pageDetails')}</h3>
           </div>
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Title *</label>
+              <label className="form-label">{t('cms.titleLabel')} *</label>
               <input
                 type="text"
                 className="form-input"
@@ -218,7 +220,7 @@ const CmsPageEdit = () => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Slug *</label>
+              <label className="form-label">{t('cms.slugLabel')} *</label>
               <input
                 type="text"
                 className="form-input"
@@ -235,7 +237,7 @@ const CmsPageEdit = () => {
 
           <div className="grid grid-2 gap-2">
             <div className="form-group">
-              <label className="form-label">Meta Title</label>
+              <label className="form-label">{t('cms.metaTitle')}</label>
               <input
                 type="text"
                 className="form-input"
@@ -245,7 +247,7 @@ const CmsPageEdit = () => {
               />
             </div>
             <div className="form-group">
-              <label className="form-label">Meta Description</label>
+              <label className="form-label">{t('cms.metaDescription')}</label>
               <input
                 type="text"
                 className="form-input"
@@ -266,7 +268,7 @@ const CmsPageEdit = () => {
             padding: '16px 20px',
             borderBottom: '1px solid #e5e7eb',
           }}>
-            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700' }}>HTML Content</h3>
+            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: '700' }}>{t('cms.htmlContent')}</h3>
 
             {/* View toggle */}
             <div style={{
@@ -457,7 +459,7 @@ const CmsPageEdit = () => {
             className="btn btn-secondary"
             onClick={() => navigate('/cms')}
           >
-            Cancel
+            {t('cms.cancel')}
           </button>
           <button
             type="button"
@@ -465,7 +467,7 @@ const CmsPageEdit = () => {
             disabled={saving}
             onClick={(e) => handleSubmit(e, 'draft')}
           >
-            {saving && formData.status === 'draft' ? 'Saving…' : 'Save as Draft'}
+            {saving && formData.status === 'draft' ? t('bonuses.saving') : t('cms.saveAsDraft')}
           </button>
           <button
             type="button"
@@ -474,7 +476,7 @@ const CmsPageEdit = () => {
             onClick={(e) => handleSubmit(e, 'published')}
             style={{ minWidth: '160px' }}
           >
-            {saving ? 'Publishing…' : formData.status === 'published' ? 'Update & Publish' : 'Publish Page'}
+            {saving ? t('cms.publishing') : formData.status === 'published' ? t('cms.updatePublish') : t('cms.publishPage')}
           </button>
         </div>
       </form>
